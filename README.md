@@ -91,3 +91,99 @@ For open source projects, say how it is licensed.
 
 ## Project status
 If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+
+***
+
+# 日本語訳（Japanese translation）
+
+以下は、上記の英語 README の参考用の日本語訳です。
+
+## はじめに
+
+GitLab でプロジェクトを始めやすくするための、おすすめの次のステップ一覧です。
+
+すでに慣れている方は、この `README.md` を編集して自分用に書き換えてください。手早く整えたい場合は、[下のテンプレート](#この-readme-を編集する)を使うこともできます。
+
+## ファイルを追加する
+
+* [Web エディタでファイルを作成](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file)するか、[アップロード](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file)する
+* [コマンドラインでファイルを追加](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository)するか、既存の Git リポジトリを次のコマンドでプッシュする:
+
+```
+cd existing_repo
+git remote add origin https://github.com/toutetu/ProjNexus.git
+git branch -M main
+git push -uf origin main
+```
+
+## ツールと連携する
+
+* [プロジェクトのインテグレーションを設定](https://github.com/toutetu/ProjNexus/settings)
+
+## チームで協業する
+
+* [メンバーやコラボレーターを招待](https://docs.gitlab.com/user/project/members/)
+* [新しいマージリクエストを作成](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
+* [マージリクエストから issue を自動で閉じる](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
+* [マージリクエストの承認を有効化](https://docs.gitlab.com/user/project/merge_requests/approvals/)
+* [自動マージを設定](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+
+## テストとデプロイ
+
+GitLab に組み込まれた継続的インテグレーション（CI）を利用します。
+
+* [GitLab CI/CD を始める](https://docs.gitlab.com/ci/quick_start/)
+* [SAST で既知の脆弱性を静的解析](https://docs.gitlab.com/user/application_security/sast/)
+* [Auto Deploy で Kubernetes、Amazon EC2、Amazon ECS にデプロイ](https://docs.gitlab.com/topics/autodevops/requirements/)
+* [プル型デプロイで Kubernetes 管理を改善](https://docs.gitlab.com/user/clusters/agent/)
+* [保護された環境を設定](https://docs.gitlab.com/ci/environments/protected_environments/)
+
+***
+
+# この README を編集する
+
+この README を自分のプロジェクト用にしたくなったら、このファイルを編集し、下のテンプレートを活用してください（構成は自由に変えて構いません。あくまで出発点です）。テンプレートの元: [makeareadme.com](https://www.makeareadme.com/)
+
+## 良い README にするためのヒント
+
+プロジェクトごとに違うので、自分のプロジェクトに当てはまる節だけを選んでください。テンプレートの各節は、多くのオープンソース向けの提案です。長すぎる README は読まれにくい一方、短すぎるよりは長い方がまし、ということもあります。長くなりすぎる場合は、別ドキュメントに分けるのも一案です。
+
+## 名前（Name）
+プロジェクト名は、見ただけで内容が伝わるようにします。
+
+## 説明（Description）
+このプロジェクトが具体的に何をするかを書きます。読者が知らない用語には参照リンクを付けます。機能一覧や背景の小見出しを付けてもよいです。類似プロジェクトがあるなら、違いをここに書くとよいでしょう。
+
+## バッジ（Badges）
+テストが通っているかなどを示す小さな画像が README に載っていることがあります。Shields などでバッジを追加できます。各サービスにもバッジ追加手順があります。
+
+## ビジュアル（Visuals）
+スクリーンショットや動画（GIF が多い）を入れると分かりやすくなります。`ttygif` などのツールや、より本格的な [Asciinema](https://asciinema.org/) も検討できます。
+
+## インストール（Installation）
+Yarn、NuGet、Homebrew など、エコシステムごとに一般的な手順があればそれに沿います。初めての人向けに、手順を具体的に書くと迷いが減ります。特定の言語バージョン・OS・手動インストールの依存関係がある場合は「要件（Requirements）」も書きます。
+
+## 使い方（Usage）
+例をたくさん示し、可能なら期待される出力も示します。最小の実行例を README 内に置き、長い例は別ページへリンクするのが実用的です。
+
+## サポート（Support）
+質問や困りごとの窓口（issue、チャット、メールなど）を書きます。
+
+## ロードマップ（Roadmap）
+将来のリリース案があれば README に列挙しておくとよいです。
+
+## コントリビューション（Contributing）
+コントリビューションを受け付けるか、受け入れ条件を書きます。
+
+変更したい人向けに、最初に何をすればよいか（実行するスクリプト、環境変数など）を明示すると助かります。将来の自分にも有効です。
+
+リントやテストのコマンドも書いておくと品質維持に役立ちます。ブラウザ用に Selenium など外部準備が要るテストは、手順を書いておく価値が特にあります。
+
+## 著者と謝辞（Authors and acknowledgment）
+貢献してくれた人への感謝を書きます。
+
+## ライセンス（License）
+オープンソースなら、どのライセンスかを明記します。
+
+## プロジェクトの状態（Project status）
+開発が止まった・ペースが落ちた場合は、README の冒頭にメモを書きます。フォークやメンテナ引き受けのきっかけになります。メンテナ募集を明示してもよいです。
