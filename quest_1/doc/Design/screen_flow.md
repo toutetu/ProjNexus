@@ -46,44 +46,69 @@
 
 ## 3. 画面遷移図（Mermaid）
 
+### 3-1. 全体ナビゲーション（ハブ画面間の遷移）
+
 ```mermaid
-flowchart TD
-  S01[S-01 ログイン]
-  S02[S-02 ダッシュボード]
-  S03[S-03 案件一覧]
-  S04[S-04 案件詳細]
-  S05[S-05 案件申請 新規]
-  S06[S-06 案件編集]
-  S07[S-07 承認待ち一覧]
-  S08>S-08 承認処理モーダル]
-  S09[S-09 タスク詳細]
-  S10>S-10 タスク作成/編集モーダル]
-  S11>S-11 予算実績入力モーダル]
-  S12[S-12 通知一覧]
-  S13[S-13 プロフィール]
+flowchart LR
+  S01[ログイン]:::auth
+  S02[ダッシュボード]:::hub
+  S03[案件一覧]:::hub
+  S07[承認待ち一覧]:::hub
+  S12[通知一覧]:::hub
+  S13[プロフィール]:::hub
 
   S01 --> S02
-  S02 --> S03
-  S02 --> S07
-  S02 --> S12
-  S02 --> S04
-  S03 --> S04
-  S03 --> S05
-  S05 -->|申請送信| S04
-  S04 --> S06
-  S06 -->|保存| S04
-  S04 --> S09
-  S04 --> S10
-  S04 --> S11
-  S04 --> S08
-  S07 --> S04
-  S09 --> S04
-  S12 -->|通知クリック| S04
-  S12 --> S09
-  S02 --> S13
+  S02 <--> S03
+  S02 <--> S07
+  S02 <--> S12
+  S02 <--> S13
+
+  classDef auth fill:#DEE2E6,stroke:#212429
+  classDef hub fill:#01CFFF,stroke:#106EBE,color:#212429
 ```
 
-※ Mermaid の `>...]` はモーダルを表現（非モーダルに変更可）。
+### 3-2. 案件まわりの遷移（メインフロー）
+
+```mermaid
+flowchart LR
+  S03[案件一覧]:::hub
+  S05[案件申請 新規]:::form
+  S04[案件詳細]:::detail
+  S06[案件編集]:::form
+  S09[タスク詳細]:::detail
+
+  S03 -->|新規申請| S05
+  S03 -->|行クリック| S04
+  S05 -->|送信| S04
+  S04 -->|draft時のみ| S06
+  S06 -->|保存| S04
+  S04 -->|タスク行クリック| S09
+  S09 --> S04
+
+  S04 -.モーダル.-> M08[承認/却下]:::modal
+  S04 -.モーダル.-> M10[タスク作成/編集]:::modal
+  S04 -.モーダル.-> M11[予算実績入力]:::modal
+
+  classDef hub fill:#01CFFF,stroke:#106EBE,color:#212429
+  classDef form fill:#EDB100,stroke:#212429,color:#212429
+  classDef detail fill:#F8F9FA,stroke:#106EBE,color:#212429
+  classDef modal fill:#6D28D9,stroke:#212429,color:#FFFFFF
+```
+
+### 3-3. 承認フロー（ステータス遷移）
+
+```mermaid
+stateDiagram-v2
+  [*] --> draft: 申請者が下書き作成
+  draft --> pending_dept: 申請者が送信
+  draft --> pending_hq: 部門管理者が送信(部門承認スキップ)
+  pending_dept --> pending_hq: 部門管理者が承認
+  pending_dept --> rejected: 部門管理者が却下
+  pending_hq --> approved: 本部管理者が承認
+  pending_hq --> rejected: 本部管理者が却下
+  rejected --> [*]: 新規レコードで再申請(parent_project_id紐付け)
+  approved --> [*]: 開発フェーズへ
+```
 
 ---
 
