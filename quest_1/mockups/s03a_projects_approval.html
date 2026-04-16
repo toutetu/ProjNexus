@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>案件一覧（申請タブ） — 開発管理アプリ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --brand-red:#E60013;
+    --brand-dark:#212429;
+    --brand-bg:#F8F9FA;
+    --brand-muted:#6C757D;
+    --brand-border:#DEE2E6;
+    --brand-blue:#106EBE;
+    --brand-cyan:#01CFFF;
+    --brand-purple:#6D28D9;
+    --brand-accent:#EDB100;
+  }
+  html,body{font-family:"Noto Sans JP","Roboto",sans-serif;color:var(--brand-dark);background:var(--brand-bg);}
+  .mono{font-family:"JetBrains Mono","Roboto Mono",monospace;}
+  .btn-primary{background:var(--brand-red);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.05);box-shadow:0 4px 12px rgba(230,0,19,.25);}
+  .btn-primary:active{transform:scale(.97);}
+  .focus-ring:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.35);}
+  /* sidebar active bar */
+  .nav-active{background:rgba(255,255,255,.06);}
+  .nav-active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand-red);}
+  /* status pill */
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:500;}
+  .pill .dot{width:6px;height:6px;border-radius:9999px;}
+  .pill-draft{background:#E9ECEF;color:#495057;}
+  .pill-draft .dot{background:var(--brand-muted);}
+  .pill-dept{background:#E0F7FE;color:#0C7DA3;}
+  .pill-dept .dot{background:var(--brand-cyan);}
+  .pill-hq{background:#E3EEFB;color:#0A4E8A;}
+  .pill-hq .dot{background:var(--brand-blue);}
+  .pill-approved{background:#DCFCE7;color:#166534;}
+  .pill-approved .dot{background:#16A34A;}
+  .pill-rejected{background:#FEE2E2;color:#991B1B;}
+  .pill-rejected .dot{background:var(--brand-red);}
+  /* approval stepper mini */
+  .step-row{display:inline-flex;align-items:center;gap:4px;}
+  .step-dot{width:10px;height:10px;border-radius:9999px;border:1.5px solid var(--brand-border);background:#fff;}
+  .step-dot.done{background:var(--brand-blue);border-color:var(--brand-blue);}
+  .step-dot.current{background:var(--brand-blue);border-color:var(--brand-blue);box-shadow:0 0 0 3px rgba(16,110,190,.25);animation:pulse 1.6s ease-in-out infinite;}
+  .step-dot.rejected{background:var(--brand-red);border-color:var(--brand-red);}
+  .step-line{width:14px;height:2px;background:var(--brand-border);}
+  .step-line.done{background:var(--brand-blue);}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(16,110,190,.25);}50%{box-shadow:0 0 0 6px rgba(16,110,190,.1);}}
+  /* tab */
+  .tab{position:relative;padding:12px 4px;font-weight:500;color:var(--brand-muted);cursor:pointer;}
+  .tab:hover{color:var(--brand-dark);}
+  .tab.active{color:var(--brand-red);}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--brand-red);border-radius:3px 3px 0 0;}
+  /* row hover */
+  .row-click{cursor:pointer;transition:background .12s ease;}
+  .row-click:hover{background:#F1F5F9;}
+  /* kbd */
+  .kbd{font-family:"JetBrains Mono",monospace;font-size:11px;background:#E9ECEF;color:#495057;padding:2px 6px;border-radius:4px;border:1px solid #CED4DA;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ Layout ============ -->
+<div class="flex min-h-screen">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="w-64 shrink-0 text-white flex flex-col" style="background:#212429;">
+    <!-- Logo -->
+    <div class="h-14 px-5 flex items-center border-b border-white/10">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">J</div>
+        <div class="font-bold tracking-wide text-[15px]">開発管理アプリ</div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 text-sm">
+
+      <!-- Section: 申請・承認 -->
+      <div class="px-5 mt-2 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">申請・承認</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i> 新規申請
+      </a>
+      <a href="#" class="relative flex items-center justify-between px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <span class="flex items-center gap-3"><i data-lucide="inbox" class="w-4 h-4"></i> 承認待ち一覧</span>
+        <span class="text-[10px] bg-[#E60013] text-white font-bold px-1.5 py-0.5 rounded-full">3</span>
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white nav-active">
+        <i data-lucide="folder-search" class="w-4 h-4"></i> 案件一覧
+      </a>
+
+      <!-- Section: 開発管理 -->
+      <div class="px-5 mt-5 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">開発管理</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="folders" class="w-4 h-4"></i> 案件一覧
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/50 hover:bg-white/5">
+        <i data-lucide="list-checks" class="w-4 h-4"></i>
+        <span class="flex items-center gap-1.5">タスク一覧 <span class="text-[9px] px-1 py-0.5 rounded bg-white/10">課題2</span></span>
+      </a>
+
+      <!-- Section: 予算管理 -->
+      <div class="px-5 mt-5 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">予算管理</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="wallet" class="w-4 h-4"></i> 案件一覧
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="coins" class="w-4 h-4"></i> 予算実績入力
+      </a>
+
+      <!-- Section: 共通 (bottom) -->
+      <div class="mt-5 pt-4 border-t border-white/10">
+        <a href="#" class="relative flex items-center justify-between px-5 py-2.5 text-white/85 hover:bg-white/5">
+          <span class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4"></i> 通知</span>
+          <span class="text-[10px] bg-[#01CFFF] text-[#062A40] font-bold px-1.5 py-0.5 rounded-full">5</span>
+        </a>
+        <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+          <i data-lucide="user" class="w-4 h-4"></i> プロフィール
+        </a>
+      </div>
+    </nav>
+
+    <!-- User card at bottom -->
+    <div class="p-3 border-t border-white/10 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</div>
+      <div class="min-w-0">
+        <div class="text-[13px] font-medium truncate">高橋 朋子</div>
+        <div class="text-[11px] text-white/50 truncate">申請者 / 開発1部</div>
+      </div>
+      <button class="ml-auto text-white/50 hover:text-white"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+    </div>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <main class="flex-1 flex flex-col min-w-0">
+    <!-- Header -->
+    <header class="h-14 bg-white border-b px-6 flex items-center justify-between sticky top-0 z-10">
+      <!-- Breadcrumb -->
+      <nav class="flex items-center gap-2 text-sm text-[color:var(--brand-muted)]">
+        <span class="flex items-center gap-1"><i data-lucide="file-check-2" class="w-4 h-4"></i>申請・承認</span>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        <span class="text-[color:var(--brand-dark)] font-medium">案件一覧</span>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button class="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border hover:bg-gray-50 focus-ring" style="border-color:var(--brand-border);">
+          <i data-lucide="search" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
+          <span class="text-[color:var(--brand-muted)]">検索...</span>
+          <span class="kbd">⌘K</span>
+        </button>
+        <button class="relative p-2 rounded-md hover:bg-gray-100 focus-ring">
+          <i data-lucide="bell" class="w-5 h-5 text-[color:var(--brand-dark)]"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E60013]"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-7xl mx-auto">
+
+        <!-- Page header -->
+        <div class="flex items-start justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">案件一覧</h1>
+            <p class="text-sm text-[color:var(--brand-muted)] mt-1">申請フェーズ <span class="mx-1.5">·</span> 全8件</p>
+          </div>
+          <button class="btn-primary rounded-md px-4 py-2.5 text-sm font-medium shadow-sm flex items-center gap-2 transition-all focus-ring">
+            <i data-lucide="plus" class="w-4 h-4"></i> 新規申請
+          </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-t-lg border border-b-0 px-5" style="border-color:var(--brand-border);">
+          <div class="flex items-center gap-6 border-b" style="border-color:var(--brand-border);">
+            <div class="tab active">
+              <span class="flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i>申請<span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-[#FEE2E2] text-[#991B1B] font-semibold">8</span></span>
+            </div>
+            <div class="tab">
+              <span class="flex items-center gap-2"><i data-lucide="git-branch" class="w-4 h-4"></i>開発<span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-semibold">10</span></span>
+            </div>
+            <div class="tab">
+              <span class="flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4"></i>予算<span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-semibold">10</span></span>
+            </div>
+            <div class="ml-auto text-xs text-[color:var(--brand-muted)]">フェーズ別に表示列が切り替わります</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white border-x p-4 flex items-center gap-3 flex-wrap" style="border-color:var(--brand-border);">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--brand-muted)]"></i>
+            <input type="text" placeholder="案件名・申請者で検索" class="w-80 pl-9 pr-3 py-2 text-sm rounded-md border focus-ring" style="border-color:var(--brand-border);" />
+          </div>
+          <select class="text-sm px-3 py-2 rounded-md border focus-ring bg-white" style="border-color:var(--brand-border);">
+            <option>ステータス：すべて</option>
+            <option>下書き</option>
+            <option>部門承認待ち</option>
+            <option>本部承認待ち</option>
+            <option>却下</option>
+          </select>
+          <select class="text-sm px-3 py-2 rounded-md border focus-ring bg-white" style="border-color:var(--brand-border);">
+            <option>部門：すべて</option>
+            <option>開発1部</option>
+            <option>開発2部</option>
+            <option>開発3部</option>
+          </select>
+          <button class="text-sm text-[color:var(--brand-blue)] hover:underline ml-auto">クリア</button>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-b-lg border border-t-0 overflow-hidden" style="border-color:var(--brand-border);">
+          <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-[color:var(--brand-bg)] text-[color:var(--brand-muted)] text-xs uppercase tracking-wider">
+              <tr>
+                <th class="text-left font-semibold px-5 py-3">タイトル</th>
+                <th class="text-left font-semibold px-4 py-3 w-32">ステータス</th>
+                <th class="text-left font-semibold px-4 py-3 w-44">承認ステップ</th>
+                <th class="text-left font-semibold px-4 py-3 w-24">申請日</th>
+                <th class="text-left font-semibold px-4 py-3 w-28">部門</th>
+                <th class="text-left font-semibold px-4 py-3 w-24">最終更新</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y" style="border-color:var(--brand-border);">
+              <!-- Row 1: pending_hq -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium text-[color:var(--brand-dark)]">次世代EAMシステム開発</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">設備保全データを統合し予知保全を実現</div>
+                </td>
+                <td class="px-4 py-3.5"><span class="pill pill-hq"><span class="dot"></span>本部承認待ち</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="step-row">
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot current"></span><span class="step-line"></span>
+                    <span class="step-dot"></span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">申請 → 部門 → <b class="text-[color:var(--brand-blue)]">本部</b> → 済</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/14</td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">2時間前</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 2: pending_dept -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">LNGプラント解析ツール刷新</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">既存Excelマクロを Web 化して計算速度を改善</div>
+                </td>
+                <td class="px-4 py-3.5"><span class="pill pill-dept"><span class="dot"></span>部門承認待ち</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="step-row">
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot current"></span><span class="step-line"></span>
+                    <span class="step-dot"></span><span class="step-line"></span>
+                    <span class="step-dot"></span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">申請 → <b class="text-[color:var(--brand-blue)]">部門</b> → 本部 → 済</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/15</td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">1日前</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 3: draft -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">現場IoTセンサー可視化ダッシュボード</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">温度・振動データのリアルタイム閲覧</div>
+                </td>
+                <td class="px-4 py-3.5"><span class="pill pill-draft"><span class="dot"></span>下書き</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="step-row">
+                    <span class="step-dot current"></span><span class="step-line"></span>
+                    <span class="step-dot"></span><span class="step-line"></span>
+                    <span class="step-dot"></span><span class="step-line"></span>
+                    <span class="step-dot"></span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1"><b>下書き中</b> → 部門 → 本部 → 済</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">—</td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">3日前</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 4: rejected -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">調達部向けRPA導入PoC <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">再申請可</span></div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">本部：予算根拠不足のため差戻し</div>
+                </td>
+                <td class="px-4 py-3.5"><span class="pill pill-rejected"><span class="dot"></span>却下</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="step-row">
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot rejected"></span><span class="step-line"></span>
+                    <span class="step-dot"></span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">申請 → 部門 → <b class="text-[color:var(--brand-red)]">本部で却下</b></div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/08</td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">6日前</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 5: pending_dept -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">原価管理ダッシュボード開発</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">Excel集計の月次レポートを自動化</div>
+                </td>
+                <td class="px-4 py-3.5"><span class="pill pill-dept"><span class="dot"></span>部門承認待ち</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="step-row">
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot current"></span><span class="step-line"></span>
+                    <span class="step-dot"></span><span class="step-line"></span>
+                    <span class="step-dot"></span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">申請 → <b class="text-[color:var(--brand-blue)]">部門</b> → 本部 → 済</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/15</td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">3時間前</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 6: pending_hq -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">人事評価システムリプレース</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">評価入力のモバイル対応</div>
+                </td>
+                <td class="px-4 py-3.5"><span class="pill pill-hq"><span class="dot"></span>本部承認待ち</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="step-row">
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot current"></span><span class="step-line"></span>
+                    <span class="step-dot"></span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">申請 → 部門 → <b class="text-[color:var(--brand-blue)]">本部</b> → 済</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/12</td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">2日前</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 7: draft -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">協力会社ポータル構築（検討中）</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">まだ予算額の見積もり精査中</div>
+                </td>
+                <td class="px-4 py-3.5"><span class="pill pill-draft"><span class="dot"></span>下書き</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="step-row">
+                    <span class="step-dot current"></span><span class="step-line"></span>
+                    <span class="step-dot"></span><span class="step-line"></span>
+                    <span class="step-dot"></span><span class="step-line"></span>
+                    <span class="step-dot"></span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1"><b>下書き中</b> → 部門 → 本部 → 済</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">—</td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">5日前</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 8: rejected -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">社内文書OCR検索 <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">再申請可</span></div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">部門：ROI 不明確のため差戻し</div>
+                </td>
+                <td class="px-4 py-3.5"><span class="pill pill-rejected"><span class="dot"></span>却下</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="step-row">
+                    <span class="step-dot done"></span><span class="step-line done"></span>
+                    <span class="step-dot rejected"></span><span class="step-line"></span>
+                    <span class="step-dot"></span><span class="step-line"></span>
+                    <span class="step-dot"></span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">申請 → <b class="text-[color:var(--brand-red)]">部門で却下</b></div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/02</td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">2週間前</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+            </tbody>
+          </table>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between px-5 py-3 border-t text-sm" style="border-color:var(--brand-border);">
+            <div class="text-[color:var(--brand-muted)]">8件中 1–8件を表示</div>
+            <div class="flex items-center gap-1">
+              <button class="w-8 h-8 rounded-md border flex items-center justify-center text-[color:var(--brand-muted)] hover:bg-gray-50 disabled:opacity-50" disabled style="border-color:var(--brand-border);"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+              <button class="w-8 h-8 rounded-md bg-[color:var(--brand-dark)] text-white text-xs font-medium">1</button>
+              <button class="w-8 h-8 rounded-md border flex items-center justify-center text-[color:var(--brand-muted)] hover:bg-gray-50 disabled:opacity-50" disabled style="border-color:var(--brand-border);"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend (small note) -->
+        <div class="mt-4 text-xs text-[color:var(--brand-muted)] flex items-center gap-4 flex-wrap">
+          <span class="flex items-center gap-1.5"><span class="pill pill-draft"><span class="dot"></span>下書き</span></span>
+          <span class="flex items-center gap-1.5"><span class="pill pill-dept"><span class="dot"></span>部門承認待ち</span></span>
+          <span class="flex items-center gap-1.5"><span class="pill pill-hq"><span class="dot"></span>本部承認待ち</span></span>
+          <span class="flex items-center gap-1.5"><span class="pill pill-approved"><span class="dot"></span>承認済</span></span>
+          <span class="flex items-center gap-1.5"><span class="pill pill-rejected"><span class="dot"></span>却下</span></span>
+          <span class="ml-auto">※ 承認済み案件は「開発タブ」で確認できます</span>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Lucide icons
+  lucide.createIcons();
+
+  // Tab switching (mock only)
+  document.querySelectorAll('.tab').forEach((t, i, arr)=>{
+    t.addEventListener('click', ()=>{
+      arr.forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
