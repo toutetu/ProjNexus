@@ -25,6 +25,7 @@
 | **メインブルー** | ![#106EBE](https://via.placeholder.com/15/106EBE?text=+) | `#106EBE` | 接続ノードの中央部分 |
 | **ディープパープル** | ![#6D28D9](https://via.placeholder.com/15/6D28D9?text=+) | `#6D28D9` | 接続ノードの右側（終了色） |
 
+
 ## 3. タイポグラフィ
 
 * **日本語フォント**: `Noto Sans JP` (Hiragino Kaku Gothic ProN, Yu Gothic)
@@ -48,3 +49,4 @@
   --brand-logo-blue: #106ebe;
   --brand-logo-purple: #6d28d9;
 }
+

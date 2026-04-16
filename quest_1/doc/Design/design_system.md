@@ -152,7 +152,7 @@ theme: {
 | Outline | border-brand-red, text-brand-red | 強調したい副アクション | 「再申請」 |
 
 **全ボタン共通の「押せる感」**:
-- `rounded-md`（角丸 6px）
+- `rounded-md`（角丸 ）
 - `shadow-sm hover:shadow-md`（ホバーで影が強く）
 - `transition-all duration-150`
 - `active:scale-95`（押下時に少し縮む）
