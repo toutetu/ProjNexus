@@ -25,6 +25,7 @@
 - [x] ER図（v4）作成
 - [x] 画面遷移の整理
 - [x] デザインルール策定（カラー・UI方針）
+- [ ] デザインイメージ作成 ← **次回はここ**
 - [ ] CLAUDE.md の作成（Cursor向け設計ドキュメント）← **次回はここ**
 - [ ] Laravel環境構築
 - [ ] Breeze（React + Inertia）・Spatie Permission のインストール
