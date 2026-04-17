@@ -22,7 +22,7 @@
 ### AuthenticatedLayout
 **役割**: ログイン後の全画面共通枠。サイドバー + ヘッダー + メインコンテンツスロット。
 **配置**: `resources/js/Layouts/AuthenticatedLayout.tsx`
-**使用モック**: s02, s03a, s05 すべて
+**使用モック**: s02, s03a, s04, s05 すべて
 **Props**:
 ```ts
 interface AuthenticatedLayoutProps {
@@ -35,7 +35,7 @@ interface AuthenticatedLayoutProps {
 ### Sidebar
 **役割**: 3セクション構造のダークナビゲーション。
 **配置**: `resources/js/Components/Layout/Sidebar.tsx`
-**使用モック**: s02, s03a, s05 すべて
+**使用モック**: s02, s03a, s04, s05 すべて
 **Props**: 基本なし（Inertia の `usePage()` で現在ルート取得してアクティブ判定）
 **内部構造**:
 - ロゴ（開発管理アプリ + グラデーションJ）
@@ -71,7 +71,7 @@ interface HeaderProps {
 ### StatusPill ★最頻出
 **役割**: 5種類のステータスバッジ。色・ドット・ラベルの3点セット。
 **配置**: `resources/js/Components/StatusPill.tsx`
-**使用モック**: s02（予算アラート）, s03a（一覧の全行）, s05（確認モーダル）
+**使用モック**: s02（予算アラート）, s03a（一覧の全行）, s04（ヘッダー・承認履歴・変更履歴）, s05（確認モーダル）
 **Props**:
 ```ts
 type ProjectStatus = 'draft' | 'pending_dept' | 'pending_hq' | 'approved' | 'rejected';
@@ -113,7 +113,7 @@ interface ApprovalStepperMiniProps {
 ### ApprovalStepperFull
 **役割**: S-04 案件詳細ページ上部の、大きい横長ステッパー。
 **配置**: `resources/js/Components/Approval/ApprovalStepperFull.tsx`
-**使用モック**: S-04（次回作成予定）
+**使用モック**: s04
 **Props**:
 ```ts
 interface ApprovalStepperFullProps {
@@ -241,7 +241,7 @@ interface ConfirmDialogProps {
 ### ApprovalDialog（S-08）
 **役割**: 承認・却下専用ダイアログ。`ConfirmDialog` を内部で利用しつつ、コメント入力と承認/却下モードで UI を変える。
 **配置**: `resources/js/Components/Modals/ApprovalDialog.tsx`
-**使用モック**: S-08（次回以降作成）
+**使用モック**: s04（承認/却下モーダルとして実装済み）
 **Props**:
 ```ts
 interface ApprovalDialogProps {
@@ -266,7 +266,64 @@ interface ApprovalDialogProps {
 
 ---
 
-## 6. ユーティリティ・小物
+## 6. タイムライン・履歴
+
+### Timeline
+**役割**: 承認履歴・変更履歴で使う縦タイムラインの外枠。
+**配置**: `resources/js/Components/Timeline/Timeline.tsx`
+**使用モック**: s04（承認履歴タブ・変更履歴タブ）
+**Props**:
+```ts
+interface TimelineProps {
+  children: ReactNode;  // TimelineItem を並べる
+}
+```
+
+### TimelineItem
+**役割**: タイムラインの各エントリ。左に色付きドット + 縦線、右に内容。
+**配置**: `resources/js/Components/Timeline/TimelineItem.tsx`
+**使用モック**: s04
+**Props**:
+```ts
+interface TimelineItemProps {
+  icon: LucideIcon;
+  iconColor?: string;   // アイコン色（CSS値）
+  iconBg?: string;      // ドット背景色（CSS値）
+  children: ReactNode;  // 内容（名前・日時・コメントなど）
+}
+```
+
+### TaskTable
+**役割**: 案件詳細内のタスク一覧テーブル。種類・優先度・ステータス・進捗バー付き。
+**配置**: `resources/js/Components/Tasks/TaskTable.tsx`
+**使用モック**: s04（タスクタブ）
+**Props**:
+```ts
+interface TaskTableProps {
+  tasks: Task[];
+  onRowClick: (id: number) => void;
+  onAdd: () => void;  // タスク追加ボタン
+}
+```
+**内部**: 種類バッジ(bug/feature/improve/task)、優先度バッジ(high/mid/low)、ProgressBar を組み合わせ
+
+### DetailTabs
+**役割**: 案件詳細ページの「概要/タスク/承認履歴/変更履歴」タブ。アクセントカラーでアクティブ表示。
+**配置**: `resources/js/Components/DetailTabs.tsx`
+**使用モック**: s04
+**Props**:
+```ts
+interface DetailTabsProps<T extends string> {
+  value: T;
+  onChange: (v: T) => void;
+  items: { value: T; label: string; icon?: LucideIcon; count?: number }[];
+}
+```
+**注意**: Tabs コンポーネントとの違い — Tabs は案件一覧のタブ（赤アンダーライン）、DetailTabs は詳細ページのタブ（アクセントカラーアンダーライン）。将来的には統一可能だがPoCでは別部品で進める。
+
+---
+
+## 7. ユーティリティ・小物
 
 ### KbdBadge
 `⌘K` などのキーボードショートカット表示。`mono` フォント + 薄いボーダー。
@@ -280,7 +337,7 @@ interface ApprovalDialogProps {
 ### ProgressBar
 消費率・進捗率バー。70%超で黄、90%超で赤の自動色分け。
 **Props**: `value: number; max?: number; thresholds?: { warn: number; danger: number }; showLabel?: boolean`
-→ S-02 予算アラート, S-03c 案件一覧予算タブ, S-04 予算サマリー, S-11 入力プレビュー で共通利用。
+→ S-02 予算アラート, S-03c 案件一覧予算タブ, s04 予算サマリー＋タスク進捗, S-11 入力プレビュー で共通利用。
 
 ### EmptyState
 データ0件時の表示。`icon / title / description / action` の定型。
@@ -322,3 +379,4 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 ## 更新ログ
 
 - 2026-04-16: s02/s03a/s05 モックから初版を作成。S-04/S-07/S-08/S-10/S-11/S-12/S-13 は今後のモック作成時に追記。
+- 2026-04-17: s04 モック完成に伴い追記。Timeline/TimelineItem/TaskTable/DetailTabs を追加。ApprovalStepperFull・ApprovalDialog の使用モック欄を更新。アクセントカラー(#EDB100)の活用箇所が増加。

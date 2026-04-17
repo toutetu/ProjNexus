@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>案件詳細 — 開発管理アプリ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --brand-red:#E60013;
+    --brand-dark:#212429;
+    --brand-bg:#F8F9FA;
+    --brand-muted:#6C757D;
+    --brand-border:#DEE2E6;
+    --brand-blue:#106EBE;
+    --brand-cyan:#01CFFF;
+    --brand-purple:#6D28D9;
+    --brand-accent:#EDB100;
+  }
+  html,body{font-family:"Noto Sans JP","Roboto",sans-serif;color:var(--brand-dark);background:var(--brand-bg);}
+  .mono{font-family:"JetBrains Mono","Roboto Mono",monospace;}
+  .btn-primary{background:var(--brand-red);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.05);box-shadow:0 4px 12px rgba(230,0,19,.25);}
+  .btn-primary:active{transform:scale(.97);}
+  .btn-accent{background:var(--brand-accent);color:var(--brand-dark);}
+  .btn-accent:hover{filter:brightness(1.08);box-shadow:0 4px 12px rgba(237,177,0,.3);}
+  .btn-accent:active{transform:scale(.97);}
+  .btn-outline{background:#fff;color:var(--brand-dark);border:1px solid var(--brand-border);}
+  .btn-outline:hover{background:#F1F5F9;border-color:#CED4DA;}
+  .btn-outline-red{background:#fff;color:var(--brand-red);border:1px solid var(--brand-red);}
+  .btn-outline-red:hover{background:#FEF2F2;}
+  .btn-green{background:#16A34A;color:#fff;}
+  .btn-green:hover{filter:brightness(1.08);box-shadow:0 4px 12px rgba(22,163,74,.25);}
+  .focus-ring:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.35);}
+  /* sidebar active bar */
+  .nav-active{background:rgba(255,255,255,.06);}
+  .nav-active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand-red);}
+  /* status pill */
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:500;}
+  .pill .dot{width:6px;height:6px;border-radius:9999px;}
+  .pill-draft{background:#E9ECEF;color:#495057;} .pill-draft .dot{background:var(--brand-muted);}
+  .pill-dept{background:#E0F7FE;color:#0C7DA3;} .pill-dept .dot{background:var(--brand-cyan);}
+  .pill-hq{background:#E3EEFB;color:#0A4E8A;} .pill-hq .dot{background:var(--brand-blue);}
+  .pill-approved{background:#DCFCE7;color:#166534;} .pill-approved .dot{background:#16A34A;}
+  .pill-rejected{background:#FEE2E2;color:#991B1B;} .pill-rejected .dot{background:var(--brand-red);}
+  /* kbd */
+  .kbd{font-family:"JetBrains Mono",monospace;font-size:11px;background:#E9ECEF;color:#495057;padding:2px 6px;border-radius:4px;border:1px solid #CED4DA;}
+  /* card */
+  .card{background:#fff;border:1px solid var(--brand-border);border-radius:8px;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--brand-border);display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;}
+  .card-body{padding:20px;}
+  /* accent left border card */
+  .card-accent{border-left:3px solid var(--brand-accent);}
+  /* tab (detail page) */
+  .dtab{position:relative;padding:12px 16px;font-weight:500;font-size:14px;color:var(--brand-muted);cursor:pointer;transition:color .15s;}
+  .dtab:hover{color:var(--brand-dark);}
+  .dtab.active{color:var(--brand-accent);}
+  .dtab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--brand-accent);border-radius:3px 3px 0 0;}
+  /* stepper full */
+  .stepper-full{display:flex;align-items:flex-start;gap:0;}
+  .step-item{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;text-align:center;}
+  .step-circle{width:40px;height:40px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;border:2px solid var(--brand-border);background:#fff;color:var(--brand-muted);position:relative;z-index:1;transition:all .3s;}
+  .step-circle.done{background:var(--brand-accent);border-color:var(--brand-accent);color:#fff;}
+  .step-circle.current{background:var(--brand-blue);border-color:var(--brand-blue);color:#fff;box-shadow:0 0 0 4px rgba(16,110,190,.2);animation:pulse-step 2s ease-in-out infinite;}
+  .step-circle.rejected-step{background:var(--brand-red);border-color:var(--brand-red);color:#fff;}
+  .step-label{margin-top:8px;font-size:12px;font-weight:500;color:var(--brand-muted);}
+  .step-label.done{color:var(--brand-dark);}
+  .step-label.current{color:var(--brand-blue);font-weight:600;}
+  .step-meta{margin-top:4px;font-size:11px;color:var(--brand-muted);}
+  .step-connector{position:absolute;top:20px;left:calc(50% + 24px);right:calc(-50% + 24px);height:2px;background:var(--brand-border);}
+  .step-connector.done{background:var(--brand-accent);}
+  @keyframes pulse-step{0%,100%{box-shadow:0 0 0 4px rgba(16,110,190,.2);}50%{box-shadow:0 0 0 8px rgba(16,110,190,.08);}}
+  /* progress bar */
+  .progress-track{height:8px;border-radius:9999px;background:#E9ECEF;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:9999px;transition:width .5s ease;}
+  /* timeline */
+  .timeline-item{position:relative;padding-left:32px;padding-bottom:24px;}
+  .timeline-item:last-child{padding-bottom:0;}
+  .timeline-item::before{content:"";position:absolute;left:11px;top:28px;bottom:0;width:2px;background:var(--brand-border);}
+  .timeline-item:last-child::before{display:none;}
+  .timeline-dot{position:absolute;left:0;top:4px;width:24px;height:24px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:12px;}
+  /* task row */
+  .task-row{cursor:pointer;transition:background .12s;} .task-row:hover{background:#F1F5F9;}
+  /* task priority badges */
+  .pri-high{background:#FEE2E2;color:#991B1B;} .pri-mid{background:#FEF9C3;color:#854D0E;} .pri-low{background:#E0F2FE;color:#075985;}
+  /* task type badges */
+  .type-bug{background:#FEE2E2;color:#991B1B;} .type-feature{background:#DBEAFE;color:#1E40AF;} .type-improve{background:#D1FAE5;color:#065F46;} .type-task{background:#F3F4F6;color:#374151;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ Layout ============ -->
+<div class="flex min-h-screen">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="w-64 shrink-0 text-white flex flex-col" style="background:#212429;">
+    <div class="h-14 px-5 flex items-center border-b border-white/10">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,var(--brand-accent) 0%,#E69500 100%);">J</div>
+        <div class="font-bold tracking-wide text-[15px]">開発管理アプリ</div>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-3 text-sm">
+      <div class="px-5 mt-2 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">申請・承認</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5"><i data-lucide="plus-circle" class="w-4 h-4"></i> 新規申請</a>
+      <a href="#" class="relative flex items-center justify-between px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <span class="flex items-center gap-3"><i data-lucide="inbox" class="w-4 h-4"></i> 承認待ち一覧</span>
+        <span class="text-[10px] bg-[#E60013] text-white font-bold px-1.5 py-0.5 rounded-full">3</span>
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5"><i data-lucide="folder-search" class="w-4 h-4"></i> 案件一覧</a>
+
+      <div class="px-5 mt-5 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">開発管理</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white nav-active"><i data-lucide="folders" class="w-4 h-4"></i> 案件一覧</a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/50 hover:bg-white/5">
+        <i data-lucide="list-checks" class="w-4 h-4"></i>
+        <span class="flex items-center gap-1.5">タスク一覧 <span class="text-[9px] px-1 py-0.5 rounded bg-white/10">課題2</span></span>
+      </a>
+
+      <div class="px-5 mt-5 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">予算管理</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5"><i data-lucide="wallet" class="w-4 h-4"></i> 案件一覧</a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5"><i data-lucide="coins" class="w-4 h-4"></i> 予算実績入力</a>
+
+      <div class="mt-5 pt-4 border-t border-white/10">
+        <a href="#" class="relative flex items-center justify-between px-5 py-2.5 text-white/85 hover:bg-white/5">
+          <span class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4"></i> 通知</span>
+          <span class="text-[10px] bg-[#01CFFF] text-[#062A40] font-bold px-1.5 py-0.5 rounded-full">5</span>
+        </a>
+        <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5"><i data-lucide="user" class="w-4 h-4"></i> プロフィール</a>
+      </div>
+    </nav>
+    <div class="p-3 border-t border-white/10 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,var(--brand-accent),#E69500);">高</div>
+      <div class="min-w-0">
+        <div class="text-[13px] font-medium truncate">高橋 朋子</div>
+        <div class="text-[11px] text-white/50 truncate">申請者 / 開発1部</div>
+      </div>
+      <button class="ml-auto text-white/50 hover:text-white"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+    </div>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <main class="flex-1 flex flex-col min-w-0">
+    <!-- Header -->
+    <header class="h-14 bg-white border-b px-6 flex items-center justify-between sticky top-0 z-10">
+      <nav class="flex items-center gap-2 text-sm text-[color:var(--brand-muted)]">
+        <span class="flex items-center gap-1"><i data-lucide="git-branch" class="w-4 h-4"></i>開発管理</span>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        <a href="#" class="hover:text-[color:var(--brand-blue)] hover:underline">案件一覧</a>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        <span class="text-[color:var(--brand-dark)] font-medium">次世代EAMシステム開発</span>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button class="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border hover:bg-gray-50 focus-ring" style="border-color:var(--brand-border);">
+          <i data-lucide="search" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
+          <span class="text-[color:var(--brand-muted)]">検索...</span>
+          <span class="kbd">⌘K</span>
+        </button>
+        <button class="relative p-2 rounded-md hover:bg-gray-100 focus-ring">
+          <i data-lucide="bell" class="w-5 h-5 text-[color:var(--brand-dark)]"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E60013]"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-7xl mx-auto">
+
+        <!-- ===== Page Header ===== -->
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <div class="flex items-center gap-3 mb-1">
+              <h1 class="text-2xl font-bold tracking-tight">次世代EAMシステム開発</h1>
+              <span class="pill pill-hq"><span class="dot"></span>本部承認待ち</span>
+            </div>
+            <div class="flex items-center gap-4 text-sm text-[color:var(--brand-muted)]">
+              <span class="flex items-center gap-1.5"><i data-lucide="building-2" class="w-3.5 h-3.5"></i>開発1部</span>
+              <span class="flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i>申請者: 高橋 朋子</span>
+              <span class="flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i>起票: 2026/04/14</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <!-- 編集ボタン: draft時のみ -->
+            <!-- <button class="btn-outline rounded-md px-4 py-2 text-sm font-medium flex items-center gap-2"><i data-lucide="pencil" class="w-4 h-4"></i> 編集</button> -->
+          </div>
+        </div>
+
+        <!-- ===== 1段目: 承認ステッパーUI (Full) ===== -->
+        <div class="card mb-6">
+          <div class="card-header" style="border-bottom-color:var(--brand-accent);border-bottom-width:2px;">
+            <i data-lucide="route" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+            <span>承認フロー</span>
+            <span class="ml-auto text-xs font-normal text-[color:var(--brand-muted)]">申請日: 2026/04/14</span>
+          </div>
+          <div class="card-body px-8 py-6">
+            <div class="stepper-full">
+              <!-- Step 1: 申請 (done) -->
+              <div class="step-item">
+                <div class="step-connector done"></div>
+                <div class="step-circle done"><i data-lucide="check" class="w-5 h-5"></i></div>
+                <div class="step-label done">申請</div>
+                <div class="step-meta">高橋 朋子<br/>04/14 09:30</div>
+              </div>
+              <!-- Step 2: 部門承認 (done) -->
+              <div class="step-item">
+                <div class="step-connector done"></div>
+                <div class="step-circle done"><i data-lucide="check" class="w-5 h-5"></i></div>
+                <div class="step-label done">部門承認</div>
+                <div class="step-meta">佐藤 太郎（部長）<br/>04/15 14:20</div>
+              </div>
+              <!-- Step 3: 本部承認 (current) -->
+              <div class="step-item">
+                <div class="step-connector"></div>
+                <div class="step-circle current"><i data-lucide="clock" class="w-5 h-5"></i></div>
+                <div class="step-label current">本部承認</div>
+                <div class="step-meta" style="color:var(--brand-blue);">対応待ち<br/>田中 花子（本部長）</div>
+              </div>
+              <!-- Step 4: 承認済 (pending) -->
+              <div class="step-item">
+                <div class="step-circle">4</div>
+                <div class="step-label">承認済</div>
+                <div class="step-meta">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 2段目: タブナビ ===== -->
+        <div class="bg-white rounded-t-lg border border-b-0 px-2" style="border-color:var(--brand-border);">
+          <div class="flex items-center gap-1 border-b" style="border-color:var(--brand-border);">
+            <div class="dtab active" data-tab="overview">
+              <span class="flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i>概要</span>
+            </div>
+            <div class="dtab" data-tab="tasks">
+              <span class="flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4"></i>タスク<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-semibold">12</span></span>
+            </div>
+            <div class="dtab" data-tab="approval-history">
+              <span class="flex items-center gap-2"><i data-lucide="history" class="w-4 h-4"></i>承認履歴</span>
+            </div>
+            <div class="dtab" data-tab="change-history">
+              <span class="flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i>変更履歴</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Tab Content ===== -->
+
+        <!-- === 概要タブ === -->
+        <div id="tab-overview" class="tab-content bg-white border border-t-0 rounded-b-lg" style="border-color:var(--brand-border);">
+          <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Left 2 cols -->
+              <div class="lg:col-span-2 space-y-6">
+                <!-- 案件情報カード -->
+                <div class="card card-accent">
+                  <div class="card-header">
+                    <i data-lucide="info" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    案件情報
+                  </div>
+                  <div class="card-body space-y-4">
+                    <div>
+                      <div class="text-xs font-medium text-[color:var(--brand-muted)] uppercase tracking-wider mb-1">目的</div>
+                      <p class="text-sm leading-relaxed">設備保全データを統合し予知保全を実現するための次世代EAM（Enterprise Asset Management）システムを開発する。既存の Excel 管理から脱却し、設備稼働率の 15% 向上を目指す。</p>
+                    </div>
+                    <div>
+                      <div class="text-xs font-medium text-[color:var(--brand-muted)] uppercase tracking-wider mb-1">説明</div>
+                      <p class="text-sm leading-relaxed">現在、設備保全データは各プラント事業部が個別に Excel で管理しており、横断的な分析が困難。本プロジェクトでは以下を実現する：<br/>① センサーデータの収集基盤構築（IoTゲートウェイ）<br/>② 予知保全アルゴリズムの開発（機械学習モデル）<br/>③ 保全作業のスケジューリング自動化</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 pt-2 border-t" style="border-color:var(--brand-border);">
+                      <div>
+                        <div class="text-xs font-medium text-[color:var(--brand-muted)] uppercase tracking-wider mb-1">起票日</div>
+                        <div class="text-sm">2026年4月14日</div>
+                      </div>
+                      <div>
+                        <div class="text-xs font-medium text-[color:var(--brand-muted)] uppercase tracking-wider mb-1">想定期間</div>
+                        <div class="text-sm">60日間</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 予算サマリーカード -->
+                <div class="card">
+                  <div class="card-header">
+                    <i data-lucide="wallet" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    予算サマリー
+                  </div>
+                  <div class="card-body">
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                      <div class="text-center p-3 rounded-lg" style="background:rgba(237,177,0,.08);">
+                        <div class="text-xs text-[color:var(--brand-muted)] mb-1">概算予算</div>
+                        <div class="text-lg font-bold mono" style="color:var(--brand-accent);">¥10,000,000</div>
+                      </div>
+                      <div class="text-center p-3 rounded-lg bg-gray-50">
+                        <div class="text-xs text-[color:var(--brand-muted)] mb-1">確定予算</div>
+                        <div class="text-lg font-bold mono">—</div>
+                        <div class="text-[10px] text-[color:var(--brand-muted)]">承認後確定</div>
+                      </div>
+                      <div class="text-center p-3 rounded-lg bg-gray-50">
+                        <div class="text-xs text-[color:var(--brand-muted)] mb-1">実績額</div>
+                        <div class="text-lg font-bold mono">¥0</div>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="text-[color:var(--brand-muted)]">消費率</span>
+                        <span class="font-medium">0%（未承認）</span>
+                      </div>
+                      <div class="progress-track">
+                        <div class="progress-fill" style="width:0%;background:var(--brand-accent);"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right 1 col -->
+              <div class="space-y-4">
+                <!-- ステータスカード -->
+                <div class="card">
+                  <div class="card-body text-center py-6">
+                    <span class="pill pill-hq text-sm px-4 py-1.5"><span class="dot" style="width:8px;height:8px;"></span>本部承認待ち</span>
+                    <p class="text-xs text-[color:var(--brand-muted)] mt-3 leading-relaxed">部門承認が完了し、本部管理者の<br/>最終承認を待っています。</p>
+                  </div>
+                </div>
+
+                <!-- アクションカード（権限者向け） -->
+                <div class="card" style="border-color:var(--brand-accent);">
+                  <div class="card-header text-sm" style="border-bottom-color:var(--brand-accent);">
+                    <i data-lucide="shield-check" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    承認アクション
+                  </div>
+                  <div class="card-body space-y-2">
+                    <p class="text-xs text-[color:var(--brand-muted)] mb-3">本部管理者として承認操作が可能です。</p>
+                    <button class="btn-green rounded-md px-4 py-2.5 text-sm font-medium w-full flex items-center justify-center gap-2 transition-all focus-ring" onclick="openModal('approve')">
+                      <i data-lucide="check-circle" class="w-4 h-4"></i> 承認する
+                    </button>
+                    <button class="btn-outline-red rounded-md px-4 py-2.5 text-sm font-medium w-full flex items-center justify-center gap-2 transition-all focus-ring" onclick="openModal('reject')">
+                      <i data-lucide="x-circle" class="w-4 h-4"></i> 却下する
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 予算実績入力カード（主担当向け・承認後のみ） -->
+                <div class="card opacity-50">
+                  <div class="card-header text-sm">
+                    <i data-lucide="coins" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    予算実績入力
+                  </div>
+                  <div class="card-body">
+                    <p class="text-xs text-[color:var(--brand-muted)] mb-3">承認後に実績額の入力が可能になります。</p>
+                    <button class="btn-accent rounded-md px-4 py-2.5 text-sm font-medium w-full flex items-center justify-center gap-2 opacity-50 cursor-not-allowed" disabled>
+                      <i data-lucide="edit-3" class="w-4 h-4"></i> 実績を入力
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 関連情報 -->
+                <div class="card">
+                  <div class="card-header text-sm">
+                    <i data-lucide="link" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    関連情報
+                  </div>
+                  <div class="card-body text-sm space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[color:var(--brand-muted)]">案件ID</span>
+                      <span class="mono text-xs">PRJ-2026-0042</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-[color:var(--brand-muted)]">申請回数</span>
+                      <span>初回申請</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-[color:var(--brand-muted)]">主担当</span>
+                      <span>高橋 朋子</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- === タスクタブ === -->
+        <div id="tab-tasks" class="tab-content bg-white border border-t-0 rounded-b-lg hidden" style="border-color:var(--brand-border);">
+          <div class="p-6">
+            <!-- タスクヘッダー -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <h3 class="font-semibold">タスク一覧</h3>
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background:rgba(237,177,0,.12);color:#92700C;">12件</span>
+              </div>
+              <button class="btn-accent rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 transition-all focus-ring">
+                <i data-lucide="plus" class="w-4 h-4"></i> タスク追加
+              </button>
+            </div>
+
+            <!-- タスクテーブル -->
+            <div class="overflow-x-auto border rounded-lg" style="border-color:var(--brand-border);">
+              <table class="w-full text-sm">
+                <thead class="bg-[color:var(--brand-bg)] text-[color:var(--brand-muted)] text-xs uppercase tracking-wider">
+                  <tr>
+                    <th class="text-left font-semibold px-4 py-3">タイトル</th>
+                    <th class="text-left font-semibold px-3 py-3 w-20">種類</th>
+                    <th class="text-left font-semibold px-3 py-3 w-16">優先度</th>
+                    <th class="text-left font-semibold px-3 py-3 w-20">ステータス</th>
+                    <th class="text-left font-semibold px-3 py-3 w-24">担当</th>
+                    <th class="text-left font-semibold px-3 py-3 w-20">期日</th>
+                    <th class="text-left font-semibold px-3 py-3 w-28">進捗</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y" style="border-color:var(--brand-border);">
+                  <tr class="task-row">
+                    <td class="px-4 py-3 font-medium">IoTゲートウェイ設計書作成</td>
+                    <td class="px-3 py-3"><span class="pill type-task text-[10px]">タスク</span></td>
+                    <td class="px-3 py-3"><span class="pill pri-high text-[10px]">高</span></td>
+                    <td class="px-3 py-3"><span class="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">進行中</span></td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">高橋</td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">04/25</td>
+                    <td class="px-3 py-3">
+                      <div class="flex items-center gap-2">
+                        <div class="progress-track flex-1"><div class="progress-fill" style="width:70%;background:var(--brand-accent);"></div></div>
+                        <span class="text-[10px] mono font-medium" style="color:var(--brand-accent);">70%</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="task-row">
+                    <td class="px-4 py-3 font-medium">センサーデータ収集API設計</td>
+                    <td class="px-3 py-3"><span class="pill type-feature text-[10px]">機能追加</span></td>
+                    <td class="px-3 py-3"><span class="pill pri-high text-[10px]">高</span></td>
+                    <td class="px-3 py-3"><span class="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">進行中</span></td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">高橋</td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">04/28</td>
+                    <td class="px-3 py-3">
+                      <div class="flex items-center gap-2">
+                        <div class="progress-track flex-1"><div class="progress-fill" style="width:45%;background:#16A34A;"></div></div>
+                        <span class="text-[10px] mono font-medium">45%</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="task-row">
+                    <td class="px-4 py-3 font-medium">予知保全MLモデルPoC</td>
+                    <td class="px-3 py-3"><span class="pill type-feature text-[10px]">機能追加</span></td>
+                    <td class="px-3 py-3"><span class="pill pri-mid text-[10px]">中</span></td>
+                    <td class="px-3 py-3"><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">未着手</span></td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">未割当</td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">05/10</td>
+                    <td class="px-3 py-3">
+                      <div class="flex items-center gap-2">
+                        <div class="progress-track flex-1"><div class="progress-fill" style="width:0%;"></div></div>
+                        <span class="text-[10px] mono font-medium text-[color:var(--brand-muted)]">0%</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="task-row">
+                    <td class="px-4 py-3 font-medium">DB接続のタイムアウト問題修正</td>
+                    <td class="px-3 py-3"><span class="pill type-bug text-[10px]">バグ</span></td>
+                    <td class="px-3 py-3"><span class="pill pri-high text-[10px]">高</span></td>
+                    <td class="px-3 py-3"><span class="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700 font-medium">完了</span></td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">高橋</td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">04/18</td>
+                    <td class="px-3 py-3">
+                      <div class="flex items-center gap-2">
+                        <div class="progress-track flex-1"><div class="progress-fill" style="width:100%;background:#16A34A;"></div></div>
+                        <span class="text-[10px] mono font-medium text-green-600">100%</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="task-row">
+                    <td class="px-4 py-3 font-medium">スケジューリングUI改善</td>
+                    <td class="px-3 py-3"><span class="pill type-improve text-[10px]">改善</span></td>
+                    <td class="px-3 py-3"><span class="pill pri-low text-[10px]">低</span></td>
+                    <td class="px-3 py-3"><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">未着手</span></td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">未割当</td>
+                    <td class="px-3 py-3 text-[color:var(--brand-muted)]">05/15</td>
+                    <td class="px-3 py-3">
+                      <div class="flex items-center gap-2">
+                        <div class="progress-track flex-1"><div class="progress-fill" style="width:0%;"></div></div>
+                        <span class="text-[10px] mono font-medium text-[color:var(--brand-muted)]">0%</span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="flex items-center justify-between mt-3 text-xs text-[color:var(--brand-muted)]">
+              <span>5件表示 / 全12件</span>
+              <a href="#" class="hover:underline" style="color:var(--brand-accent);">すべてのタスクを表示 →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- === 承認履歴タブ === -->
+        <div id="tab-approval-history" class="tab-content bg-white border border-t-0 rounded-b-lg hidden" style="border-color:var(--brand-border);">
+          <div class="p-6">
+            <div class="max-w-2xl">
+              <!-- Timeline -->
+              <div class="timeline-item">
+                <div class="timeline-dot" style="background:rgba(237,177,0,.15);">
+                  <i data-lucide="send" class="w-3.5 h-3.5" style="color:var(--brand-accent);"></i>
+                </div>
+                <div>
+                  <div class="text-sm font-medium">高橋 朋子さんが申請しました</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">2026/04/14 09:30</div>
+                  <div class="mt-2 text-sm text-[color:var(--brand-muted)] bg-gray-50 rounded-md p-3 border" style="border-color:var(--brand-border);">
+                    設備保全データの統合による予知保全の実現を目指します。概算予算 ¥10,000,000 でご検討ください。
+                  </div>
+                </div>
+              </div>
+
+              <div class="timeline-item">
+                <div class="timeline-dot" style="background:rgba(237,177,0,.15);">
+                  <i data-lucide="check" class="w-3.5 h-3.5" style="color:var(--brand-accent);"></i>
+                </div>
+                <div>
+                  <div class="text-sm font-medium flex items-center gap-2">
+                    佐藤 太郎さんが<span class="text-green-600 font-semibold">部門承認</span>しました
+                    <span class="pill pill-approved text-[10px]"><span class="dot"></span>承認</span>
+                  </div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">2026/04/15 14:20</div>
+                  <div class="mt-2 text-sm text-[color:var(--brand-muted)] bg-gray-50 rounded-md p-3 border" style="border-color:var(--brand-border);">
+                    設備保全の効率化は部門の重要課題です。予算・スケジュールともに妥当と判断します。本部承認をお願いします。
+                  </div>
+                </div>
+              </div>
+
+              <div class="timeline-item">
+                <div class="timeline-dot" style="background:rgba(16,110,190,.12);">
+                  <i data-lucide="clock" class="w-3.5 h-3.5" style="color:var(--brand-blue);"></i>
+                </div>
+                <div>
+                  <div class="text-sm font-medium flex items-center gap-2">
+                    本部承認を待っています
+                    <span class="pill pill-hq text-[10px]"><span class="dot"></span>待機中</span>
+                  </div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">承認者: 田中 花子（本部長）</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- === 変更履歴タブ === -->
+        <div id="tab-change-history" class="tab-content bg-white border border-t-0 rounded-b-lg hidden" style="border-color:var(--brand-border);">
+          <div class="p-6">
+            <div class="max-w-2xl">
+              <div class="timeline-item">
+                <div class="timeline-dot bg-gray-100">
+                  <i data-lucide="file-plus" class="w-3.5 h-3.5 text-[color:var(--brand-muted)]"></i>
+                </div>
+                <div>
+                  <div class="text-sm"><span class="font-medium">高橋 朋子</span>さんが案件を作成しました</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">2026/04/14 09:25</div>
+                </div>
+              </div>
+
+              <div class="timeline-item">
+                <div class="timeline-dot bg-gray-100">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5 text-[color:var(--brand-muted)]"></i>
+                </div>
+                <div>
+                  <div class="text-sm"><span class="font-medium">高橋 朋子</span>さんが概算予算を変更しました</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">2026/04/14 09:28</div>
+                  <div class="mt-1 text-xs text-[color:var(--brand-muted)]">
+                    <span class="line-through">¥8,000,000</span> → <span class="font-medium text-[color:var(--brand-dark)]">¥10,000,000</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="timeline-item">
+                <div class="timeline-dot bg-gray-100">
+                  <i data-lucide="send" class="w-3.5 h-3.5 text-[color:var(--brand-muted)]"></i>
+                </div>
+                <div>
+                  <div class="text-sm"><span class="font-medium">高橋 朋子</span>さんがステータスを変更しました</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">2026/04/14 09:30</div>
+                  <div class="mt-1 text-xs">
+                    <span class="pill pill-draft text-[10px]"><span class="dot"></span>下書き</span>
+                    <span class="mx-1">→</span>
+                    <span class="pill pill-dept text-[10px]"><span class="dot"></span>部門承認待ち</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="timeline-item">
+                <div class="timeline-dot" style="background:rgba(237,177,0,.15);">
+                  <i data-lucide="check-circle" class="w-3.5 h-3.5" style="color:var(--brand-accent);"></i>
+                </div>
+                <div>
+                  <div class="text-sm"><span class="font-medium">佐藤 太郎</span>さんがステータスを変更しました</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5">2026/04/15 14:20</div>
+                  <div class="mt-1 text-xs">
+                    <span class="pill pill-dept text-[10px]"><span class="dot"></span>部門承認待ち</span>
+                    <span class="mx-1">→</span>
+                    <span class="pill pill-hq text-[10px]"><span class="dot"></span>本部承認待ち</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== 承認/却下モーダル (S-08) ===== -->
+<div id="modal-overlay" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden" onclick="closeModal(event)">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4" onclick="event.stopPropagation()">
+    <!-- Approve modal -->
+    <div id="modal-approve" class="hidden">
+      <div class="p-5 border-b" style="border-color:var(--brand-border);">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i></div>
+          <div>
+            <h3 class="font-bold text-lg">案件を承認</h3>
+            <p class="text-xs text-[color:var(--brand-muted)]">次世代EAMシステム開発</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="bg-green-50 border border-green-200 rounded-md p-3">
+          <div class="text-sm font-medium text-green-800 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4"></i>承認すると以下が実行されます</div>
+          <ul class="text-xs text-green-700 mt-1 space-y-1 ml-6 list-disc">
+            <li>ステータスが「承認済」に変更</li>
+            <li>概算予算（¥10,000,000）が確定予算に転記</li>
+            <li>タスク管理・予算実績入力が解禁</li>
+            <li>申請者・部門管理者に通知</li>
+          </ul>
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">コメント</label>
+          <textarea rows="3" class="w-full px-3 py-2 text-sm border rounded-md focus-ring" style="border-color:var(--brand-border);" placeholder="承認理由やコメントを入力（任意）"></textarea>
+        </div>
+      </div>
+      <div class="p-5 border-t flex items-center justify-end gap-3" style="border-color:var(--brand-border);">
+        <button class="btn-outline rounded-md px-4 py-2 text-sm font-medium" onclick="closeModal()">キャンセル</button>
+        <button class="btn-green rounded-md px-4 py-2.5 text-sm font-medium flex items-center gap-2 shadow-sm"><i data-lucide="check" class="w-4 h-4"></i>承認する</button>
+      </div>
+    </div>
+
+    <!-- Reject modal -->
+    <div id="modal-reject" class="hidden">
+      <div class="p-5 border-b" style="border-color:var(--brand-border);">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center"><i data-lucide="x-circle" class="w-5 h-5 text-red-600"></i></div>
+          <div>
+            <h3 class="font-bold text-lg">案件を却下</h3>
+            <p class="text-xs text-[color:var(--brand-muted)]">次世代EAMシステム開発</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="bg-red-50 border border-red-200 rounded-md p-3">
+          <div class="text-sm font-medium text-red-800 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i>却下すると以下が実行されます</div>
+          <ul class="text-xs text-red-700 mt-1 space-y-1 ml-6 list-disc">
+            <li>ステータスが「却下」に変更</li>
+            <li>申請者に却下通知が送信</li>
+            <li>申請者は修正のうえ再申請が可能</li>
+          </ul>
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">却下理由 <span class="text-[color:var(--brand-red)]">*</span></label>
+          <textarea rows="3" class="w-full px-3 py-2 text-sm border rounded-md focus-ring" style="border-color:var(--brand-border);" placeholder="申請者にフィードバックする却下理由を入力してください（必須）"></textarea>
+        </div>
+      </div>
+      <div class="p-5 border-t flex items-center justify-end gap-3" style="border-color:var(--brand-border);">
+        <button class="btn-outline rounded-md px-4 py-2 text-sm font-medium" onclick="closeModal()">キャンセル</button>
+        <button class="btn-primary rounded-md px-4 py-2.5 text-sm font-medium flex items-center gap-2 shadow-sm"><i data-lucide="x" class="w-4 h-4"></i>却下する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  // Tab switching
+  document.querySelectorAll('.dtab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.dtab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+      document.getElementById('tab-' + target).classList.remove('hidden');
+    });
+  });
+
+  // Modal
+  function openModal(type) {
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    document.getElementById('modal-approve').classList.add('hidden');
+    document.getElementById('modal-reject').classList.add('hidden');
+    document.getElementById('modal-' + type).classList.remove('hidden');
+  }
+  function closeModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('modal-overlay').classList.add('hidden');
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
