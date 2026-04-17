@@ -26,6 +26,9 @@
   .btn-primary{background:var(--brand-red);color:#fff;}
   .btn-primary:hover{filter:brightness(1.05);box-shadow:0 4px 12px rgba(230,0,19,.25);}
   .btn-primary:active{transform:scale(.97);}
+  /* title accent bar (small yellow decoration) */
+  .title-accent{display:inline-block;width:4px;height:24px;background:var(--brand-accent);border-radius:2px;margin-right:10px;vertical-align:middle;}
+
   .focus-ring:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.35);}
   /* sidebar active bar */
   .nav-active{background:rgba(255,255,255,.06);}
@@ -91,7 +94,7 @@
         <span class="text-[10px] bg-[#E60013] text-white font-bold px-1.5 py-0.5 rounded-full">3</span>
       </a>
       <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white nav-active">
-        <i data-lucide="folder-search" class="w-4 h-4"></i> 案件一覧
+        <i data-lucide="folder-search" class="w-4 h-4"><span class="title-accent"></span></i> 案件一覧
       </a>
 
       <!-- Section: 開発管理 -->

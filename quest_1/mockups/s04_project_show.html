@@ -26,9 +26,9 @@
   .btn-primary{background:var(--brand-red);color:#fff;}
   .btn-primary:hover{filter:brightness(1.05);box-shadow:0 4px 12px rgba(230,0,19,.25);}
   .btn-primary:active{transform:scale(.97);}
-  .btn-accent{background:var(--brand-accent);color:var(--brand-dark);}
-  .btn-accent:hover{filter:brightness(1.08);box-shadow:0 4px 12px rgba(237,177,0,.3);}
-  .btn-accent:active{transform:scale(.97);}
+  .btn-secondary{background:var(--brand-blue);color:#fff;}
+  .btn-secondary:hover{filter:brightness(1.08);box-shadow:0 4px 12px rgba(16,110,190,.25);}
+  .btn-secondary:active{transform:scale(.97);}
   .btn-outline{background:#fff;color:var(--brand-dark);border:1px solid var(--brand-border);}
   .btn-outline:hover{background:#F1F5F9;border-color:#CED4DA;}
   .btn-outline-red{background:#fff;color:var(--brand-red);border:1px solid var(--brand-red);}
@@ -53,18 +53,18 @@
   .card{background:#fff;border:1px solid var(--brand-border);border-radius:8px;}
   .card-header{padding:16px 20px;border-bottom:1px solid var(--brand-border);display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;}
   .card-body{padding:20px;}
-  /* accent left border card */
-  .card-accent{border-left:3px solid var(--brand-accent);}
+  /* title accent bar (small yellow decoration) */
+  .title-accent{display:inline-block;width:4px;height:24px;background:var(--brand-accent);border-radius:2px;margin-right:10px;vertical-align:middle;}
   /* tab (detail page) */
   .dtab{position:relative;padding:12px 16px;font-weight:500;font-size:14px;color:var(--brand-muted);cursor:pointer;transition:color .15s;}
   .dtab:hover{color:var(--brand-dark);}
-  .dtab.active{color:var(--brand-accent);}
-  .dtab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--brand-accent);border-radius:3px 3px 0 0;}
+  .dtab.active{color:var(--brand-red);}
+  .dtab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--brand-red);border-radius:3px 3px 0 0;}
   /* stepper full */
   .stepper-full{display:flex;align-items:flex-start;gap:0;}
   .step-item{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;text-align:center;}
   .step-circle{width:40px;height:40px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;border:2px solid var(--brand-border);background:#fff;color:var(--brand-muted);position:relative;z-index:1;transition:all .3s;}
-  .step-circle.done{background:var(--brand-accent);border-color:var(--brand-accent);color:#fff;}
+  .step-circle.done{background:var(--brand-blue);border-color:var(--brand-blue);color:#fff;}
   .step-circle.current{background:var(--brand-blue);border-color:var(--brand-blue);color:#fff;box-shadow:0 0 0 4px rgba(16,110,190,.2);animation:pulse-step 2s ease-in-out infinite;}
   .step-circle.rejected-step{background:var(--brand-red);border-color:var(--brand-red);color:#fff;}
   .step-label{margin-top:8px;font-size:12px;font-weight:500;color:var(--brand-muted);}
@@ -72,7 +72,7 @@
   .step-label.current{color:var(--brand-blue);font-weight:600;}
   .step-meta{margin-top:4px;font-size:11px;color:var(--brand-muted);}
   .step-connector{position:absolute;top:20px;left:calc(50% + 24px);right:calc(-50% + 24px);height:2px;background:var(--brand-border);}
-  .step-connector.done{background:var(--brand-accent);}
+  .step-connector.done{background:var(--brand-blue);}
   @keyframes pulse-step{0%,100%{box-shadow:0 0 0 4px rgba(16,110,190,.2);}50%{box-shadow:0 0 0 8px rgba(16,110,190,.08);}}
   /* progress bar */
   .progress-track{height:8px;border-radius:9999px;background:#E9ECEF;overflow:hidden;}
@@ -100,7 +100,7 @@
   <aside class="w-64 shrink-0 text-white flex flex-col" style="background:#212429;">
     <div class="h-14 px-5 flex items-center border-b border-white/10">
       <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,var(--brand-accent) 0%,#E69500 100%);">J</div>
+        <div class="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">J</div>
         <div class="font-bold tracking-wide text-[15px]">開発管理アプリ</div>
       </div>
     </div>
@@ -133,7 +133,7 @@
       </div>
     </nav>
     <div class="p-3 border-t border-white/10 flex items-center gap-3">
-      <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,var(--brand-accent),#E69500);">高</div>
+      <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">高</div>
       <div class="min-w-0">
         <div class="text-[13px] font-medium truncate">高橋 朋子</div>
         <div class="text-[11px] text-white/50 truncate">申請者 / 開発1部</div>
@@ -174,7 +174,7 @@
         <div class="flex items-start justify-between mb-6">
           <div>
             <div class="flex items-center gap-3 mb-1">
-              <h1 class="text-2xl font-bold tracking-tight">次世代EAMシステム開発</h1>
+              <h1 class="text-2xl font-bold tracking-tight flex items-center"><span class="title-accent"></span>次世代EAMシステム開発</h1>
               <span class="pill pill-hq"><span class="dot"></span>本部承認待ち</span>
             </div>
             <div class="flex items-center gap-4 text-sm text-[color:var(--brand-muted)]">
@@ -191,8 +191,8 @@
 
         <!-- ===== 1段目: 承認ステッパーUI (Full) ===== -->
         <div class="card mb-6">
-          <div class="card-header" style="border-bottom-color:var(--brand-accent);border-bottom-width:2px;">
-            <i data-lucide="route" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+          <div class="card-header">
+            <i data-lucide="route" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
             <span>承認フロー</span>
             <span class="ml-auto text-xs font-normal text-[color:var(--brand-muted)]">申請日: 2026/04/14</span>
           </div>
@@ -256,9 +256,9 @@
               <!-- Left 2 cols -->
               <div class="lg:col-span-2 space-y-6">
                 <!-- 案件情報カード -->
-                <div class="card card-accent">
+                <div class="card">
                   <div class="card-header">
-                    <i data-lucide="info" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    <i data-lucide="info" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
                     案件情報
                   </div>
                   <div class="card-body space-y-4">
@@ -286,14 +286,14 @@
                 <!-- 予算サマリーカード -->
                 <div class="card">
                   <div class="card-header">
-                    <i data-lucide="wallet" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    <i data-lucide="wallet" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
                     予算サマリー
                   </div>
                   <div class="card-body">
                     <div class="grid grid-cols-3 gap-4 mb-4">
-                      <div class="text-center p-3 rounded-lg" style="background:rgba(237,177,0,.08);">
+                      <div class="text-center p-3 rounded-lg bg-gray-50">
                         <div class="text-xs text-[color:var(--brand-muted)] mb-1">概算予算</div>
-                        <div class="text-lg font-bold mono" style="color:var(--brand-accent);">¥10,000,000</div>
+                        <div class="text-lg font-bold mono text-[color:var(--brand-dark)]">¥10,000,000</div>
                       </div>
                       <div class="text-center p-3 rounded-lg bg-gray-50">
                         <div class="text-xs text-[color:var(--brand-muted)] mb-1">確定予算</div>
@@ -311,7 +311,7 @@
                         <span class="font-medium">0%（未承認）</span>
                       </div>
                       <div class="progress-track">
-                        <div class="progress-fill" style="width:0%;background:var(--brand-accent);"></div>
+                        <div class="progress-fill" style="width:0%;background:var(--brand-blue);"></div>
                       </div>
                     </div>
                   </div>
@@ -329,9 +329,9 @@
                 </div>
 
                 <!-- アクションカード（権限者向け） -->
-                <div class="card" style="border-color:var(--brand-accent);">
-                  <div class="card-header text-sm" style="border-bottom-color:var(--brand-accent);">
-                    <i data-lucide="shield-check" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                <div class="card">
+                  <div class="card-header text-sm">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
                     承認アクション
                   </div>
                   <div class="card-body space-y-2">
@@ -348,12 +348,12 @@
                 <!-- 予算実績入力カード（主担当向け・承認後のみ） -->
                 <div class="card opacity-50">
                   <div class="card-header text-sm">
-                    <i data-lucide="coins" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    <i data-lucide="coins" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
                     予算実績入力
                   </div>
                   <div class="card-body">
                     <p class="text-xs text-[color:var(--brand-muted)] mb-3">承認後に実績額の入力が可能になります。</p>
-                    <button class="btn-accent rounded-md px-4 py-2.5 text-sm font-medium w-full flex items-center justify-center gap-2 opacity-50 cursor-not-allowed" disabled>
+                    <button class="btn-outline rounded-md px-4 py-2.5 text-sm font-medium w-full flex items-center justify-center gap-2 cursor-not-allowed" disabled>
                       <i data-lucide="edit-3" class="w-4 h-4"></i> 実績を入力
                     </button>
                   </div>
@@ -362,7 +362,7 @@
                 <!-- 関連情報 -->
                 <div class="card">
                   <div class="card-header text-sm">
-                    <i data-lucide="link" class="w-4 h-4" style="color:var(--brand-accent);"></i>
+                    <i data-lucide="link" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
                     関連情報
                   </div>
                   <div class="card-body text-sm space-y-2">
@@ -392,9 +392,9 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
                 <h3 class="font-semibold">タスク一覧</h3>
-                <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background:rgba(237,177,0,.12);color:#92700C;">12件</span>
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600">12件</span>
               </div>
-              <button class="btn-accent rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 transition-all focus-ring">
+              <button class="btn-primary rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 transition-all focus-ring">
                 <i data-lucide="plus" class="w-4 h-4"></i> タスク追加
               </button>
             </div>
@@ -423,8 +423,8 @@
                     <td class="px-3 py-3 text-[color:var(--brand-muted)]">04/25</td>
                     <td class="px-3 py-3">
                       <div class="flex items-center gap-2">
-                        <div class="progress-track flex-1"><div class="progress-fill" style="width:70%;background:var(--brand-accent);"></div></div>
-                        <span class="text-[10px] mono font-medium" style="color:var(--brand-accent);">70%</span>
+                        <div class="progress-track flex-1"><div class="progress-fill" style="width:70%;background:var(--brand-blue);"></div></div>
+                        <span class="text-[10px] mono font-medium" style="color:var(--brand-blue);">70%</span>
                       </div>
                     </td>
                   </tr>
@@ -489,7 +489,7 @@
             </div>
             <div class="flex items-center justify-between mt-3 text-xs text-[color:var(--brand-muted)]">
               <span>5件表示 / 全12件</span>
-              <a href="#" class="hover:underline" style="color:var(--brand-accent);">すべてのタスクを表示 →</a>
+              <a href="#" class="hover:underline" style="color:var(--brand-blue);">すべてのタスクを表示 →</a>
             </div>
           </div>
         </div>
@@ -500,8 +500,8 @@
             <div class="max-w-2xl">
               <!-- Timeline -->
               <div class="timeline-item">
-                <div class="timeline-dot" style="background:rgba(237,177,0,.15);">
-                  <i data-lucide="send" class="w-3.5 h-3.5" style="color:var(--brand-accent);"></i>
+                <div class="timeline-dot" style="background:rgba(16,110,190,.12);">
+                  <i data-lucide="send" class="w-3.5 h-3.5" style="color:var(--brand-blue);"></i>
                 </div>
                 <div>
                   <div class="text-sm font-medium">高橋 朋子さんが申請しました</div>
@@ -513,8 +513,8 @@
               </div>
 
               <div class="timeline-item">
-                <div class="timeline-dot" style="background:rgba(237,177,0,.15);">
-                  <i data-lucide="check" class="w-3.5 h-3.5" style="color:var(--brand-accent);"></i>
+                <div class="timeline-dot" style="background:rgba(22,163,74,.12);">
+                  <i data-lucide="check" class="w-3.5 h-3.5 text-green-600"></i>
                 </div>
                 <div>
                   <div class="text-sm font-medium flex items-center gap-2">
@@ -587,8 +587,8 @@
               </div>
 
               <div class="timeline-item">
-                <div class="timeline-dot" style="background:rgba(237,177,0,.15);">
-                  <i data-lucide="check-circle" class="w-3.5 h-3.5" style="color:var(--brand-accent);"></i>
+                <div class="timeline-dot" style="background:rgba(22,163,74,.12);">
+                  <i data-lucide="check-circle" class="w-3.5 h-3.5 text-green-600"></i>
                 </div>
                 <div>
                   <div class="text-sm"><span class="font-medium">佐藤 太郎</span>さんがステータスを変更しました</div>
