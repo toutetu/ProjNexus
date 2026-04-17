@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-02 ダッシュボード | 開発管理アプリ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"Noto Sans JP"', 'Roboto', 'sans-serif'],
+          mono: ['Roboto Mono', 'monospace'],
+        },
+        colors: {
+          brand: {
+            red: '#E60013',
+            dark: '#212429',
+            bg: '#F8F9FA',
+            muted: '#6C757D',
+            border: '#DEE2E6',
+            accent: '#EDB100',
+            cyan: '#01CFFF',
+            blue: '#106EBE',
+            purple: '#6D28D9',
+          },
+          status: {
+            draft: '#6C757D',
+            'pending-dept': '#01CFFF',
+            'pending-hq': '#106EBE',
+            approved: '#16A34A',
+            rejected: '#E60013',
+          },
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body { font-family: 'Noto Sans JP', 'Roboto', sans-serif; }
+  .transition-all { transition: all 150ms ease; }
+  .card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  .btn-active:active { transform: scale(.95); }
+  .active-bar { position: relative; }
+  .active-bar::before {
+    content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+    width: 4px; background: #E60013; border-radius: 0 2px 2px 0;
+  }
+  @keyframes pulse-warn {
+    0%, 100% { opacity: 1; } 50% { opacity: .6; }
+  }
+  .warn-pulse { animation: pulse-warn 2s ease-in-out infinite; }
+</style>
+</head>
+<body class="bg-brand-bg text-brand-dark min-h-screen">
+
+<!-- ============ ヘッダー ============ -->
+<header class="h-14 bg-white border-b border-brand-border flex items-center justify-between px-6 sticky top-0 z-40">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-md bg-gradient-to-br from-brand-cyan via-brand-blue to-brand-purple flex items-center justify-center text-white font-bold text-sm">J</div>
+    <span class="font-bold text-brand-dark">開発管理アプリ</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <!-- ⌘K 検索バッジ -->
+    <button class="flex items-center gap-2 h-9 px-3 rounded-md border border-brand-border bg-brand-bg text-sm text-brand-muted hover:border-brand-blue transition-all cursor-pointer">
+      <i data-lucide="search" class="w-4 h-4"></i>
+      <span>検索</span>
+      <kbd class="ml-2 px-1.5 py-0.5 rounded bg-white border border-brand-border text-xs font-mono">⌘K</kbd>
+    </button>
+    <!-- 通知 -->
+    <button class="relative w-9 h-9 flex items-center justify-center rounded-md hover:bg-brand-bg transition-all cursor-pointer">
+      <i data-lucide="bell" class="w-5 h-5 text-brand-muted"></i>
+      <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-red"></span>
+    </button>
+    <!-- アバター -->
+    <button class="flex items-center gap-2 hover:bg-brand-bg px-2 py-1 rounded-md transition-all cursor-pointer">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-cyan to-brand-blue text-white flex items-center justify-center text-sm font-semibold">田</div>
+      <span class="text-sm font-medium hidden sm:inline">田中 太郎</span>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-brand-muted"></i>
+    </button>
+  </div>
+</header>
+
+<div class="flex">
+  <!-- ============ サイドバー ============ -->
+  <aside class="w-64 min-h-[calc(100vh-3.5rem)] bg-brand-dark text-white flex flex-col hidden md:flex">
+    <div class="px-4 py-3 text-xs uppercase tracking-wider text-gray-400">メニュー</div>
+    <nav class="flex-1 px-2">
+      <a href="#" class="active-bar flex items-center gap-3 px-4 py-2.5 rounded-md bg-white/5 text-white font-medium">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>ダッシュボード
+      </a>
+      <a href="#" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-gray-300 hover:bg-white/5 hover:text-white transition-all">
+        <i data-lucide="folder-open" class="w-5 h-5"></i>案件一覧
+      </a>
+      <a href="#" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-gray-300 hover:bg-white/5 hover:text-white transition-all">
+        <i data-lucide="check-circle-2" class="w-5 h-5"></i>承認待ち
+        <span class="ml-auto bg-brand-red text-white text-xs px-2 py-0.5 rounded-full">5</span>
+      </a>
+      <a href="#" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-gray-300 hover:bg-white/5 hover:text-white transition-all">
+        <i data-lucide="bell" class="w-5 h-5"></i>通知
+      </a>
+      <a href="#" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-gray-300 hover:bg-white/5 hover:text-white transition-all">
+        <i data-lucide="user" class="w-5 h-5"></i>プロフィール
+      </a>
+    </nav>
+    <div class="p-4 text-xs text-gray-500 border-t border-white/10">
+      <div>v0.1.0 (PoC)</div>
+      <div class="mt-1">© 2026 ProjNexus</div>
+    </div>
+  </aside>
+
+  <!-- ============ メインコンテンツ ============ -->
+  <main class="flex-1 p-6 max-w-7xl mx-auto">
+
+    <!-- ページタイトル -->
+    <div class="mb-6 flex items-end justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-brand-dark">ダッシュボード</h1>
+        <p class="text-sm text-brand-muted mt-1">2026年4月15日（水） 全部門の状況</p>
+      </div>
+      <div class="text-xs text-brand-muted">最終更新: 14:32</div>
+    </div>
+
+    <!-- 1段目: KPIカード 4枚 -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+      <!-- カード1: 進行中案件 -->
+      <div class="group relative bg-white rounded-xl border border-brand-border p-5 card-hover transition-all cursor-pointer overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-cyan to-brand-blue"></div>
+        <div class="flex items-center gap-2 text-sm font-medium text-brand-muted mb-2">
+          <i data-lucide="folder-open" class="w-4 h-4"></i>
+          <span>進行中案件</span>
+        </div>
+        <div class="flex items-end justify-between mb-3">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-bold text-brand-dark tracking-tight font-mono">24</span>
+            <span class="text-sm text-brand-muted ml-1">件</span>
+          </div>
+          <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-semibold">
+            <i data-lucide="trending-up" class="w-3 h-3"></i>+3
+          </span>
+        </div>
+        <svg viewBox="0 0 120 30" class="w-full h-8" preserveAspectRatio="none">
+          <polyline points="0,22 20,18 40,20 60,15 80,12 100,8 120,6" fill="none" stroke="#106EBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="0,22 20,18 40,20 60,15 80,12 100,8 120,6 120,30 0,30" fill="#106EBE" fill-opacity="0.08"/>
+        </svg>
+        <div class="mt-1 text-xs text-brand-muted">前週比 +3件</div>
+      </div>
+
+      <!-- カード2: 承認待ち -->
+      <div class="group relative bg-white rounded-xl border border-brand-border p-5 card-hover transition-all cursor-pointer overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-brand-accent"></div>
+        <div class="flex items-center gap-2 text-sm font-medium text-brand-muted mb-2">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>承認待ち</span>
+        </div>
+        <div class="flex items-end justify-between mb-3">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-bold text-brand-dark tracking-tight font-mono">5</span>
+            <span class="text-sm text-brand-muted ml-1">件</span>
+          </div>
+          <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold">
+            要対応
+          </span>
+        </div>
+        <a href="#" class="inline-flex items-center gap-1 text-sm text-brand-blue hover:underline font-medium">
+          承認待ち一覧へ <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </a>
+      </div>
+
+      <!-- カード3: 平均進捗率 -->
+      <div class="group relative bg-white rounded-xl border border-brand-border p-5 card-hover transition-all cursor-pointer overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-blue to-brand-purple"></div>
+        <div class="flex items-center gap-2 text-sm font-medium text-brand-muted mb-2">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>
+          <span>平均進捗率</span>
+        </div>
+        <div class="flex items-end justify-between mb-3">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-bold text-brand-dark tracking-tight font-mono">64</span>
+            <span class="text-sm text-brand-muted ml-1">%</span>
+          </div>
+          <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-blue-50 text-brand-blue text-xs font-semibold">
+            順調
+          </span>
+        </div>
+        <div class="h-2 rounded-full bg-brand-bg overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-brand-blue to-brand-purple rounded-full" style="width: 64%"></div>
+        </div>
+        <div class="mt-1 text-xs text-brand-muted">目標まで残り36%</div>
+      </div>
+
+      <!-- カード4: 予算消費率（警告） -->
+      <div class="group relative bg-white rounded-xl border-2 border-brand-red/20 p-5 card-hover transition-all cursor-pointer overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-brand-red"></div>
+        <div class="flex items-center gap-2 text-sm font-medium text-brand-red mb-2">
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          <span>予算消費率</span>
+        </div>
+        <div class="flex items-end justify-between mb-3">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-bold text-brand-red tracking-tight font-mono">72</span>
+            <span class="text-sm text-brand-muted ml-1">%</span>
+          </div>
+          <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-red-50 text-brand-red text-xs font-semibold warn-pulse">
+            超過リスク
+          </span>
+        </div>
+        <div class="h-2 rounded-full bg-brand-bg overflow-hidden">
+          <div class="h-full bg-brand-red rounded-full warn-pulse" style="width: 72%"></div>
+        </div>
+        <div class="mt-1 text-xs text-brand-red font-medium">⚠ 警告ライン 70% を超過</div>
+      </div>
+    </section>
+
+    <!-- 2段目: グラフ 2つ -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+
+      <!-- 部門別進捗 -->
+      <div class="bg-white rounded-lg border border-brand-border shadow-sm p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-semibold text-brand-dark">部門別 進捗状況</h2>
+            <p class="text-xs text-brand-muted mt-0.5">平均進捗率を部門別に表示</p>
+          </div>
+          <button class="text-xs text-brand-muted hover:text-brand-dark cursor-pointer">
+            <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div style="height: 260px;"><canvas id="deptChart"></canvas></div>
+      </div>
+
+      <!-- 月次予算消費推移 -->
+      <div class="bg-white rounded-lg border border-brand-border shadow-sm p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-semibold text-brand-dark">月次 予算消費推移</h2>
+            <p class="text-xs text-brand-muted mt-0.5">70%ラインで警告</p>
+          </div>
+          <button class="text-xs text-brand-muted hover:text-brand-dark cursor-pointer">
+            <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div style="height: 260px;"><canvas id="budgetChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- 3段目: 予算アラート案件リスト -->
+    <section class="bg-white rounded-lg border border-brand-border shadow-sm p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-md bg-brand-red/10 flex items-center justify-center">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-brand-red"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-brand-dark">予算消費 70% 超の案件</h2>
+            <p class="text-xs text-brand-muted mt-0.5">早期対応が必要な案件を抽出</p>
+          </div>
+        </div>
+        <a href="#" class="text-sm text-brand-blue hover:underline font-medium">全件を見る →</a>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-brand-border text-brand-muted text-xs uppercase tracking-wider">
+              <th class="text-left py-2 px-2 font-medium">案件名</th>
+              <th class="text-left py-2 px-2 font-medium">部門</th>
+              <th class="text-right py-2 px-2 font-medium">予算</th>
+              <th class="text-right py-2 px-2 font-medium">実績</th>
+              <th class="text-left py-2 px-2 font-medium w-48">消費率</th>
+              <th class="text-right py-2 px-2 font-medium">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-brand-border">
+            <tr class="hover:bg-brand-bg transition-colors cursor-pointer">
+              <td class="py-3 px-2 font-medium">次世代EAMシステム開発</td>
+              <td class="py-3 px-2 text-brand-muted">開発1部</td>
+              <td class="py-3 px-2 text-right font-mono">¥10,000,000</td>
+              <td class="py-3 px-2 text-right font-mono">¥8,900,000</td>
+              <td class="py-3 px-2">
+                <div class="flex items-center gap-2">
+                  <div class="h-2 flex-1 rounded-full bg-brand-border overflow-hidden">
+                    <div class="h-full bg-brand-red rounded-full warn-pulse" style="width: 89%"></div>
+                  </div>
+                  <span class="text-brand-red font-semibold font-mono text-xs w-10 text-right">89%</span>
+                </div>
+              </td>
+              <td class="py-3 px-2 text-right">
+                <a href="#" class="text-brand-blue hover:underline text-xs">詳細 →</a>
+              </td>
+            </tr>
+            <tr class="hover:bg-brand-bg transition-colors cursor-pointer">
+              <td class="py-3 px-2 font-medium">LNGプラント解析ツール</td>
+              <td class="py-3 px-2 text-brand-muted">開発2部</td>
+              <td class="py-3 px-2 text-right font-mono">¥6,500,000</td>
+              <td class="py-3 px-2 text-right font-mono">¥5,330,000</td>
+              <td class="py-3 px-2">
+                <div class="flex items-center gap-2">
+                  <div class="h-2 flex-1 rounded-full bg-brand-border overflow-hidden">
+                    <div class="h-full bg-brand-red rounded-full" style="width: 82%"></div>
+                  </div>
+                  <span class="text-brand-red font-semibold font-mono text-xs w-10 text-right">82%</span>
+                </div>
+              </td>
+              <td class="py-3 px-2 text-right">
+                <a href="#" class="text-brand-blue hover:underline text-xs">詳細 →</a>
+              </td>
+            </tr>
+            <tr class="hover:bg-brand-bg transition-colors cursor-pointer">
+              <td class="py-3 px-2 font-medium">設備保全データ可視化PoC</td>
+              <td class="py-3 px-2 text-brand-muted">開発1部</td>
+              <td class="py-3 px-2 text-right font-mono">¥3,200,000</td>
+              <td class="py-3 px-2 text-right font-mono">¥2,460,000</td>
+              <td class="py-3 px-2">
+                <div class="flex items-center gap-2">
+                  <div class="h-2 flex-1 rounded-full bg-brand-red/70 overflow-hidden">
+                    <div class="h-full bg-brand-red rounded-full" style="width: 77%"></div>
+                  </div>
+                  <span class="text-brand-red font-semibold font-mono text-xs w-10 text-right">77%</span>
+                </div>
+              </td>
+              <td class="py-3 px-2 text-right">
+                <a href="#" class="text-brand-blue hover:underline text-xs">詳細 →</a>
+              </td>
+            </tr>
+            <tr class="hover:bg-brand-bg transition-colors cursor-pointer">
+              <td class="py-3 px-2 font-medium">環境データ収集基盤</td>
+              <td class="py-3 px-2 text-brand-muted">開発3部</td>
+              <td class="py-3 px-2 text-right font-mono">¥4,800,000</td>
+              <td class="py-3 px-2 text-right font-mono">¥3,504,000</td>
+              <td class="py-3 px-2">
+                <div class="flex items-center gap-2">
+                  <div class="h-2 flex-1 rounded-full bg-brand-border overflow-hidden">
+                    <div class="h-full bg-brand-red rounded-full" style="width: 73%"></div>
+                  </div>
+                  <span class="text-brand-red font-semibold font-mono text-xs w-10 text-right">73%</span>
+                </div>
+              </td>
+              <td class="py-3 px-2 text-right">
+                <a href="#" class="text-brand-blue hover:underline text-xs">詳細 →</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- フッター -->
+    <div class="mt-8 text-center text-xs text-brand-muted">
+      <p>開発管理統合アプリ PoC | 高橋朋子</p>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Lucide アイコン描画
+  lucide.createIcons();
+
+  // グラフ1: 部門別進捗（Bar）
+  new Chart(document.getElementById('deptChart'), {
+    type: 'bar',
+    data: {
+      labels: ['開発1部', '開発2部', '開発3部'],
+      datasets: [{
+        label: '平均進捗率（%）',
+        data: [72, 58, 61],
+        backgroundColor: ['#106EBE', '#01CFFF', '#6D28D9'],
+        borderRadius: 6,
+        barThickness: 48,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#212429',
+          titleFont: { family: 'Noto Sans JP' },
+          bodyFont: { family: 'Noto Sans JP' },
+          callbacks: { label: (c) => `進捗率: ${c.parsed.y}%` },
+        },
+      },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%', font: { family: 'Roboto' } }, grid: { color: '#DEE2E6' } },
+        x: { ticks: { font: { family: 'Noto Sans JP' } }, grid: { display: false } },
+      },
+    },
+  });
+
+  // グラフ2: 月次予算消費推移（Line）
+  new Chart(document.getElementById('budgetChart'), {
+    type: 'line',
+    data: {
+      labels: ['2026/01', '2026/02', '2026/03', '2026/04'],
+      datasets: [{
+        label: '予算消費率（%）',
+        data: [18, 38, 56, 72],
+        borderColor: '#E60013',
+        backgroundColor: 'rgba(230, 0, 19, 0.08)',
+        tension: 0.3,
+        borderWidth: 3,
+        pointBackgroundColor: '#E60013',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#212429',
+          callbacks: { label: (c) => `消費率: ${c.parsed.y}%` },
+        },
+        // 警告ラインを描画するためのカスタム
+      },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%', font: { family: 'Roboto' } }, grid: { color: '#DEE2E6' } },
+        x: { ticks: { font: { family: 'Roboto' } }, grid: { display: false } },
+      },
+    },
+    plugins: [{
+      id: 'warningLine',
+      afterDraw: (chart) => {
+        const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+        const yPos = y.getPixelForValue(70);
+        ctx.save();
+        ctx.strokeStyle = '#E60013';
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(left, yPos); ctx.lineTo(right, yPos); ctx.stroke();
+        ctx.fillStyle = '#E60013';
+        ctx.font = '11px Roboto';
+        ctx.fillText('警告ライン 70%', right - 90, yPos - 4);
+        ctx.restore();
+      },
+    }],
+  });
+</script>
+</body>
+</html>
