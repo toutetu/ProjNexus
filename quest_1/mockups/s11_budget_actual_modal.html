@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>予算実績入力モーダル — 開発管理アプリ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --brand-red:#E60013;
+    --brand-dark:#212429;
+    --brand-bg:#F8F9FA;
+    --brand-muted:#6C757D;
+    --brand-border:#DEE2E6;
+    --brand-blue:#106EBE;
+    --brand-cyan:#01CFFF;
+    --brand-purple:#6D28D9;
+    --brand-accent:#EDB100;
+  }
+  html,body{font-family:"Noto Sans JP","Roboto",sans-serif;color:var(--brand-dark);background:var(--brand-bg);}
+  .mono{font-family:"JetBrains Mono","Roboto Mono",monospace;}
+  .btn-primary{background:var(--brand-red);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.05);box-shadow:0 4px 12px rgba(230,0,19,.25);}
+  .btn-primary:active{transform:scale(.97);}
+  .btn-outline{background:#fff;color:var(--brand-dark);border:1px solid var(--brand-border);}
+  .btn-outline:hover{background:#F1F5F9;border-color:#CED4DA;}
+  .focus-ring:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.35);}
+  /* chip */
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid var(--brand-border);border-radius:9999px;font-size:12px;font-weight:500;color:var(--brand-muted);background:#fff;cursor:pointer;transition:all .15s;}
+  .chip:hover{background:#F1F5F9;border-color:#ADB5BD;}
+  .chip.active{background:var(--brand-dark);color:#fff;border-color:var(--brand-dark);}
+  .chip.cat-outsource.active{background:#1E40AF;border-color:#1E40AF;}
+  .chip.cat-license.active{background:#6D28D9;border-color:#6D28D9;}
+  .chip.cat-equipment.active{background:#065F46;border-color:#065F46;}
+  .chip.cat-other.active{background:#374151;border-color:#374151;}
+  /* input */
+  .input{width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--brand-border);border-radius:6px;background:#fff;}
+  .input:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.2);border-color:var(--brand-blue);}
+  .label{display:block;font-size:12px;font-weight:600;color:var(--brand-dark);margin-bottom:6px;}
+  .label .req{color:var(--brand-red);margin-left:2px;}
+  /* avatar */
+  .avatar{width:24px;height:24px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;}
+  /* summary cards */
+  .stat-card{background:#F8F9FA;border:1px solid var(--brand-border);border-radius:8px;padding:12px;}
+  .stat-label{font-size:10px;color:var(--brand-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px;}
+  .stat-value{font-size:16px;font-weight:700;}
+  /* consumption bar */
+  .cr-track{height:10px;border-radius:9999px;background:#E9ECEF;overflow:hidden;position:relative;}
+  .cr-fill{height:100%;border-radius:9999px;transition:width .5s ease;}
+  .cr-safe{background:#16A34A;} .cr-normal{background:var(--brand-blue);}
+  .cr-warn{background:#F59E0B;} .cr-over{background:var(--brand-red);}
+  .cr-label-safe{color:#166534;} .cr-label-normal{color:var(--brand-blue);}
+  .cr-label-warn{color:#92400E;} .cr-label-over{color:var(--brand-red);}
+  /* preview card (highlighted) */
+  .preview-card{background:linear-gradient(135deg,#EFF6FF,#F0F9FF);border:1px solid #BFDBFE;border-radius:10px;padding:16px;}
+  /* yen prefix input */
+  .yen-input{position:relative;}
+  .yen-input .prefix{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;font-weight:600;color:var(--brand-muted);pointer-events:none;}
+  .yen-input input{padding-left:26px;font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:600;text-align:right;padding-right:12px;}
+  /* badge */
+  .badge-owner{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;background:#DCFCE7;color:#166534;font-size:11px;font-weight:600;border:1px solid #86EFAC;}
+  /* history row */
+  .hist-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px dashed var(--brand-border);}
+  .hist-row:last-child{border-bottom:none;}
+  /* dimmed bg */
+  .dimmed{opacity:.35;filter:blur(1px);pointer-events:none;user-select:none;}
+  /* nav active */
+  .nav-active{background:rgba(255,255,255,.06);}
+  .nav-active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand-red);}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ Dimmed Background ============ -->
+<div class="flex min-h-screen dimmed">
+  <aside class="w-64 shrink-0 text-white flex flex-col" style="background:#212429;">
+    <div class="h-14 px-5 flex items-center border-b border-white/10">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">J</div>
+        <div class="font-bold tracking-wide text-[15px]">開発管理アプリ</div>
+      </div>
+    </div>
+    <nav class="flex-1 py-3 text-sm">
+      <div class="px-5 mt-2 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">予算管理</div>
+      <a class="relative flex items-center gap-3 px-5 py-2.5 text-white nav-active"><i data-lucide="coins" class="w-4 h-4"></i> 予算実績入力</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-6">
+    <div class="max-w-7xl mx-auto">
+      <h1 class="text-2xl font-bold mb-4">次世代EAMシステム開発</h1>
+      <div class="bg-white border rounded-lg p-6" style="border-color:var(--brand-border);">
+        <div class="text-sm font-semibold mb-3">予算サマリー</div>
+        <div class="text-xs text-[color:var(--brand-muted)]">※「実績を入力」ボタンから本モーダルが開きます</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ Modal Overlay ============ -->
+<div class="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto py-8 px-4">
+  <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl">
+
+    <!-- Modal Header -->
+    <div class="px-6 py-4 border-b flex items-start justify-between" style="border-color:var(--brand-border);">
+      <div>
+        <div class="text-xs text-[color:var(--brand-muted)] mb-0.5 flex items-center gap-1.5">
+          <i data-lucide="folder" class="w-3.5 h-3.5"></i>
+          次世代EAMシステム開発
+          <span class="mx-1">/</span>
+          <span class="mono">PRJ-2026-0042</span>
+        </div>
+        <h2 class="text-lg font-bold flex items-center gap-2">
+          <i data-lucide="coins" class="w-5 h-5 text-[color:var(--brand-blue)]"></i>
+          予算実績を入力
+        </h2>
+      </div>
+      <button class="p-1.5 rounded-md hover:bg-gray-100 text-[color:var(--brand-muted)] focus-ring" aria-label="閉じる">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="px-6 py-5 space-y-5 max-h-[75vh] overflow-y-auto">
+
+      <!-- 主担当バッジ -->
+      <div class="flex items-center gap-2 text-xs">
+        <span class="badge-owner"><i data-lucide="shield-check" class="w-3 h-3"></i>主担当</span>
+        <span class="text-[color:var(--brand-muted)]">高橋 朋子さん（あなた）が入力可能です</span>
+      </div>
+
+      <!-- 現状サマリー -->
+      <div>
+        <div class="text-xs font-semibold text-[color:var(--brand-muted)] uppercase tracking-wider mb-2">現状</div>
+        <div class="grid grid-cols-4 gap-2.5">
+          <div class="stat-card">
+            <div class="stat-label">確定予算</div>
+            <div class="stat-value mono">¥10,000,000</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">現在実績</div>
+            <div class="stat-value mono text-[color:var(--brand-blue)]">¥4,200,000</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">残予算</div>
+            <div class="stat-value mono">¥5,800,000</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">消費率</div>
+            <div class="stat-value mono cr-label-safe">42.0%</div>
+          </div>
+        </div>
+        <div class="mt-2 cr-track"><div class="cr-fill cr-safe" style="width:42%;"></div></div>
+      </div>
+
+      <!-- Divider -->
+      <div class="border-t -mx-6" style="border-color:var(--brand-border);"></div>
+
+      <!-- 入力フォーム -->
+      <div>
+        <div class="text-xs font-semibold text-[color:var(--brand-muted)] uppercase tracking-wider mb-3">今回の支出を追加</div>
+
+        <!-- 金額 -->
+        <div class="mb-4">
+          <label class="label">今回の支出額<span class="req">*</span></label>
+          <div class="yen-input">
+            <span class="prefix">¥</span>
+            <input type="text" class="input focus-ring" value="1,580,000" />
+          </div>
+          <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">半角数字・カンマ区切り可</div>
+        </div>
+
+        <!-- カテゴリ -->
+        <div class="mb-4">
+          <label class="label">カテゴリ</label>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="chip cat-outsource active">外注費</span>
+            <span class="chip cat-license">ライセンス</span>
+            <span class="chip cat-equipment">機材費</span>
+            <span class="chip cat-other">その他</span>
+          </div>
+        </div>
+
+        <!-- 用途 / 適用日 -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="label">用途<span class="req">*</span></label>
+            <input type="text" class="input focus-ring" value="IoTゲートウェイ設計書 外部レビュー依頼" placeholder="支出の内容" />
+          </div>
+          <div>
+            <label class="label">適用日<span class="req">*</span></label>
+            <div class="relative">
+              <input type="date" class="input focus-ring pr-9" value="2026-04-17" />
+              <i data-lucide="calendar" class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--brand-muted)] pointer-events-none"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- メモ -->
+        <div>
+          <label class="label">メモ</label>
+          <textarea class="input focus-ring" rows="2" placeholder="補足情報があれば入力（任意）">発注先：株式会社テクノレビュー、見積 #Q2026-0418</textarea>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="border-t -mx-6" style="border-color:var(--brand-border);"></div>
+
+      <!-- 更新プレビュー -->
+      <div>
+        <div class="text-xs font-semibold text-[color:var(--brand-muted)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-[color:var(--brand-blue)]"></i>
+          更新プレビュー
+        </div>
+        <div class="preview-card">
+          <!-- 3値の変化 -->
+          <div class="grid grid-cols-3 gap-3 mb-4">
+            <div>
+              <div class="stat-label">今回追加</div>
+              <div class="text-base font-bold mono text-[color:var(--brand-blue)]">+ ¥1,580,000</div>
+            </div>
+            <div>
+              <div class="stat-label">新 実績</div>
+              <div class="text-base font-bold mono">
+                <span class="text-[color:var(--brand-muted)] text-xs line-through">¥4,200,000</span>
+                <span class="ml-1">¥5,780,000</span>
+              </div>
+            </div>
+            <div>
+              <div class="stat-label">新 残予算</div>
+              <div class="text-base font-bold mono">¥4,220,000</div>
+            </div>
+          </div>
+
+          <!-- Before → After 消費率バー -->
+          <div class="space-y-2">
+            <div>
+              <div class="flex items-center justify-between text-[10px] text-[color:var(--brand-muted)] mb-1">
+                <span>Before</span><span class="mono">42.0%</span>
+              </div>
+              <div class="cr-track"><div class="cr-fill cr-safe" style="width:42%;"></div></div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-[10px] mb-1">
+                <span class="font-semibold text-[color:var(--brand-dark)] flex items-center gap-1">
+                  After <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                </span>
+                <span class="mono font-bold cr-label-safe">57.8%</span>
+              </div>
+              <div class="cr-track"><div class="cr-fill cr-safe" style="width:57.8%;"></div></div>
+            </div>
+          </div>
+
+          <div class="mt-3 text-[11px] text-[color:var(--brand-muted)] flex items-start gap-1.5">
+            <i data-lucide="info" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>
+            消費率が 86% を超えると要注意マーカー、100% を超えると予算超過アラートが発動します。
+          </div>
+        </div>
+      </div>
+
+      <!-- 過去の入力履歴 -->
+      <div class="border-t pt-3" style="border-color:var(--brand-border);">
+        <details>
+          <summary class="cursor-pointer list-none flex items-center justify-between text-sm text-[color:var(--brand-muted)] hover:text-[color:var(--brand-dark)]">
+            <span class="flex items-center gap-2">
+              <i data-lucide="history" class="w-4 h-4"></i>
+              過去の入力履歴 <span class="text-xs">（直近5件）</span>
+            </span>
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </summary>
+          <div class="mt-3 text-sm">
+            <div class="hist-row">
+              <span class="text-xs text-[color:var(--brand-muted)] mono w-20">04/14</span>
+              <span class="text-xs w-16"><span class="chip cat-outsource active" style="padding:2px 8px;font-size:10px;">外注費</span></span>
+              <span class="flex-1 truncate">センサー選定コンサルティング</span>
+              <span class="mono font-semibold">¥2,400,000</span>
+            </div>
+            <div class="hist-row">
+              <span class="text-xs text-[color:var(--brand-muted)] mono w-20">04/10</span>
+              <span class="text-xs w-16"><span class="chip cat-license active" style="padding:2px 8px;font-size:10px;">ライセンス</span></span>
+              <span class="flex-1 truncate">ML ライブラリ年間ライセンス</span>
+              <span class="mono font-semibold">¥850,000</span>
+            </div>
+            <div class="hist-row">
+              <span class="text-xs text-[color:var(--brand-muted)] mono w-20">04/05</span>
+              <span class="text-xs w-16"><span class="chip cat-equipment active" style="padding:2px 8px;font-size:10px;">機材費</span></span>
+              <span class="flex-1 truncate">評価用 IoT ゲートウェイ 2台</span>
+              <span class="mono font-semibold">¥680,000</span>
+            </div>
+            <div class="hist-row">
+              <span class="text-xs text-[color:var(--brand-muted)] mono w-20">04/01</span>
+              <span class="text-xs w-16"><span class="chip cat-other active" style="padding:2px 8px;font-size:10px;">その他</span></span>
+              <span class="flex-1 truncate">キックオフ会場費・会議室予約</span>
+              <span class="mono font-semibold">¥270,000</span>
+            </div>
+            <div class="pt-2 mt-2 text-[10px] text-[color:var(--brand-muted)] flex items-center justify-between">
+              <span>累計 4件 / ¥4,200,000</span>
+              <a href="#" class="text-[color:var(--brand-blue)] hover:underline">すべての履歴を表示 →</a>
+            </div>
+          </div>
+        </details>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-4 border-t flex items-center justify-between gap-3" style="border-color:var(--brand-border);">
+      <div class="text-[11px] text-[color:var(--brand-muted)] flex items-center gap-1.5">
+        <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+        入力内容は変更履歴として記録されます
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn-outline rounded-md px-4 py-2 text-sm font-medium">キャンセル</button>
+        <button class="btn-primary rounded-md px-4 py-2 text-sm font-medium flex items-center gap-1.5 shadow-sm focus-ring">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          保存して反映
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  // chip group toggle (main categories)
+  document.querySelectorAll('.preview-card ~ *, .card-body, .input').forEach(()=>{});
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const parent = chip.parentElement;
+      if (parent.classList.contains('hist-row') || parent.tagName === 'DIV' && parent.querySelector('.hist-row')) return;
+      parent.querySelectorAll('.chip').forEach(c => {
+        if (c.closest('.hist-row')) return;
+        c.classList.remove('active');
+      });
+      chip.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
