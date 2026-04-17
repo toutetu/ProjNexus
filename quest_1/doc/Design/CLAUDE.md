@@ -185,6 +185,18 @@ quest_1/
 | dev（開発） | タイトル / 部門 / 主担当 / タスク進捗 / 期限 / 最終更新 |
 | budget（予算） | タイトル / 部門 / 予算額 / 実績額 / 消費率 / 更新日 |
 
+### サイドバー「承認待ち一覧」のルーティング
+
+サイドバー左メニューの「承認待ち一覧」は独立した画面を持たず、
+案件一覧（申請タブ）のプリセット表示として実装する：
+
+- 遷移先: `/projects?tab=approval&filter=pending`
+- Controller 側で `filter=pending` を検出し、ロール別に以下で絞り込む：
+  - dept_manager: `status = pending_dept` かつ `department_id = self.dept`
+  - hq_manager: `status = pending_hq`（全部門）
+  - applicant: 本メニューは非表示（または自分の pending 案件のみ）
+- UI は s03a と完全共通。タイトル下に「承認待ち」バッジを表示して文脈を示す
+
 ### ログイン直後ホーム
 `/projects?tab=approval` を暫定ホームに。理想は本部管理者ダッシュボードだが課題2扱い。
 

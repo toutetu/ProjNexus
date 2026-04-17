@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>案件一覧（予算タブ） — 開発管理アプリ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --brand-red:#E60013;
+    --brand-dark:#212429;
+    --brand-bg:#F8F9FA;
+    --brand-muted:#6C757D;
+    --brand-border:#DEE2E6;
+    --brand-blue:#106EBE;
+    --brand-cyan:#01CFFF;
+    --brand-purple:#6D28D9;
+    --brand-accent:#EDB100;
+  }
+  html,body{font-family:"Noto Sans JP","Roboto",sans-serif;color:var(--brand-dark);background:var(--brand-bg);}
+  .mono{font-family:"JetBrains Mono","Roboto Mono",monospace;}
+  .btn-primary{background:var(--brand-red);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.05);box-shadow:0 4px 12px rgba(230,0,19,.25);}
+  .btn-primary:active{transform:scale(.97);}
+  /* title accent bar (small yellow decoration) */
+  .title-accent{display:inline-block;width:4px;height:24px;background:var(--brand-accent);border-radius:2px;margin-right:10px;vertical-align:middle;}
+
+  .focus-ring:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.35);}
+  /* sidebar active bar */
+  .nav-active{background:rgba(255,255,255,.06);}
+  .nav-active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand-red);}
+  /* status pill */
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:500;}
+  .pill .dot{width:6px;height:6px;border-radius:9999px;}
+  .pill-approved{background:#DCFCE7;color:#166534;} .pill-approved .dot{background:#16A34A;}
+  /* tab */
+  .tab{position:relative;padding:12px 4px;font-weight:500;color:var(--brand-muted);cursor:pointer;}
+  .tab:hover{color:var(--brand-dark);}
+  .tab.active{color:var(--brand-red);}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--brand-red);border-radius:3px 3px 0 0;}
+  /* row hover */
+  .row-click{cursor:pointer;transition:background .12s ease;}
+  .row-click:hover{background:#F1F5F9;}
+  /* budget consumption bar */
+  .cr-track{height:8px;border-radius:9999px;background:#E9ECEF;overflow:hidden;position:relative;}
+  .cr-fill{height:100%;border-radius:9999px;transition:width .5s ease;}
+  .cr-safe{background:#16A34A;}    /* 0-60% */
+  .cr-normal{background:var(--brand-blue);}  /* 61-85% */
+  .cr-warn{background:#F59E0B;}    /* 86-100% */
+  .cr-over{background:var(--brand-red);}  /* >100% */
+  .cr-label-safe{color:#166534;}
+  .cr-label-normal{color:var(--brand-blue);}
+  .cr-label-warn{color:#92400E;}
+  .cr-label-over{color:var(--brand-red);font-weight:700;}
+  /* summary card */
+  .sum-card{background:#fff;border:1px solid var(--brand-border);border-radius:8px;padding:14px 16px;}
+  /* kbd */
+  .kbd{font-family:"JetBrains Mono",monospace;font-size:11px;background:#E9ECEF;color:#495057;padding:2px 6px;border-radius:4px;border:1px solid #CED4DA;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ Layout ============ -->
+<div class="flex min-h-screen">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="w-64 shrink-0 text-white flex flex-col" style="background:#212429;">
+    <!-- Logo -->
+    <div class="h-14 px-5 flex items-center border-b border-white/10">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">J</div>
+        <div class="font-bold tracking-wide text-[15px]">開発管理アプリ</div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 text-sm">
+
+      <!-- Section: 申請・承認 -->
+      <div class="px-5 mt-2 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">申請・承認</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i> 新規申請
+      </a>
+      <a href="#" class="relative flex items-center justify-between px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <span class="flex items-center gap-3"><i data-lucide="inbox" class="w-4 h-4"></i> 承認待ち一覧</span>
+        <span class="text-[10px] bg-[#E60013] text-white font-bold px-1.5 py-0.5 rounded-full">3</span>
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="folder-search" class="w-4 h-4"></i> 案件一覧
+      </a>
+
+      <!-- Section: 開発管理 -->
+      <div class="px-5 mt-5 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">開発管理</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="folders" class="w-4 h-4"></i> 案件一覧
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/50 hover:bg-white/5">
+        <i data-lucide="list-checks" class="w-4 h-4"></i>
+        <span class="flex items-center gap-1.5">タスク一覧 <span class="text-[9px] px-1 py-0.5 rounded bg-white/10">課題2</span></span>
+      </a>
+
+      <!-- Section: 予算管理 (active) -->
+      <div class="px-5 mt-5 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">予算管理</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white nav-active">
+        <i data-lucide="wallet" class="w-4 h-4"></i> 案件一覧
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="coins" class="w-4 h-4"></i> 予算実績入力
+      </a>
+
+      <!-- Section: 共通 (bottom) -->
+      <div class="mt-5 pt-4 border-t border-white/10">
+        <a href="#" class="relative flex items-center justify-between px-5 py-2.5 text-white/85 hover:bg-white/5">
+          <span class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4"></i> 通知</span>
+          <span class="text-[10px] bg-[#01CFFF] text-[#062A40] font-bold px-1.5 py-0.5 rounded-full">5</span>
+        </a>
+        <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+          <i data-lucide="user" class="w-4 h-4"></i> プロフィール
+        </a>
+      </div>
+    </nav>
+
+    <!-- User card at bottom -->
+    <div class="p-3 border-t border-white/10 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">高</div>
+      <div class="min-w-0">
+        <div class="text-[13px] font-medium truncate">高橋 朋子</div>
+        <div class="text-[11px] text-white/50 truncate">申請者 / 開発1部</div>
+      </div>
+      <button class="ml-auto text-white/50 hover:text-white"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+    </div>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <main class="flex-1 flex flex-col min-w-0">
+    <!-- Header -->
+    <header class="h-14 bg-white border-b px-6 flex items-center justify-between sticky top-0 z-10">
+      <!-- Breadcrumb -->
+      <nav class="flex items-center gap-2 text-sm text-[color:var(--brand-muted)]">
+        <span class="flex items-center gap-1"><i data-lucide="wallet" class="w-4 h-4"></i>予算管理</span>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        <span class="text-[color:var(--brand-dark)] font-medium">案件一覧</span>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button class="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border hover:bg-gray-50 focus-ring" style="border-color:var(--brand-border);">
+          <i data-lucide="search" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
+          <span class="text-[color:var(--brand-muted)]">検索...</span>
+          <span class="kbd">⌘K</span>
+        </button>
+        <button class="relative p-2 rounded-md hover:bg-gray-100 focus-ring">
+          <i data-lucide="bell" class="w-5 h-5 text-[color:var(--brand-dark)]"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E60013]"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-7xl mx-auto">
+
+        <!-- Page header -->
+        <div class="flex items-start justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight flex items-center"><span class="title-accent"></span>案件一覧</h1>
+            <p class="text-sm text-[color:var(--brand-muted)] mt-1">予算フェーズ <span class="mx-1.5">·</span> 承認済 全5件</p>
+          </div>
+        </div>
+
+        <!-- Summary cards: 予算合計 / 実績合計 / 平均消費率 / 超過案件 -->
+        <div class="grid grid-cols-4 gap-3 mb-5">
+          <div class="sum-card">
+            <div class="text-xs text-[color:var(--brand-muted)] mb-1 flex items-center gap-1.5"><i data-lucide="wallet" class="w-3.5 h-3.5"></i>予算合計</div>
+            <div class="text-xl font-bold mono">¥49,500,000</div>
+            <div class="text-[10px] text-[color:var(--brand-muted)] mt-0.5">確定予算の総和</div>
+          </div>
+          <div class="sum-card">
+            <div class="text-xs text-[color:var(--brand-muted)] mb-1 flex items-center gap-1.5"><i data-lucide="coins" class="w-3.5 h-3.5"></i>実績合計</div>
+            <div class="text-xl font-bold mono text-[color:var(--brand-blue)]">¥27,350,000</div>
+            <div class="text-[10px] text-[color:var(--brand-muted)] mt-0.5">累計支出</div>
+          </div>
+          <div class="sum-card">
+            <div class="text-xs text-[color:var(--brand-muted)] mb-1 flex items-center gap-1.5"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i>平均消費率</div>
+            <div class="text-xl font-bold mono">55.3%</div>
+            <div class="text-[10px] text-[color:var(--brand-muted)] mt-0.5">5案件の加重平均</div>
+          </div>
+          <div class="sum-card">
+            <div class="text-xs text-[color:var(--brand-muted)] mb-1 flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-[#F59E0B]"></i>要注意案件</div>
+            <div class="text-xl font-bold mono text-[#92400E]">1件</div>
+            <div class="text-[10px] text-[color:var(--brand-muted)] mt-0.5">消費率 86% 以上</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-t-lg border border-b-0 px-5" style="border-color:var(--brand-border);">
+          <div class="flex items-center gap-6 border-b" style="border-color:var(--brand-border);">
+            <div class="tab">
+              <span class="flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i>申請<span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-semibold">8</span></span>
+            </div>
+            <div class="tab">
+              <span class="flex items-center gap-2"><i data-lucide="git-branch" class="w-4 h-4"></i>開発<span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-semibold">5</span></span>
+            </div>
+            <div class="tab active">
+              <span class="flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4"></i>予算<span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-[#FEE2E2] text-[#991B1B] font-semibold">5</span></span>
+            </div>
+            <div class="ml-auto text-xs text-[color:var(--brand-muted)]">フェーズ別に表示列が切り替わります</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white border-x p-4 flex items-center gap-3 flex-wrap" style="border-color:var(--brand-border);">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--brand-muted)]"></i>
+            <input type="text" placeholder="案件名で検索" class="w-80 pl-9 pr-3 py-2 text-sm rounded-md border focus-ring" style="border-color:var(--brand-border);" />
+          </div>
+          <select class="text-sm px-3 py-2 rounded-md border focus-ring bg-white" style="border-color:var(--brand-border);">
+            <option>部門：すべて</option>
+            <option>開発1部</option>
+            <option>開発2部</option>
+            <option>開発3部</option>
+          </select>
+          <select class="text-sm px-3 py-2 rounded-md border focus-ring bg-white" style="border-color:var(--brand-border);">
+            <option>消費率：すべて</option>
+            <option>0-60%（正常）</option>
+            <option>61-85%（ウォッチ）</option>
+            <option>86-100%（要注意）</option>
+            <option>100%超（超過）</option>
+          </select>
+          <button class="text-sm text-[color:var(--brand-blue)] hover:underline ml-auto">クリア</button>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-b-lg border border-t-0 overflow-hidden" style="border-color:var(--brand-border);">
+          <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-[color:var(--brand-bg)] text-[color:var(--brand-muted)] text-xs uppercase tracking-wider">
+              <tr>
+                <th class="text-left font-semibold px-5 py-3">タイトル</th>
+                <th class="text-left font-semibold px-4 py-3 w-24">部門</th>
+                <th class="text-right font-semibold px-4 py-3 w-32">予算額</th>
+                <th class="text-right font-semibold px-4 py-3 w-32">実績額</th>
+                <th class="text-left font-semibold px-4 py-3 w-56">消費率</th>
+                <th class="text-left font-semibold px-4 py-3 w-24">更新日</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y" style="border-color:var(--brand-border);">
+
+              <!-- Row 1: 次世代EAM (normal) -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium text-[color:var(--brand-dark)]">次世代EAMシステム開発</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5 flex items-center gap-2">
+                    <span class="mono">PRJ-2026-0042</span>
+                    <span>開発1部</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-right mono">¥10,000,000</td>
+                <td class="px-4 py-3.5 text-right mono">¥4,200,000</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="cr-track flex-1"><div class="cr-fill cr-safe" style="width:42%;"></div></div>
+                    <span class="text-xs mono font-semibold w-12 text-right cr-label-safe">42.0%</span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">残 ¥5,800,000</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/16</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 2: センサーデータ基盤刷新 (normal-high) -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">センサーデータ基盤刷新</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5 flex items-center gap-2">
+                    <span class="mono">PRJ-2026-0038</span>
+                    <span>開発2部</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3.5">開発2部</td>
+                <td class="px-4 py-3.5 text-right mono">¥15,000,000</td>
+                <td class="px-4 py-3.5 text-right mono">¥10,500,000</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="cr-track flex-1"><div class="cr-fill cr-normal" style="width:70%;"></div></div>
+                    <span class="text-xs mono font-semibold w-12 text-right cr-label-normal">70.0%</span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">残 ¥4,500,000</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/17</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 3: 保全ダッシュボードPoC (very low - 開始直後) -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">保全ダッシュボードPoC</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5 flex items-center gap-2">
+                    <span class="mono">PRJ-2026-0045</span>
+                    <span>開発1部</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3.5">開発1部</td>
+                <td class="px-4 py-3.5 text-right mono">¥3,500,000</td>
+                <td class="px-4 py-3.5 text-right mono">¥350,000</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="cr-track flex-1"><div class="cr-fill cr-safe" style="width:10%;"></div></div>
+                    <span class="text-xs mono font-semibold w-12 text-right cr-label-safe">10.0%</span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">残 ¥3,150,000</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/15</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 4: 予知保全ML実証 (warn - 完了間近で予算も要注意) -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">予知保全ML実証</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5 flex items-center gap-2">
+                    <span class="mono">PRJ-2026-0029</span>
+                    <span>開発3部</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3.5">開発3部</td>
+                <td class="px-4 py-3.5 text-right mono">¥12,000,000</td>
+                <td class="px-4 py-3.5 text-right mono">¥10,800,000</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="cr-track flex-1"><div class="cr-fill cr-warn" style="width:90%;"></div></div>
+                    <span class="text-xs mono font-semibold w-12 text-right cr-label-warn">90.0%</span>
+                  </div>
+                  <div class="text-[10px] mt-1 flex items-center gap-1 text-[#92400E]"><i data-lucide="alert-triangle" class="w-3 h-3"></i>残 ¥1,200,000 ・要ウォッチ</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/17</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+              <!-- Row 5: 遠隔監視システム設計 (safe) -->
+              <tr class="row-click">
+                <td class="px-5 py-3.5">
+                  <div class="font-medium">遠隔監視システム設計</div>
+                  <div class="text-xs text-[color:var(--brand-muted)] mt-0.5 flex items-center gap-2">
+                    <span class="mono">PRJ-2026-0040</span>
+                    <span>開発2部</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3.5">開発2部</td>
+                <td class="px-4 py-3.5 text-right mono">¥9,000,000</td>
+                <td class="px-4 py-3.5 text-right mono">¥1,500,000</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="cr-track flex-1"><div class="cr-fill cr-safe" style="width:16.6%;"></div></div>
+                    <span class="text-xs mono font-semibold w-12 text-right cr-label-safe">16.7%</span>
+                  </div>
+                  <div class="text-[10px] text-[color:var(--brand-muted)] mt-1">残 ¥7,500,000</div>
+                </td>
+                <td class="px-4 py-3.5 text-[color:var(--brand-muted)]">04/14</td>
+                <td class="px-2 py-3.5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--brand-muted)]"></i></td>
+              </tr>
+
+            </tbody>
+          </table>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between px-5 py-3 border-t text-sm" style="border-color:var(--brand-border);">
+            <div class="text-[color:var(--brand-muted)]">5件中 1–5件を表示</div>
+            <div class="flex items-center gap-1">
+              <button class="w-8 h-8 rounded-md border flex items-center justify-center text-[color:var(--brand-muted)] hover:bg-gray-50 disabled:opacity-50" disabled style="border-color:var(--brand-border);"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+              <button class="w-8 h-8 rounded-md bg-[color:var(--brand-dark)] text-white text-xs font-medium">1</button>
+              <button class="w-8 h-8 rounded-md border flex items-center justify-center text-[color:var(--brand-muted)] hover:bg-gray-50 disabled:opacity-50" disabled style="border-color:var(--brand-border);"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend (consumption color) -->
+        <div class="mt-4 text-xs text-[color:var(--brand-muted)] flex items-center gap-5 flex-wrap">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded-sm cr-safe inline-block"></span>0-60%（正常）</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded-sm cr-normal inline-block"></span>61-85%（ウォッチ）</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded-sm cr-warn inline-block"></span>86-100%（要注意）</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded-sm cr-over inline-block"></span>100%超（超過）</span>
+          <span class="ml-auto flex items-center gap-1">行をクリックで詳細へ <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

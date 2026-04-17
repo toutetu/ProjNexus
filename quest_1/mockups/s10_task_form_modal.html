@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>タスク編集モーダル — 開発管理アプリ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --brand-red:#E60013;
+    --brand-dark:#212429;
+    --brand-bg:#F8F9FA;
+    --brand-muted:#6C757D;
+    --brand-border:#DEE2E6;
+    --brand-blue:#106EBE;
+    --brand-cyan:#01CFFF;
+    --brand-purple:#6D28D9;
+    --brand-accent:#EDB100;
+  }
+  html,body{font-family:"Noto Sans JP","Roboto",sans-serif;color:var(--brand-dark);background:var(--brand-bg);}
+  .mono{font-family:"JetBrains Mono","Roboto Mono",monospace;}
+  .btn-primary{background:var(--brand-red);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.05);box-shadow:0 4px 12px rgba(230,0,19,.25);}
+  .btn-primary:active{transform:scale(.97);}
+  .btn-outline{background:#fff;color:var(--brand-dark);border:1px solid var(--brand-border);}
+  .btn-outline:hover{background:#F1F5F9;border-color:#CED4DA;}
+  .btn-outline-red{background:#fff;color:var(--brand-red);border:1px solid var(--brand-red);}
+  .btn-outline-red:hover{background:#FEF2F2;}
+  .focus-ring:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.35);}
+  /* chip selector */
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid var(--brand-border);border-radius:9999px;font-size:12px;font-weight:500;color:var(--brand-muted);background:#fff;cursor:pointer;transition:all .15s;}
+  .chip:hover{background:#F1F5F9;border-color:#ADB5BD;}
+  .chip.active{background:var(--brand-dark);color:#fff;border-color:var(--brand-dark);}
+  .chip.chip-priority-high.active{background:#DC2626;border-color:#DC2626;}
+  .chip.chip-priority-mid.active{background:#CA8A04;border-color:#CA8A04;}
+  .chip.chip-priority-low.active{background:var(--brand-blue);border-color:var(--brand-blue);}
+  .chip.chip-status-todo.active{background:#6B7280;border-color:#6B7280;}
+  .chip.chip-status-doing.active{background:var(--brand-blue);border-color:var(--brand-blue);}
+  .chip.chip-status-done.active{background:#16A34A;border-color:#16A34A;}
+  .chip.chip-type-task.active{background:#374151;border-color:#374151;}
+  .chip.chip-type-feature.active{background:#1E40AF;border-color:#1E40AF;}
+  .chip.chip-type-improve.active{background:#065F46;border-color:#065F46;}
+  .chip.chip-type-bug.active{background:#991B1B;border-color:#991B1B;}
+  /* form input */
+  .input{width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--brand-border);border-radius:6px;background:#fff;}
+  .input:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.2);border-color:var(--brand-blue);}
+  .label{display:block;font-size:12px;font-weight:600;color:var(--brand-dark);margin-bottom:6px;}
+  .label .req{color:var(--brand-red);margin-left:2px;}
+  /* avatar */
+  .avatar{width:24px;height:24px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;}
+  .avatar-sm{width:20px;height:20px;font-size:9px;}
+  /* progress slider container */
+  .progress-box{background:#F8F9FA;border:1px solid var(--brand-border);border-radius:8px;padding:14px 16px;}
+  .progress-track{height:8px;border-radius:9999px;background:#E9ECEF;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:9999px;background:var(--brand-blue);transition:width .3s;}
+  /* background dim */
+  .dimmed{opacity:.35;filter:blur(1px);pointer-events:none;user-select:none;}
+  /* kbd */
+  .kbd{font-family:"JetBrains Mono",monospace;font-size:11px;background:#E9ECEF;color:#495057;padding:2px 6px;border-radius:4px;border:1px solid #CED4DA;}
+  /* nav active (dimmed bg) */
+  .nav-active{background:rgba(255,255,255,.06);}
+  .nav-active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand-red);}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ Dimmed Background (案件詳細 S-04 タスクタブ) ============ -->
+<div class="flex min-h-screen dimmed">
+  <aside class="w-64 shrink-0 text-white flex flex-col" style="background:#212429;">
+    <div class="h-14 px-5 flex items-center border-b border-white/10">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">J</div>
+        <div class="font-bold tracking-wide text-[15px]">開発管理アプリ</div>
+      </div>
+    </div>
+    <nav class="flex-1 py-3 text-sm">
+      <div class="px-5 mt-2 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">開発管理</div>
+      <a class="relative flex items-center gap-3 px-5 py-2.5 text-white nav-active"><i data-lucide="folders" class="w-4 h-4"></i> 案件一覧</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-6">
+    <div class="max-w-7xl mx-auto">
+      <h1 class="text-2xl font-bold mb-4">次世代EAMシステム開発</h1>
+      <div class="bg-white border rounded-lg p-6" style="border-color:var(--brand-border);">
+        <div class="text-sm font-semibold mb-3">タスク一覧（12件）</div>
+        <div class="text-xs text-[color:var(--brand-muted)]">※ タスク行をクリックまたは「タスク追加」ボタンで本モーダルが開きます</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ Modal Overlay ============ -->
+<div class="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto py-8 px-4">
+  <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl">
+
+    <!-- Modal Header -->
+    <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color:var(--brand-border);">
+      <div>
+        <div class="text-xs text-[color:var(--brand-muted)] mb-0.5 flex items-center gap-1.5">
+          <i data-lucide="folder" class="w-3.5 h-3.5"></i>
+          次世代EAMシステム開発
+          <span class="mx-1">/</span>
+          <span class="mono">TASK-042-005</span>
+        </div>
+        <h2 class="text-lg font-bold flex items-center gap-2">
+          <i data-lucide="edit-3" class="w-5 h-5 text-[color:var(--brand-blue)]"></i>
+          タスクを編集
+        </h2>
+      </div>
+      <button class="p-1.5 rounded-md hover:bg-gray-100 text-[color:var(--brand-muted)] focus-ring" aria-label="閉じる">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+
+      <!-- タイトル -->
+      <div>
+        <label class="label">タイトル<span class="req">*</span></label>
+        <input type="text" class="input focus-ring" value="IoTゲートウェイ設計書作成" />
+      </div>
+
+      <!-- 種類 / 優先度 -->
+      <div class="grid grid-cols-2 gap-5">
+        <div>
+          <label class="label">種類</label>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="chip chip-type-task active">タスク</span>
+            <span class="chip chip-type-feature">機能追加</span>
+            <span class="chip chip-type-improve">改善</span>
+            <span class="chip chip-type-bug">バグ</span>
+          </div>
+        </div>
+        <div>
+          <label class="label">優先度</label>
+          <div class="flex items-center gap-1.5">
+            <span class="chip chip-priority-high active">高</span>
+            <span class="chip chip-priority-mid">中</span>
+            <span class="chip chip-priority-low">低</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ステータス -->
+      <div>
+        <label class="label">ステータス</label>
+        <div class="flex items-center gap-1.5">
+          <span class="chip chip-status-todo">未着手</span>
+          <span class="chip chip-status-doing active">進行中</span>
+          <span class="chip chip-status-done">完了</span>
+        </div>
+      </div>
+
+      <!-- 進捗 (進行中時のみ表示) -->
+      <div class="progress-box">
+        <div class="flex items-center justify-between mb-2">
+          <label class="label mb-0 flex items-center gap-1.5">
+            <i data-lucide="activity" class="w-3.5 h-3.5 text-[color:var(--brand-blue)]"></i>
+            進捗
+            <span class="text-[10px] font-normal text-[color:var(--brand-muted)] ml-1">進行中のタスクのみ</span>
+          </label>
+          <span class="text-lg font-bold mono text-[color:var(--brand-blue)]">70%</span>
+        </div>
+        <input type="range" min="0" max="100" value="70" class="w-full accent-[#106EBE]" />
+        <div class="flex justify-between text-[10px] text-[color:var(--brand-muted)] mt-1 mono">
+          <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+        </div>
+      </div>
+
+      <!-- 担当者 / 期日 -->
+      <div class="grid grid-cols-2 gap-5">
+        <div>
+          <label class="label">担当者</label>
+          <div class="relative">
+            <div class="input flex items-center gap-2 cursor-pointer">
+              <span class="avatar" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</span>
+              <span class="flex-1">高橋 朋子</span>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="label">期日</label>
+          <div class="relative">
+            <input type="date" class="input focus-ring pr-9" value="2026-04-25" />
+            <i data-lucide="calendar" class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--brand-muted)] pointer-events-none"></i>
+          </div>
+          <div class="text-[10px] text-[color:var(--brand-muted)] mt-1 flex items-center gap-1">
+            <i data-lucide="clock" class="w-3 h-3"></i>
+            あと 8 日
+          </div>
+        </div>
+      </div>
+
+      <!-- 説明 -->
+      <div>
+        <label class="label">説明</label>
+        <textarea class="input focus-ring" rows="4" placeholder="タスクの詳細を記入">IoTゲートウェイのハードウェア選定とネットワーク構成を含む設計書を作成する。センサーデータ取得頻度（1秒/1分/1時間の切替）と、既存 SCADA システムとの接続インターフェースを明記すること。</textarea>
+      </div>
+
+      <!-- コメント -->
+      <div class="border-t pt-4" style="border-color:var(--brand-border);">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-sm font-semibold flex items-center gap-2">
+            <i data-lucide="message-square" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
+            コメント
+            <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">2</span>
+          </div>
+        </div>
+
+        <!-- コメント一覧 -->
+        <div class="space-y-3 mb-4">
+          <div class="flex gap-2.5">
+            <span class="avatar shrink-0 mt-0.5" style="background:linear-gradient(135deg,#F59E0B,#DC2626);">田</span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium">田中 大輔</span>
+                <span class="text-[10px] text-[color:var(--brand-muted)]">2日前</span>
+              </div>
+              <div class="text-sm text-[color:var(--brand-dark)] mt-0.5 bg-gray-50 rounded-md p-2.5 border" style="border-color:var(--brand-border);">
+                既存の Modbus 接続も考慮に入れてください。プラント3号機で使用中です。
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-2.5">
+            <span class="avatar shrink-0 mt-0.5" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium">高橋 朋子</span>
+                <span class="text-[10px] text-[color:var(--brand-muted)]">1日前</span>
+              </div>
+              <div class="text-sm text-[color:var(--brand-dark)] mt-0.5 bg-gray-50 rounded-md p-2.5 border" style="border-color:var(--brand-border);">
+                ありがとうございます、Modbus セクションを追加します。ドラフトは 4/23 までに共有します。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- コメント入力 -->
+        <div class="flex gap-2.5">
+          <span class="avatar shrink-0 mt-1" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</span>
+          <div class="flex-1">
+            <textarea class="input focus-ring text-sm" rows="2" placeholder="コメントを追加..."></textarea>
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-[10px] text-[color:var(--brand-muted)]"><span class="kbd">⌘</span> + <span class="kbd">Enter</span> で送信</span>
+              <button class="btn-outline rounded-md px-3 py-1.5 text-xs font-medium flex items-center gap-1.5">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i> 投稿
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 変更履歴（折りたたみ） -->
+      <div class="border-t pt-3" style="border-color:var(--brand-border);">
+        <button class="w-full flex items-center justify-between text-sm text-[color:var(--brand-muted)] hover:text-[color:var(--brand-dark)]">
+          <span class="flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4"></i>
+            変更履歴 <span class="text-xs">（3件）</span>
+          </span>
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-4 border-t flex items-center justify-between" style="border-color:var(--brand-border);">
+      <!-- 左: 削除 (編集時のみ表示) -->
+      <button class="btn-outline-red rounded-md px-3 py-2 text-sm font-medium flex items-center gap-1.5 focus-ring">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        削除
+      </button>
+      <!-- 右: キャンセル / 保存 -->
+      <div class="flex items-center gap-2">
+        <button class="btn-outline rounded-md px-4 py-2 text-sm font-medium">キャンセル</button>
+        <button class="btn-primary rounded-md px-4 py-2 text-sm font-medium flex items-center gap-1.5 shadow-sm focus-ring">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          保存
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  // chip group toggle (single-select per group)
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const parent = chip.parentElement;
+      parent.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
