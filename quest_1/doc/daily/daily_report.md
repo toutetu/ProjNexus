@@ -53,6 +53,77 @@ Phase 0の中での進捗
 
 ---
 
+# 日報 2026-04-20（月）
+## 作業時間
+今日の作業時間: 4時間  
+累計作業時間: 29時間（のこり71時間）
+
+## 今日の作業内容
+### Git 整理（Cursor と作業）
+・モック方針書の追加・スケジュール整理を `docs/mock-policies-and-schedule` ブランチで整理
+・main へマージ、`gitlab` / `origin` 両リモートへ push
+・`.vite/` を `.gitignore` に追加（Vite キャッシュの除外）
+
+### Phase 0 環境構築完了（Cursor と作業）
+・`.env` 作成、APP_KEY 生成、MySQL（MariaDB 10.4 / XAMPP）に `projnexus` DB 作成
+・`composer install` / `npm install` の残タスクを実施
+・`spatie/laravel-permission` 導入、マイグレーション公開
+・`departments` テーブル作成、`users.department_id` を外部キー追加
+・`Department` モデル新規、`User` モデルに `HasRoles` と `department()` を追加
+・`App\Enums\Role` を作成（applicant / dept_manager / hq_manager）
+・`DepartmentSeeder`（本部+3部門）、`RolePermissionSeeder`、`UserSeeder`（7アカウント）作成
+・`migrate:fresh --seed` 成功、DB で役割・部門付与を確認
+
+### ログイン後遷移の固定
+・`AuthenticatedSessionController::store` のリダイレクト先を `/projects?tab=approval` に変更
+・`/dashboard` も暫定で `/projects?tab=approval` に redirect
+・`HandleInertiaRequests::share` で `auth.user` に `department` と `roles` を追加
+・暫定の `Projects/Index.tsx` を作成（ロール・部門・tab 表示の動作確認用）
+
+## Phase構成と進捗
+| Phase | 内容 | 時間 | 状態 |
+|-------|------|------|------|
+| Phase 0 | 設計・環境構築 | 35h（実績29h） | ★今ここ（環境構築ほぼ完了） |
+| Phase 1 | 認証・ユーザー管理 | 10h | 未着手 |
+| Phase 2 | 申請・承認フロー（課題1の核） | 20h | 未着手 |
+| Phase 3 | 進捗管理・予算管理 | 10h | 未着手 |
+| Phase 4 | 課題2（+α機能） | 5h | 未着手 |
+| Phase 5 | ドキュメント・仕上げ | 20h | 未着手 |
+
+## Phase 0の中での進捗
+- [x] 課題の読み込み・理解
+- [x] 技術スタック決定
+- [x] デプロイ先決定
+- [x] 機能一覧の整理
+- [x] ER図（v4）作成
+- [x] 画面遷移の整理
+- [x] デザインルール策定（カラー・UI方針）
+- [x] デザインイメージ モック作成（S-03a/b/c, S-04, S-10, S-11 完成）
+- [x] 設計ドキュメントの作成（Cursor向けCLAUDE.md の作成）
+- [x] Laravel環境構築
+- [x] Breeze（React + Inertia + TS）インストール
+- [x] Spatie Permission のインストール ← **今日ここ完了**
+- [x] DB作成・マイグレーション（users / departments / permission tables） ← **今日ここ完了**
+- [x] シーダー作成（3ロール × 4部門、7テストアカウント）← **今日ここ完了**
+- [x] ログイン後遷移を `/projects?tab=approval` に固定 ← **今日ここ完了**
+- [ ] 3ロールでの動作検証（ブラウザ確認）← **次回はここ**
+- [ ] デプロイ先の初期設定・動作確認 ← **次回はここ**
+
+## 次回の作業予定
+・`php artisan serve` + `npm run dev` を起動して、3ロールでのログイン〜リダイレクト動作をブラウザ確認
+・Phase 1 着手：`AuthenticatedLayout` を s03a/s04 モック準拠に改修、サイドバー3セクション化
+・共通コンポーネント（`StatusPill`, `ApprovalStepperMini`, `Tabs`）の先行実装
+・`projects` テーブルとモデルのスキャフォールド
+
+## 今日の体調
+　フィジカル: ? / 10  
+　メンタル: ? / 10
+
+## 今日の感想
+（あとで記入）
+
+---
+
 # 日報 2026-04-17（金）
 ## 作業時間
 今日の作業時間: 5時間  
@@ -313,3 +384,21 @@ Breeze（React + Inertia）・Spatie Permission のインストール
 課題の情報量が多く最初は戸惑いもありましたが、画面モックやER図を見ながら整理していくうちに全体像がつかめてきました。集中して取り組んだ分、少し疲れましたが、順調に進んでいると感じています。
 明日以降も引き続き頑張ります。
 
+高橋　朋子 — 2026/04/13 13:41
+お疲れ様です。本日より開発を始めます。高橋朋子です。
+どうぞよろしくお願いいたします。
+
+開発期間中の作業予定について、以下の通り報告いたします。
+
+■ 作業する日・時間
+・期間：4/13(月) 〜 5/15(金) の平日（計21日間）
+・基本時間：13:00 〜 17:00
+※午前中は娘の登校付き添いのため、午後からの開始とさせていただきます。
+※夕方に下校や習い事の付き添いが発生した場合、19:00〜21:00頃に追加で作業する場合がございます。
+
+■ 定期通院などでお休み・変動がある日
+・毎週火曜日：通院のため午前中不在となります。
+（通院の状況により、13:00以降の開始となる場合がございます。その際は別途ご連絡いたします）
+
+精一杯取り組ませていただきます。
+どうぞよろしくお願いいたします。
