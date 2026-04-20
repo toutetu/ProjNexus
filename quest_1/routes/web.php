@@ -15,8 +15,22 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    return redirect()->route('projects.index', ['tab' => 'approval']);
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/projects', function (\Illuminate\Http\Request $request) {
+        $allowedTabs = ['approval', 'dev', 'budget'];
+        $tab = in_array($request->query('tab'), $allowedTabs, true)
+            ? $request->query('tab')
+            : 'approval';
+
+        return Inertia::render('Projects/Index', [
+            'tab' => $tab,
+            'filter' => $request->query('filter'),
+        ]);
+    })->name('projects.index');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

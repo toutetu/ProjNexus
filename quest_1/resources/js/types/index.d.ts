@@ -1,8 +1,19 @@
+export type RoleName = 'applicant' | 'dept_manager' | 'hq_manager';
+
+export interface Department {
+    id: number;
+    name: string;
+    type: 'department' | 'headquarters';
+}
+
 export interface User {
     id: number;
     name: string;
     email: string;
     email_verified_at?: string;
+    department_id: number | null;
+    department: Department | null;
+    roles: RoleName[];
 }
 
 export type PageProps<
