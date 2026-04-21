@@ -149,76 +149,69 @@ git push -u origin feat/phase1-layout
 
 ---
 
-## 3. 次回作業予定（2026-04-21 火曜・Phase 1 初日）
+## 3. 次回作業予定（2026-04-22 水曜・Phase 1 2日目／目安 4h）
 
 ### 目的
-- `AuthenticatedLayout` を 3 セクションサイドバー構造に改修し、モック（s03a）の骨格を再現する
-- 共通コンポーネント（`StatusPill`, `Tabs`, `ApprovalStepperMini`）の雛形を先行実装する
-- Phase 2 着手時に「画面は形になっている、あとは Laravel と繋ぐだけ」の状態を作る
+- 共通コンポーネント第2弾（`Tabs`, `ApprovalStepperMini`, `EmptyState`）を完成させる
+- `Projects/Index.tsx` にタブ切替 UI と、ダミーデータのテーブル骨組みを入れる
+- Phase 2 着手（申請フォーム S-05）にスムーズに繋げる下地を作る
 
 ### 実行手順（当日の順番）
 
 1. **事前確認**（5分）
-   - `git pull` で最新を取り込み
-   - `php artisan serve` / `npm run dev` が起動することを確認
-   - ブラウザで `/projects?tab=approval` が表示されることを確認
+   - `git checkout feat/phase1-layout`（ブランチ継続）、必要なら main をマージしてから作業
+   - `php artisan serve` / `npm run dev` 起動、`/projects?tab=approval` で 3 ロール分の表示を実機確認
+   - 昨日の Done 項目（サイドバー、StatusPill）がブラウザで崩れていないか目視確認
 
-2. **shadcn/ui の基本導入**（30分）
-   ```powershell
-   cd C:\xampp\htdocs\ProjNexus
-   npx shadcn@latest init
-   npx shadcn@latest add button input dialog table badge select
-   ```
-   - `components.json` が生成されることを確認
-   - `resources/js/Components/ui/` に各コンポーネントが追加されることを確認
+2. **`Tabs.tsx` 実装**（60分）
+   - 配置：`resources/js/Components/Tabs.tsx`
+   - Props：`value, onChange, items[{value, label, icon?, count?}]`
+   - 下線アクティブ式。アクティブタブのカウントバッジは赤背景 `#FEE2E2 / #991B1B`、非アクティブは `bg-gray-100`
+   - URL クエリ同期は親（`Projects/Index.tsx`）側で Inertia `router.visit` を呼ぶ設計（Tabs 自体は純粋な UI 部品に保つ）
 
-3. **`AuthenticatedLayout.tsx` を 3 セクション化**（60分）
-   - 参照モック：`mockups/s03a_projects_approval.html`
-   - 参照設計：`doc/Design/CLAUDE.md §5 ナビゲーション・画面構成`
-   - セクション：
-     - 申請・承認：新規申請 / 承認待ち一覧 / 案件一覧（申請タブ）
-     - 開発管理：案件一覧（開発タブ）
-     - 予算管理：案件一覧（予算タブ）
-     - 共通（下部）：通知 / プロフィール
-   - `usePage().props.auth.user.roles` でロール別に表示切替
+3. **`ApprovalStepperMini.tsx` 実装**（50分）
+   - 配置：`resources/js/Components/Approval/ApprovalStepperMini.tsx`
+   - Props：`status: ProjectStatus, rejectedAt?: 'dept' | 'hq'`
+   - 4ドット + 3ライン、現在位置はパルス（`animate-brand-pulse` を流用）
+   - キャプション「申請 → **部門** → 本部 → 済」の現在位置強調
 
-4. **共通コンポーネント 3 点**（60分）
-   - `resources/js/Components/StatusPill.tsx`：6 ステータス分の色分け（設計は `design_system.md`）
-   - `resources/js/Components/Tabs.tsx`：`/projects?tab=xxx` の URL 連動（`useRoute` + `router.get`）
-   - `resources/js/Components/ApprovalStepperMini.tsx`：申請→部門→本部→承認 の 4 段・小型表示
+4. **`EmptyState.tsx` 実装**（20分）
+   - 配置：`resources/js/Components/EmptyState.tsx`
+   - Props：`icon, title, description?, action?`
+   - テーブル 0 件時の中央寄せ定型
 
-5. **`Projects/Index.tsx` のタブ切替骨組み**（30分）
-   - URL クエリ `?tab=approval|dev|budget` で条件分岐
-   - ダミーデータで Table を表示
-   - 見出しに `StatusPill` サンプルを置き、色が正しいか確認
+5. **`Projects/Index.tsx` のタブ切替 UI 組込**（70分）
+   - `?tab=approval|dev|budget` に `Tabs` を同期、`filter=pending` 時のバッジ表示
+   - ダミーデータ（5〜8件）でテーブルヘッダと行を描画（まだ空の行でも可。タブ列切替の骨だけ）
+   - 承認待ちプリセット（`&filter=pending`）のタイトル下バッジ表示
+   - `ApprovalStepperMini` を 1 行に仮配置して動作確認
 
-6. **コミット＆日報更新**（15分）
-   - `git add` → `git commit -m "feat: layout and common components for Phase 1"`
-   - `doc/daily/daily_report.md` に日報を先頭に追記
-   - `doc/daily/development_schedule.md` の「現在地」「今週の目標」を更新
+6. **コミット & 日報更新**（20分）
+   - `feat: phase1 common components (Tabs, ApprovalStepperMini, EmptyState)` 相当でコミット
+   - `daily_report.md` 先頭に 4/22 分を追記、`development_schedule.md` のチェックリストを更新
+   - `implementation_schedule.md §3` を 4/23 分に差し替えて push
 
 ### 判断理由（なぜこの順番か）
 
-- `AuthenticatedLayout` を先に整えると、以降すべての画面で同じ土台が使えるため、Phase 2 以降の手戻りが減る
-- 共通コンポーネントを Phase 1 のうちに作ると、Phase 2〜3 の各画面で組み合わせて使えるだけになる
-- shadcn/ui は 1 度入れれば後から `add` で追加できるため、最初に `init` だけ済ませておく
-- ダミーデータで骨組みを作ることで、Laravel 側の実装前に UI を検証できる
+- `Tabs` が先に無いと `Projects/Index.tsx` の差替えが完結しないため先行実装
+- `ApprovalStepperMini` は `Projects/Index.tsx` の申請タブ行に使うため同日作業
+- `EmptyState` は軽量なので同じ日にまとめて消化（後続画面でも必ず使う）
+- 4/23 に `projects` migration / Model / Controller 分岐、4/24 に週次棚卸し + Phase 2 着手、の流れを維持
 
 ### 完了条件（終了判定）
 
-- [ ] `AuthenticatedLayout.tsx` が 3 セクション構造で表示される
-- [ ] ログインユーザーのロールによってメニュー項目が切り替わる
-- [ ] `/projects?tab=approval|dev|budget` の URL でタブが切り替わる
-- [ ] `StatusPill` が 6 ステータスすべてで適切な色表示になる
-- [ ] `ApprovalStepperMini` が 4 段階で表示される
-- [ ] TypeScript エラー・コンソールエラーがゼロ
-- [ ] `git push` まで完了、`development_schedule.md` の「現在地」を更新
+- [ ] `Tabs` が `?tab=approval|dev|budget` の URL と双方向同期する
+- [ ] `Projects/Index.tsx` で 3 タブ切替がブラウザで動く（行の中身はダミーでよい）
+- [ ] `ApprovalStepperMini` が 4 状態（draft/pending_dept/pending_hq/approved/rejected）で正しく表示される
+- [ ] 承認待ちプリセット（`&filter=pending`）でタイトル下に「承認待ち」バッジが出る
+- [ ] `npx tsc --noEmit` と `npm run build` が通る
+- [ ] `feat/phase1-layout` に push、日報 3 ファイル更新済み
 
-### 保留・課題（次回に持ち越す）
+### 保留・課題（次々回に持ち越す）
 
-- ロール別メニュー表示の詳細（特に承認待ち一覧の文脈バッジ）は Phase 2 で実装
-- モバイル時のハンバーガーメニューの動作は Phase 4 に回す
-- shadcn/ui のテーマカラー（primary 等）は暫定で、デザインレビュー時に調整
+- S-03a の `ProjectTable`（approval 列セット）本体は 4/23 に Controller/Model と同時着手
+- 承認ステッパーの大型版（`ApprovalStepperFull`）は S-04 作成時（Phase 2）
+- モバイル時のサイドバーはハンバーガー化（Phase 4）
 
 ---
 
@@ -439,6 +432,41 @@ DB_PASSWORD=
 - Phase 1 着手：`AuthenticatedLayout` を s03a/s04 モック準拠に改修、サイドバー 3 セクション化
 - 共通コンポーネント（`StatusPill`, `ApprovalStepperMini`, `Tabs`）の先行実装
 - `projects` テーブルとモデルのスキャフォールド
+
+
+---
+
+### 作業記録 2026-04-21（火）Phase 1 初日（3h）
+
+#### 今日の作業内容（ブランチ: `feat/phase1-layout`）
+- shadcn/ui 基盤を手動導入：`components.json` / `resources/js/lib/utils.ts` / `Components/ui/button.tsx` / `Components/ui/badge.tsx`
+- 依存パッケージ追加：`lucide-react`, `clsx`, `tailwind-merge`, `class-variance-authority`, `@radix-ui/react-slot`, `tailwindcss-animate`
+- `tailwind.config.js` に `brand.*` / `status.*` カラートークン、`Noto Sans JP` / `JetBrains Mono` フォント、`animate-brand-pulse` を登録
+- `resources/css/app.css` に Google Fonts（Noto Sans JP / JetBrains Mono）の `@import` を追加
+- `AuthenticatedLayout` を 3 セクションサイドバー構造に全面改修
+  - `Components/Layout/Sidebar.tsx`（ロゴ / 申請・承認 / 開発管理 / 予算管理 / 共通 / 下部ユーザーカード）
+  - `Components/Layout/Header.tsx`（パンくず + ⌘K 検索ボタン + 通知ベル）
+  - `Components/Layout/Breadcrumb.tsx` 単独化
+  - ロール別メニュー制御（applicant：承認待ち非表示 / hq_manager：新規申請非表示 / タスク一覧は全ロール dim+「課題2」）
+- `StatusPill.tsx` を 5 値（draft / pending_dept / pending_hq / approved / rejected）で実装、色は `components_spec.md §2` マッピングに準拠
+- `Projects/Index.tsx` を新レイアウト + `StatusPill` 5 種確認ブロックで更新
+- `Dashboard.tsx` と `Profile/Edit.tsx` を `breadcrumb` / `activeKey` props 仕様に追従
+- `types/index.d.ts` に `BreadcrumbItem` 型を追加
+
+#### 詰まった点・判断
+- `npx shadcn@latest init` は Laravel + Inertia の既存構成と相性が悪く、対話プロンプトに時間を取られる判断 → `components.json` / `lib/utils.ts` / Button / Badge を手動スキャフォールドに切替
+- `AuthenticatedLayout` の `header` props を利用していた `Dashboard.tsx` / `Profile/Edit.tsx` を放置すると型エラーで詰まるため、今日のうちに新 props 仕様（`breadcrumb` + `activeKey`）に追従。Phase 2 以降の手戻り防止も兼ねた
+- shadcn の CSS variables 方式（`--background` 等）は Tailwind v3 構成で追加コストが大きく、当面は `brand.*` トークン直参照で運用。Button / Badge 側も `bg-brand-red` 等の直接クラスで暫定実装し、後日ブランド色の微調整があればトークン側で一元差替え可能
+
+#### 検証結果
+- `npx tsc --noEmit` — 0 エラー
+- `npm run build` — 成功（CSS 52.99 KB, main 338.17 KB）
+- Lint — 該当ファイルでエラーなし
+
+#### 次回の作業予定（= 上記「§3 次回作業予定」参照）
+- `Tabs` / `ApprovalStepperMini` / `EmptyState` の実装
+- `Projects/Index.tsx` にタブ切替 UI とダミーテーブル骨組み
+- 承認待ちプリセット（`filter=pending`）のタイトル下バッジ
 
 
 ---
