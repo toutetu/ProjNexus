@@ -24,12 +24,16 @@
 
 | テーブル | 用途 | 既存テーブルへの影響 |
 |---------|------|-----------------|
+| **budget_actuals** | **予算実績の追加方式（監査証跡・内訳分析）**。1支出=1行 INSERT し、`projects.actual_amount` は `SUM()` で集計 | project_id で参照。`projects.actual_amount` を冗長カラム（集計キャッシュ）扱いに変更 |
 | milestones | マイルストーン管理・ガントチャート | tasks.milestone_id で参照 |
 | project_members | 案件へのメンバーアサイン | project_id + user_id の中間テーブル |
-| budget_items | 費目別予算管理 | project_id で参照 |
+| budget_items | 費目別予算管理（`budget_actuals` と組み合わせて費目ごとの予算・実績管理） | project_id で参照 |
 | task_attachments | タスクへのファイル添付 | task_id で参照 |
 | project_comments | 案件レベルのコメント | project_id で参照 |
 | project_attachments | 案件へのファイル添付 | project_id で参照 |
+
+> **課題1 の方針**：予算実績は `projects.actual_amount` の **上書き方式** で運用する（最小要件「案件単位の総額で可」に準拠）。  
+> **課題2 の拡張**：`budget_actuals` テーブルを追加し、支出ごとに履歴を積み上げる **追加方式** に拡張。監査証跡・カテゴリ別内訳・誤入力耐性を獲得する。
 
 ## ER図
 
@@ -59,9 +63,10 @@ erDiagram
     decimal estimated_amount "概算予算(申請時)"
     decimal estimated_days "概算工数(申請時)"
     decimal budget_amount "確定予算額"
-    decimal actual_amount "実績額"
+    decimal actual_amount "実績額(課題1=上書き/課題2=SUM集計)"
     bigint department_id FK "担当部門"
     bigint applicant_id FK "申請者"
+    bigint primary_assignee_id FK "主担当(nullable・承認後に決定)"
     enum status "draft / pending_dept / pending_hq / approved / rejected"
     integer revision "申請回数(初回=1)"
     bigint parent_project_id FK "元案件(nullable・却下時の再申請元)"
@@ -131,6 +136,7 @@ erDiagram
   departments ||--o{ users : "所属"
   departments ||--o{ projects : "担当"
   users ||--o{ projects : "申請"
+  users ||--o{ projects : "主担当"
   users ||--o{ approvals : "承認"
   users ||--o{ tasks : "担当"
   users ||--o{ tasks : "作成"
@@ -187,15 +193,29 @@ erDiagram
 | medium | 中（デフォルト） |
 | low | 低 |
 
-### tasks.status
-| 値 | 説明 |
-|---|---|
-| open | 未着手 |
-| in_progress | 進行中 |
-| resolved | 解決済み |
-| closed | 完了 |
+### tasks.status（Backlog 風・4値）
 
-### tasks.category
+| 値 | 説明 | 課題1 | 課題2 |
+|---|---|:---:|:---:|
+| open | 未着手（未対応） | ✅ 使用 | ✅ 使用 |
+| in_progress | 進行中（処理中） | ✅ 使用 | ✅ 使用 |
+| resolved | 確認待ち（申請者の完了報告後・確認者の確認前） | ❌ 使わない | ✅ 使用 |
+| closed | 完了（すべて完了） | ✅ 使用 | ✅ 使用 |
+
+**課題1 の運用（3値）**：
+- 申請者（主担当）がタスクを終えたら **`in_progress → closed`** に遷移させて完了
+- UI のチップは「未着手 / 進行中 / 完了」の 3 つだけ表示
+- `resolved` は DB カラムでは許容するが、課題1 では遷移させない
+
+**課題2 の運用（4値・確認工程追加）**：
+- 申請者が作業完了したら **`in_progress → resolved`**（「完了報告」）
+- 確認者（別ユーザー）が内容確認して **`resolved → closed`**（「確認OK」）
+- UI のチップは「未着手 / 進行中 / 確認待ち / 完了」の 4 つ
+- タスクに `reviewer_id`（確認者）カラム追加の検討が必要（課題2 で設計）
+
+### tasks.category（課題1 では未使用・将来拡張用）
+
+
 | 値 | 説明 |
 |---|---|
 | design | 設計 |
@@ -203,6 +223,9 @@ erDiagram
 | test | テスト |
 | documentation | ドキュメント |
 | other | その他 |
+
+> **課題1**：DB カラムは nullable で残すが、UI には表示しない（S-10 のフォームに入力欄なし）。  
+> **課題2**：Backlog のカテゴリ機能として UI に追加し、フィルタ・集計軸に活用。
 
 ### approvals.level
 | 値 | 説明 |
@@ -253,10 +276,26 @@ projects.status が approved になった時点で以下が解禁される：
 
 ## 予算管理
 
+### 共通（課題1・2 とも）
 - `estimated_amount`: 申請時の概算予算
 - `budget_amount`: 承認後の確定予算額（承認時に estimated_amount から転記）
-- `actual_amount`: 実績額（申請者が随時更新）
+- `actual_amount`: 実績額
 - 消費率: `actual_amount / budget_amount × 100` で算出
-- 将来的に費目別管理が必要な場合は budget_items テーブルを追加
+
+### 課題1（PoC）- 上書き方式
+- `projects.actual_amount` をユーザーが直接更新（累計額を入力）
+- 支出の内訳・履歴は保持しない
+- 最小要件「案件単位の総額で可」を満たす最小構成
+- S-11 予算実績入力モーダルは「実績額（円）」の単一入力欄
+
+### 課題2（将来拡張）- 追加方式
+- `budget_actuals` テーブルを追加し、1 支出 = 1 行 INSERT
+- `projects.actual_amount` は `SUM(budget_actuals.amount)` の集計結果として自動更新
+- カテゴリ（外注費/ライセンス/機材費/その他）・用途・適用日・メモを記録
+- S-11 は「今回の支出額」を入力する形式に拡張
+
+### さらに将来の拡張
+- 費目別予算管理 → `budget_items` テーブル追加
+- 月次予算管理 → `budget_actuals.applied_on` での月次集計
 
 

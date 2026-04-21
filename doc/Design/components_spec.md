@@ -355,11 +355,17 @@ interface ApprovalDialogProps {
 - モーダル本体は中央配置 `max-w-2xl`
 - 基本は編集モード基準で作り、作成モードは差分制御で対応
 
+> **タスク管理方針**：**Backlog 風の 4 ステータス**（`open / in_progress / resolved / closed`）を DB スキーマで採用。  
+> - **課題1**：3値運用（`open / in_progress / closed`）。`resolved` チップは非表示。申請者が自分で完了まで遷移  
+> - **課題2**：4値運用。申請者は `in_progress → resolved`（完了報告）、確認者が `resolved → closed`（確認OK）  
+> 詳細は `mockups/s10_policy.md` および `doc/Design/er_diagram.md §tasks.status` を参照。
+
 **Props（推奨）**:
 ```ts
 type TaskType = 'task' | 'feature' | 'improvement' | 'bug';
 type TaskPriority = 'high' | 'medium' | 'low';
-type TaskStatus = 'todo' | 'in_progress' | 'done';
+// DB スキーマは 4 値で設計。課題1 では 'resolved' を使わない
+type TaskStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 
 interface TaskFormDialogProps {
   open: boolean;
@@ -370,6 +376,10 @@ interface TaskFormDialogProps {
   members: { id: number; name: string; avatarUrl?: string }[];
   onSave: (payload: TaskFormPayload) => void;
   onDelete?: (taskId: number) => void; // edit時のみ
+  // 課題1: 常に false。課題2 で現在ユーザーが確認者の場合に true
+  canReview?: boolean;
+  // 課題1: 'challenge1' | 課題2: 'challenge2'。UI のチップ表示制御に利用
+  statusMode?: 'challenge1' | 'challenge2';
 }
 ```
 
@@ -377,10 +387,13 @@ interface TaskFormDialogProps {
 - タイトル: 全幅 input（必須）
 - 種類: `タスク / 機能追加 / 改善 / バグ`（chip selector）
 - 優先度: `高 / 中 / 低`（chip selector）
-- ステータス: `未着手 / 進行中 / 完了`（chip selector）
+- ステータス:
+  - **課題1**: `未着手 / 進行中 / 完了`（3チップ。内部値 `open / in_progress / closed`）
+  - **課題2**: `未着手 / 進行中 / 確認待ち / 完了`（4チップ。内部値 `open / in_progress / resolved / closed`）
+  - 課題2 の `closed` チップは `canReview=true` の時だけ押下可能（作業者は `resolved` までしか遷移できない）
 - 担当者: アバター付き select
 - 期日: date input（補助表示として「あとN日」を表示）
-- 進捗: slider + 数値（`ステータス = 進行中` の時だけ表示）
+- 進捗: slider + 数値（`ステータス = 進行中` の時だけ表示。`resolved / closed` は自動で 100%）
 - 説明: textarea（3行）
 - コメント: 既存コメント + 投稿欄（モーダル下部）
 - 変更履歴: 折りたたみ表示（初期は閉じる）
@@ -397,8 +410,10 @@ interface TaskFormDialogProps {
 
 **実装メモ（判断理由）**:
 - S-10 は操作完結性を優先し、コメント入力を同一モーダル内に置く（別画面遷移しない）
-- chip selectorで種類/優先度/ステータスを即時切替できるようにする
+- chip selector で種類/優先度/ステータスを即時切替できるようにする
 - 条件表示（進捗、削除、履歴）を mode/status で統一制御して複雑化を防ぐ
+- **ステータス DB を 4 値で設計**することで、課題2 レビュー工程追加時に migration なしで対応可能（Enum 値は既に存在、UI 切替だけで済む）
+- 課題2 のレビュー機能は `canReview` フラグと `statusMode` プロップで注入。ロジックの中核は Controller / Policy 側で担保
 
 ### BudgetActualDialog（S-11）
 **役割**: 予算実績入力モーダル。
@@ -409,61 +424,96 @@ interface TaskFormDialogProps {
 - モーダル本体は中央配置 `max-w-2xl`
 - 主担当のみ操作可。ヘッダー付近に権限バッジを表示して明示
 
-**Props（推奨）**:
-```ts
-type BudgetCategory = 'outsourcing' | 'license' | 'equipment' | 'other';
+> **実装方式の切替**：課題1（PoC・実装対象）は **上書き方式**、課題2（将来拡張）は **追加方式**。  
+> 詳細は `mockups/s11_policy.md` および `doc/Design/er_diagram.md §予算管理` を参照。
 
+#### 課題1 版 Props（上書き方式・PoC 実装対象）
+
+```ts
 interface BudgetActualDialogProps {
   open: boolean;
   onClose: () => void;
   project: {
     id: number;
+    code: string;            // 例: 'PRJ-2026-0042'
     title: string;
-    budgetAmount: number;   // 確定予算
-    actualAmount: number;   // 現在実績
+    budgetAmount: number;    // 確定予算
+    actualAmount: number;    // 現在実績（この値を上書き）
+    primaryAssignee: {
+      id: number;
+      name: string;
+      avatarUrl?: string;
+    };
   };
-  canEdit: boolean; // 主担当のみ true
-  histories: BudgetActualHistory[]; // 直近履歴（UIは最大5件表示）
+  canEdit: boolean;          // 主担当のみ true
   onSubmit: (payload: {
-    incrementAmount: number;      // 今回の追加支出額
+    actualAmount: number;    // 新しい実績額（累計）
+  }) => void;
+}
+```
+
+**構成セクション（課題1・簡易版、上から順）**:
+1. ヘッダー（案件コード + タイトル + 主担当バッジ）
+2. 現状サマリー（読み取り専用 4 カード）
+   - 確定予算 / 現在実績 / 残予算 / 消費率
+3. 入力フォーム
+   - 実績額（円、`AmountInput`、初期値 = 現在の `actualAmount`）
+4. 更新プレビュー（リアルタイム）
+   - 新実績 / 新残予算 / 新消費率
+   - before → after の消費率バー
+5. 閾値ガイダンス（「86% で注意、100% で超過」）
+
+#### 課題2 版 Props（追加方式・将来拡張）
+
+```ts
+type BudgetCategory = 'outsourcing' | 'license' | 'equipment' | 'other';
+
+interface BudgetActualDialogPropsV2 {
+  open: boolean;
+  onClose: () => void;
+  project: {
+    id: number;
+    code: string;
+    title: string;
+    budgetAmount: number;
+    actualAmount: number;
+    primaryAssignee: { id: number; name: string; avatarUrl?: string };
+  };
+  canEdit: boolean;
+  histories: BudgetActualHistory[];   // 直近の budget_actuals（UI は最大5件表示）
+  onSubmit: (payload: {
+    incrementAmount: number;          // 今回の追加支出額（0 超）
     category: BudgetCategory;
     purpose: string;
-    appliedOn: string;            // yyyy-mm-dd
+    appliedOn: string;                // yyyy-mm-dd（未来日不可）
     note?: string;
   }) => void;
 }
 ```
 
-**構成セクション（上から順）**:
-1. 現状サマリー（読み取り専用4カード）
-   - 確定予算 / 現在実績 / 残予算 / 消費率
-2. 入力フォーム
-   - 今回の追加支出額（円）
-   - カテゴリ（`外注費 / ライセンス / 機材費 / その他` のchip selector）
-   - 用途
-   - 適用日
-   - メモ
-3. 更新プレビュー（リアルタイム）
-   - 新実績 / 新残予算 / 新消費率
-   - before -> after の消費率バー
-4. 過去入力履歴（折りたたみ）
-   - 直近5件を表示
+**課題2 の追加セクション**:
+- カテゴリチップ（外注費 / ライセンス / 機材費 / その他）
+- 用途・適用日・メモの入力欄
+- 過去の入力履歴（折りたたみ・直近5件）
 
 **設計ルール（重要）**:
-- 課題1（開発期間中）は `actual_amount` の上書き入力で運用する
-- 課題2（開発期間後）は「今回支出の追加（increment）」方式へ拡張する
-- 保存時は変更履歴に必ず記録される前提で文言を表示する
-- カテゴリはchip selectorで即選択可能にし、将来集計を見据えてマスター化する
+- 課題1 は `projects.actual_amount` の上書き。要件「案件単位の総額で可」を最小構成で満たす
+- 課題2 は `budget_actuals` テーブル INSERT で監査証跡・内訳分析・誤入力耐性を獲得
+- `AmountInput`、サマリー 4 カード、Before/After プレビューは課題1/2 で共通部品化
+- 保存時は変更履歴に記録される前提で文言を表示する（課題2 で実装）
+- カテゴリ chip selector は将来集計を見据えてマスター化する（課題2）
+
 
 **消費率表示の整合**:
 - 消費率の色分けは S-03c のルールと統一する
-- 例: 42% -> 57.8% は safe（緑のまま）
-- 注意閾値と超過閾値を注記（例: 86%で注意、100%超で超過）
+- 例: 42% → 57.8% は safe（緑のまま）
+- 注意閾値と超過閾値を注記（86% で注意、100% 超で超過）
 
 **実装メモ（判断理由）**:
-- 追加方式は誤操作耐性と監査証跡の両面で有利
-- before/after プレビューを保存前に見せることで、入力ミスを減らす
-- 履歴を同モーダル内に置くことで、確認のための画面往復を減らす
+- 課題1 は最小要件を満たす最短実装を優先。`budget_actuals` テーブルを作らず、1 カラム更新で完了
+- 追加方式（課題2）は誤操作耐性と監査証跡の両面で有利。課題2 昇格時は DB マイグレーション 1 本で対応可
+- Before/After プレビューを保存前に見せることで、入力ミスを減らす（課題1 から提供）
+- 履歴を同モーダル内に置くことで、確認のための画面往復を減らす（課題2）
 
 ---
 
