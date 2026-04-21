@@ -1,3 +1,5 @@
+import type { LucideIcon } from 'lucide-react';
+
 export type RoleName = 'applicant' | 'dept_manager' | 'hq_manager';
 
 export interface Department {
@@ -14,6 +16,12 @@ export interface User {
     department_id: number | null;
     department: Department | null;
     roles: RoleName[];
+}
+
+export interface BreadcrumbItem {
+    label: string;
+    href?: string;
+    icon?: LucideIcon;
 }
 
 export type PageProps<
