@@ -32,53 +32,43 @@
 ---
 
 # 日報 2026-04-21（火）
+
 ## 作業時間
-今日の作業時間: 3時間  
+今日の作業時間: 3時間
 累計作業時間: 34時間（のこり66時間）
 
 ## 今日の作業内容
-・Phase 1 着手、作業ブランチ `feat/phase1-layout` を作成
-・shadcn/ui の基盤導入（components.json / lib/utils / Button / Badge）
-・依存パッケージ追加：lucide-react, clsx, tailwind-merge, class-variance-authority, @radix-ui/react-slot, tailwindcss-animate
-・`tailwind.config.js` に `brand.*` と `status.*` のカラートークン、Noto Sans JP / JetBrains Mono のフォント設定を追加
-・`AuthenticatedLayout` を 3セクションサイドバー構造に改修
-  - `Components/Layout/Sidebar.tsx` に切り出し（ロゴ / 申請・承認 / 開発管理 / 予算管理 / 共通 / 下部ユーザーカード）
-  - `Components/Layout/Header.tsx` と `Components/Layout/Breadcrumb.tsx` を新設
-  - ロール別のメニュー表示制御（applicant は承認待ち非表示、hq_manager は新規申請非表示）
-  - サイドバー「タスク一覧」は dim 表示 + 「課題2」ラベルで非活性配置
-・`StatusPill.tsx` を 5 値（draft / pending_dept / pending_hq / approved / rejected）で実装、`components_spec.md §2` の色マッピングに準拠
-・`Projects/Index.tsx` を新レイアウトに差替え、StatusPill 5 種を並べて視認確認
-・`Dashboard.tsx` と `Profile/Edit.tsx` を新 `breadcrumb` props 仕様に追従
-・`npx tsc --noEmit` と `npm run build` が通る状態を確認
+- スケジュール・CLAUDE.md の設計方針見直し
+- Phase 1 着手：サイドバー・ヘッダー・パンくずリストなど、アプリ全体の共通レイアウトを構築
+- ロール（申請者／部門管理者／本部管理者）ごとのメニュー表示制御を実装
+- StatusPill コンポーネントを作成し、案件ステータスを5種類の色付きバッジで視覚的に表示
 
-## Phase構成と進捗
-| Phase | 内容 | 時間 | 状態 |
-|-------|------|------|------|
-| Phase 0 | 設計・環境構築 | 31h（実績31h） | ✅ 完了 |
-| Phase 1 | 認証・レイアウト・共通UI | 8h（実績3h） | ★今ここ（進行中・初日） |
-| Phase 2 | 申請・承認フロー（課題1の核） | 22h | 未着手 |
-| Phase 3 | 開発管理・予算管理（MVP） | 12h | 未着手 |
-| Phase 4 | +α 最小（ステッパー大型・レスポンシブ） | 2h | 未着手 |
-| Phase 5 | 資料・最終確認 | 20h | 未着手 |
-
-## 詰まった点・気づき
-・`shadcn@latest init` は Laravel + Inertia の既存構成だと対話が噛み合わないため、`components.json` と `lib/utils.ts` を先に手書き配置し、Button / Badge も手動スキャフォールドで導入。以降の `shadcn add` は動かせる想定
-・`AuthenticatedLayout` の `header` props を利用していた `Dashboard.tsx` と `Profile/Edit.tsx` は、今回の仕様変更に合わせて `breadcrumb` / `activeKey` ベースへ移行しておいた（後続の Phase 2 で画面を触るたびに差し戻るのを避けるため）
-・`shadcn/ui` の CSS variables 方式は導入コストが大きいため、当面は Tailwind の `brand.*` トークンだけで運用し、shadcn 部品側はプロジェクトカラー直参照とした（コーポレート色の一貫性を優先）
+## Phase 構成と進捗
+| Phase | 内容 | 見積 | 実績 | 状態 |
+|-------|------|------|------|------|
+| Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了 |
+| Phase 1 | 認証・レイアウト・共通UI | 10h | 3h | ★ 進行中（初日） |
+| Phase 2 | 申請・承認フロー（課題1の核） | 20h | - | 未着手 |
+| Phase 3 | 開発管理・予算管理（MVP） | 10h | - | 未着手 |
+| Phase 4 | +α 最小（ステッパー大型・レスポンシブ） | 5h | - | 未着手 |
+| Phase 5 | 資料・最終確認 | 20h | - | 未着手 |
 
 ## 次回の作業予定（2026-04-22 水曜・Phase 1 継続）
-・共通コンポーネント先行実装：`Tabs.tsx`（URL クエリ同期）、`ApprovalStepperMini.tsx`、`EmptyState.tsx`
-・`Projects/Index.tsx` にタブ切替 UI を組み込み（ダミーデータでテーブル骨組み）
-・`ProjectController@index` の雛形（ロール別クエリ分岐の枠）とルート整備
-・余裕があれば `projects` migration / Model の着手
+- 共通コンポーネント先行実装（`Tabs.tsx` / `ApprovalStepperMini.tsx` / `EmptyState.tsx`）
+- `Projects/Index.tsx` にタブ切替UIを組み込み、ダミーデータで案件一覧テーブルの骨組みを作成
+- `ProjectController@index` のロール別クエリ分岐の雛形とルート整備
+- 余裕があれば `projects` マイグレーション・モデルに着手
 
 ## 今日の体調
-　フィジカル: 6 / 10  
-　メンタル: 7 / 10
+フィジカル: 9 / 10
+メンタル: 9 / 10
 
 ## 今日の感想
-授業参観と通院のため稼働開始は 16 時以降でしたが、当初の想定通り 3 時間で初日のスコープ（レイアウト 3 セクション化 + StatusPill + shadcn 基盤）を着地できました。
-shadcn/ui の自動セットアップは Laravel 構成だと相性が悪く、手動導入に切り替える判断が一番の時間セーブになりました。明日はタブ切替と案件一覧の骨組みに入るので、Phase 2 の申請フォームに滑らかに繋げられそうです。
+Phase 1 開始にあたり、スケジュールと設計を改めて見直しました。
+モックに課題1・課題2が混在していたため切り分けを実施。時間をおいて設計を見返すことで、テーブル定義の揺れや矛盾にも気づくことができました。設計は一度で固めるより、繰り返し見直すことが重要だと実感しています。
+Cursor でのAI実装はトークン消費が激しく、効率的なプロンプト設計が今後の課題です。
+本日は授業参観・通院のため稼働開始が16時以降となりました。明日は午前中から取り組みます。
+
 
 ---
 
