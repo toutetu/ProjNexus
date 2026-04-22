@@ -149,69 +149,62 @@ git push -u origin feat/phase1-layout
 
 ---
 
-## 3. 次回作業予定（2026-04-22 水曜・Phase 1 2日目／目安 4h）
+## 3. 次回作業予定（2026-04-23 木曜・Phase 2 初日／目安 4h）
 
 ### 目的
-- 共通コンポーネント第2弾（`Tabs`, `ApprovalStepperMini`, `EmptyState`）を完成させる
-- `Projects/Index.tsx` にタブ切替 UI と、ダミーデータのテーブル骨組みを入れる
-- Phase 2 着手（申請フォーム S-05）にスムーズに繋げる下地を作る
+- Phase 1 の完了成果を土台に、Phase 2（申請・承認フロー）へ着手する
+- `projects` の DB / Model / Controller の下地を最速で固める
+- 承認待ち一覧プリセット（`filter=pending`）のサーバー側分岐を準備する
 
 ### 実行手順（当日の順番）
 
-1. **事前確認**（5分）
-   - `git checkout feat/phase1-layout`（ブランチ継続）、必要なら main をマージしてから作業
-   - `php artisan serve` / `npm run dev` 起動、`/projects?tab=approval` で 3 ロール分の表示を実機確認
-   - 昨日の Done 項目（サイドバー、StatusPill）がブラウザで崩れていないか目視確認
+1. **事前確認**（10分）
+   - `git checkout main && git pull origin main` 後に当日作業ブランチを作成
+   - `php artisan serve` / `npm run dev` の起動を確認
+   - `/projects?tab=approval` の表示が崩れていないことを確認
 
-2. **`Tabs.tsx` 実装**（60分）
-   - 配置：`resources/js/Components/Tabs.tsx`
-   - Props：`value, onChange, items[{value, label, icon?, count?}]`
-   - 下線アクティブ式。アクティブタブのカウントバッジは赤背景 `#FEE2E2 / #991B1B`、非アクティブは `bg-gray-100`
-   - URL クエリ同期は親（`Projects/Index.tsx`）側で Inertia `router.visit` を呼ぶ設計（Tabs 自体は純粋な UI 部品に保つ）
+2. **`projects` migration 作成**（100分）
+   - `parent_project_id`, `revision`, `status`, `estimated_amount`, `budget_amount`, `actual_amount` を中心に実装
+   - 外部キー・indexを最小限で定義
+   - migrate 実行確認（必要に応じて seed を再投入）
 
-3. **`ApprovalStepperMini.tsx` 実装**（50分）
-   - 配置：`resources/js/Components/Approval/ApprovalStepperMini.tsx`
-   - Props：`status: ProjectStatus, rejectedAt?: 'dept' | 'hq'`
-   - 4ドット + 3ライン、現在位置はパルス（`animate-brand-pulse` を流用）
-   - キャプション「申請 → **部門** → 本部 → 済」の現在位置強調
+3. **`Project` Model と Enum 雛形**（45分）
+   - リレーション（applicant / department / approvals / tasks）
+   - cast と scope の最小定義
+   - `ProjectStatus` enum の雛形が必要なら同時作成
 
-4. **`EmptyState.tsx` 実装**（20分）
-   - 配置：`resources/js/Components/EmptyState.tsx`
-   - Props：`icon, title, description?, action?`
-   - テーブル 0 件時の中央寄せ定型
+4. **`ProjectController@index` 雛形**（55分）
+   - `tab=approval|dev|budget` と `filter=pending` を受ける
+   - ロール別クエリ分岐の TODO を残して骨組みまで実装
+   - Inertia props を `Projects/Index.tsx` と一致させる
 
-5. **`Projects/Index.tsx` のタブ切替 UI 組込**（70分）
-   - `?tab=approval|dev|budget` に `Tabs` を同期、`filter=pending` 時のバッジ表示
-   - ダミーデータ（5〜8件）でテーブルヘッダと行を描画（まだ空の行でも可。タブ列切替の骨だけ）
-   - 承認待ちプリセット（`&filter=pending`）のタイトル下バッジ表示
-   - `ApprovalStepperMini` を 1 行に仮配置して動作確認
+5. **`ProjectPolicy` 雛形**（20分）
+   - `viewAny / view / create / update / delete` の最小実装
+   - 後続の権限制御実装に備えて分岐ポイントをコメントで明示
 
-6. **コミット & 日報更新**（20分）
-   - `feat: phase1 common components (Tabs, ApprovalStepperMini, EmptyState)` 相当でコミット
-   - `daily_report.md` 先頭に 4/22 分を追記、`development_schedule.md` のチェックリストを更新
-   - `implementation_schedule.md §3` を 4/23 分に差し替えて push
+6. **確認・日次更新**（30分）
+   - `npx tsc --noEmit` / `npm run build` / 必要に応じて `php artisan test`
+   - `doc/daily` 3ファイル更新、コミット、push
 
 ### 判断理由（なぜこの順番か）
 
-- `Tabs` が先に無いと `Projects/Index.tsx` の差替えが完結しないため先行実装
-- `ApprovalStepperMini` は `Projects/Index.tsx` の申請タブ行に使うため同日作業
-- `EmptyState` は軽量なので同じ日にまとめて消化（後続画面でも必ず使う）
-- 4/23 に `projects` migration / Model / Controller 分岐、4/24 に週次棚卸し + Phase 2 着手、の流れを維持
+- Phase 1 が完了したため、次は UI よりデータ基盤を優先する
+- migration→Model→Controller の順で進めると手戻りが少ない
+- `filter=pending` のフロント実装済み資産を早めにサーバー側へ接続できる
 
 ### 完了条件（終了判定）
 
-- [ ] `Tabs` が `?tab=approval|dev|budget` の URL と双方向同期する
-- [ ] `Projects/Index.tsx` で 3 タブ切替がブラウザで動く（行の中身はダミーでよい）
-- [ ] `ApprovalStepperMini` が 4 状態（draft/pending_dept/pending_hq/approved/rejected）で正しく表示される
-- [ ] 承認待ちプリセット（`&filter=pending`）でタイトル下に「承認待ち」バッジが出る
+- [ ] `projects` migration が作成され、ローカルDBに適用できる
+- [ ] `Project` Model / `ProjectPolicy` の雛形が揃う
+- [ ] `ProjectController@index` が `tab` / `filter` を受け取る状態になる
 - [ ] `npx tsc --noEmit` と `npm run build` が通る
-- [ ] `feat/phase1-layout` に push、日報 3 ファイル更新済み
+- [ ] 当日ブランチに push、日報 3 ファイル更新済み
 
 ### 保留・課題（次々回に持ち越す）
 
-- S-03a の `ProjectTable`（approval 列セット）本体は 4/23 に Controller/Model と同時着手
-- 承認ステッパーの大型版（`ApprovalStepperFull`）は S-04 作成時（Phase 2）
+- 承認ステッパー大型版（`ApprovalStepperFull`）は S-04 本実装時（Phase 2）
 - モバイル時のサイドバーはハンバーガー化（Phase 4）
+- 通知ベルの実機能接続は通知実装着手時（Phase 2）
 
 ---
 
@@ -468,5 +461,33 @@ DB_PASSWORD=
 - `Projects/Index.tsx` にタブ切替 UI とダミーテーブル骨組み
 - 承認待ちプリセット（`filter=pending`）のタイトル下バッジ
 
+
+---
+
+### 作業記録 2026-04-22（水）Phase 1 仕上げ（5h）
+
+#### 今日の作業内容（ブランチ: `feat/phase1-layout-2`, `feat/phase1-layout-3`）
+- `Tabs.tsx` / `ApprovalStepperMini.tsx` / `EmptyState.tsx` を実装
+- `Projects/Index.tsx` にタブ切替UIと approval/dev/budget ダミーテーブル骨組みを組込み
+- `filter=pending` 時の「承認待ち」バッジ表示を追加し、URL同期の実機確認を完了
+- shadcn/ui の `Input` / `Dialog` / `Table` / `Select` を追加
+- `Projects/Show.tsx` 骨組みを新規作成、`/projects/{project}` ルートを追加
+- ログイン画面を ブランドトーンにブランディング調整（`GuestLayout` / `Auth/Login`）
+- `npx tsc --noEmit` / `npm run build` を実行し、ビルド検証を通過
+
+#### 詰まった点・判断
+- タブ切替の履歴は `replace: true`（履歴を増やさない）で維持
+- 共通部品の先行整備を優先し、Phase 2 では業務ロジック接続に集中できる状態を作った
+- `Projects/Show.tsx` は Phase 1 では骨組みのみとし、詳細機能は Phase 2 で追加する方針
+
+#### 翌日チャットへの引継ぎ
+- 次回は Phase 2 初日として `projects` migration / `Project` Model / `ProjectController@index` に着手
+- `Projects/Index.tsx` はダミーデータ表示中のため、Controller 実装時に props を実データへ置換
+- `filter=pending` のフロント表示は完成済み。ロール別 pending 抽出をサーバー側で接続する
+- `Projects/Show.tsx` は骨組み作成済み。承認ステッパー大型版と案件詳細実データを段階追加
+
+#### Phase 進捗
+- Phase 1：10h/10h（実装面完了）
+- 次回は Phase 2（土台実装）へ移行
 
 ---

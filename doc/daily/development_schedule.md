@@ -5,11 +5,11 @@
 
 ---
 
-### 基本情報（2026-04-21 更新）
+### 基本情報（2026-04-22 更新）
 
 - **開発期間:** 4/13〜5/15（5週間・100時間以内）
-- **累計実績:** 34h
-- **残り時間:** 66h（目安）
+- **累計実績:** 41h
+- **残り時間:** 59h（目安）
 - **稼働方針:** 平日中心（平均 1日4h目安、火曜は通院で3h）
 - **リスク期間:** GW（4/29, 5/3〜5/6）は稼働1h/日程度に低下
 
@@ -34,18 +34,18 @@
 
 ### 現在地
 
-- **現在の主作業:** Phase 1 継続（初日 3h 完了、残り 5h）
-- **直近完了:** Phase 1 初日 — 3セクションサイドバー化 / `StatusPill`(5値) / shadcn/ui 基盤 / `brand.*` カラートークン
-- **次の着手:** `Tabs.tsx` / `ApprovalStepperMini.tsx` / `EmptyState.tsx` と `Projects/Index.tsx` のタブ切替骨組み
+- **現在の主作業:** Phase 1 完了（共通UI・レイアウト実装を完了）
+- **直近完了:** `Tabs` / `ApprovalStepperMini` / `EmptyState` / `Projects/Show` 骨組み / Login ブランディング調整 / shadcn Input・Dialog・Table・Select 導入
+- **次の着手:** Phase 2（`projects` migration / `Project` Model / `ProjectController@index`）
 
 ---
 
 ### 今週の目標（4/21〜4/24）
 
 1. ✅ `AuthenticatedLayout` を 3セクションサイドバー構造に改修（4/21 完了）
-2. 🟡 共通コンポーネント（✅`StatusPill`、⏳`Tabs`、⏳`ApprovalStepperMini`、⏳`EmptyState`）を先行実装
-3. ⏳ `projects` テーブル migration・Model の雛形作成
-4. ⏳ S-03a（案件一覧 申請タブ）をダミーデータで再現開始
+2. ✅ 共通コンポーネント（`StatusPill`、`Tabs`、`ApprovalStepperMini`、`EmptyState`）を先行実装
+3. ⏳ `projects` テーブル migration・Model の雛形作成（Phase 2着手タスクへ移行）
+4. ✅ S-03a（案件一覧 申請タブ）をダミーデータで再現
 
 ---
 
@@ -134,22 +134,22 @@
 
 ### 共通コンポーネント（shadcn/ui ベース）
 - [x] shadcn/ui 基盤導入：Button / Badge（components.json + lib/utils）（4/21）
-- [ ] shadcn/ui 追加：Input / Dialog / Table / Select（使用画面実装時に追加）
+- [x] shadcn/ui 追加：Input / Dialog / Table / Select（4/22）
 - [x] `StatusPill.tsx`（案件ステータス 5 種のカラー統一）（4/21）
-- [ ] `ApprovalStepperMini.tsx`（案件一覧内の小型ステッパー）
-- [ ] `Tabs.tsx`（`/projects?tab=approval|dev|budget` の URL 連動）
-- [ ] `EmptyState.tsx`（一覧が空の時の表示）
+- [x] `ApprovalStepperMini.tsx`（案件一覧内の小型ステッパー）（4/22）
+- [x] `Tabs.tsx`（`/projects?tab=approval|dev|budget` の URL 連動）（4/22）
+- [x] `EmptyState.tsx`（一覧が空の時の表示）（4/22）
 
 ### ページ雛形
-- [ ] `Projects/Index.tsx` にタブ切替の雛形を実装（ダミーデータ）
-- [ ] `Projects/Show.tsx` の骨組みを作成
-- [ ] ログイン画面のブランディング微調整（ロゴ・配色）
+- [x] `Projects/Index.tsx` にタブ切替の雛形を実装（ダミーデータ）（4/22）
+- [x] `Projects/Show.tsx` の骨組みを作成（4/22）
+- [x] ログイン画面のブランディング微調整（ロゴ・配色）（4/22）
 
 ### 確認
 - [x] TypeScript・Vite ビルドが通る（`npx tsc --noEmit` / `npm run build` OK）（4/21）
 - [ ] 3ロールでログイン → メニューがロール別に切り替わる（ブラウザ実機確認は次回）
-- [ ] `/projects?tab=approval|dev|budget` の URL で見た目が切り替わる（タブUI未実装）
-- [ ] コンソールエラーがゼロ（ブラウザ実機確認は次回）
+- [x] `/projects?tab=approval|dev|budget` の URL で見た目が切り替わる（4/22 実機確認）
+- [x] コンソールエラーがゼロ（4/22 実機確認）
 
 ---
 
