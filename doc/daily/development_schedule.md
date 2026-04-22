@@ -8,8 +8,8 @@
 ### 基本情報（2026-04-21 更新）
 
 - **開発期間:** 4/13〜5/15（5週間・100時間以内）
-- **累計実績:** 31h
-- **残り時間:** 69h（目安）
+- **累計実績:** 34h
+- **残り時間:** 66h（目安）
 - **稼働方針:** 平日中心（平均 1日4h目安、火曜は通院で3h）
 - **リスク期間:** GW（4/29, 5/3〜5/6）は稼働1h/日程度に低下
 
@@ -20,7 +20,7 @@
 | Phase | 内容 | 配分 | 状態 |
 |-------|------|------|------|
 | Phase 0 | 設計・環境構築 | 0h | ✅ 完了（実績31h） |
-| Phase 1 | 認証・レイアウト・共通UI | 8h | 着手前 |
+| Phase 1 | 認証・レイアウト・共通UI | 8h（実績3h） | 🟡 進行中（初日完了） |
 | Phase 2 | 申請・承認フロー（課題1の核） | 22h | 未着手 |
 | Phase 3 | 開発管理・予算管理（MVP優先） | 12h | 未着手 |
 | Phase 4 | +alpha（最小） | 2h | 未着手 |
@@ -34,18 +34,18 @@
 
 ### 現在地
 
-- **現在の主作業:** Phase 1 着手
-- **直近完了:** Phase 0（環境構築・初回デプロイ・3ロール動作確認）
-- **次の着手:** `AuthenticatedLayout` の 3セクション化、共通コンポーネント準備
+- **現在の主作業:** Phase 1 継続（初日 3h 完了、残り 5h）
+- **直近完了:** Phase 1 初日 — 3セクションサイドバー化 / `StatusPill`(5値) / shadcn/ui 基盤 / `brand.*` カラートークン
+- **次の着手:** `Tabs.tsx` / `ApprovalStepperMini.tsx` / `EmptyState.tsx` と `Projects/Index.tsx` のタブ切替骨組み
 
 ---
 
 ### 今週の目標（4/21〜4/24）
 
-1. `AuthenticatedLayout` を 3セクションサイドバー構造に改修
-2. 共通コンポーネント（`StatusPill`, `ApprovalStepperMini`, `Tabs`）を先行実装
-3. `projects` テーブル migration・Model の雛形作成
-4. S-03a（案件一覧 申請タブ）をダミーデータで再現開始
+1. ✅ `AuthenticatedLayout` を 3セクションサイドバー構造に改修（4/21 完了）
+2. 🟡 共通コンポーネント（✅`StatusPill`、⏳`Tabs`、⏳`ApprovalStepperMini`、⏳`EmptyState`）を先行実装
+3. ⏳ `projects` テーブル migration・Model の雛形作成
+4. ⏳ S-03a（案件一覧 申請タブ）をダミーデータで再現開始
 
 ---
 
@@ -124,16 +124,18 @@
 ## Phase 1 チェックリスト（認証・レイアウト・共通UI／8h）
 
 ### レイアウト
-- [ ] `AuthenticatedLayout.tsx` を 3セクションサイドバー構造に改修
-  - [ ] 「申請・承認」「開発管理」「予算管理」セクション分け
-  - [ ] 共通（下部）「通知」「プロフィール」配置
-  - [ ] ロール別のメニュー表示制御（applicant に承認待ちは非表示 等）
-- [ ] トップバーにログインユーザー名・ロール・部門表示
+- [x] `AuthenticatedLayout.tsx` を 3セクションサイドバー構造に改修（4/21）
+  - [x] 「申請・承認」「開発管理」「予算管理」セクション分け（4/21）
+  - [x] 共通（下部）「通知」「プロフィール」配置（4/21）
+  - [x] ロール別のメニュー表示制御（applicant に承認待ちは非表示 等）（4/21）
+- [x] サイドバー下部にログインユーザー名・ロール・部門表示（4/21）
+- [ ] トップバー（Header）の ⌘K 検索・通知ベルの実機能接続（Phase 2 以降）
 - [ ] モバイル用のハンバーガーメニュー骨組み（中身は Phase 4 で仕上げ）
 
 ### 共通コンポーネント（shadcn/ui ベース）
-- [ ] shadcn/ui 導入：Button / Input / Dialog / Table / Badge / Select
-- [ ] `StatusPill.tsx`（案件ステータス 6 種のカラー統一）
+- [x] shadcn/ui 基盤導入：Button / Badge（components.json + lib/utils）（4/21）
+- [ ] shadcn/ui 追加：Input / Dialog / Table / Select（使用画面実装時に追加）
+- [x] `StatusPill.tsx`（案件ステータス 5 種のカラー統一）（4/21）
 - [ ] `ApprovalStepperMini.tsx`（案件一覧内の小型ステッパー）
 - [ ] `Tabs.tsx`（`/projects?tab=approval|dev|budget` の URL 連動）
 - [ ] `EmptyState.tsx`（一覧が空の時の表示）
@@ -144,9 +146,10 @@
 - [ ] ログイン画面のブランディング微調整（ロゴ・配色）
 
 ### 確認
-- [ ] 3ロールでログイン → メニューがロール別に切り替わる
-- [ ] `/projects?tab=approval|dev|budget` の URL で見た目が切り替わる
-- [ ] コンソールエラー・TypeScript エラーがゼロ
+- [x] TypeScript・Vite ビルドが通る（`npx tsc --noEmit` / `npm run build` OK）（4/21）
+- [ ] 3ロールでログイン → メニューがロール別に切り替わる（ブラウザ実機確認は次回）
+- [ ] `/projects?tab=approval|dev|budget` の URL で見た目が切り替わる（タブUI未実装）
+- [ ] コンソールエラーがゼロ（ブラウザ実機確認は次回）
 
 ---
 
