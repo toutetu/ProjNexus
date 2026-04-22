@@ -30,6 +30,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'filter' => $request->query('filter'),
         ]);
     })->name('projects.index');
+
+    Route::get('/projects/{project}', function (int $project) {
+        return Inertia::render('Projects/Show', [
+            'projectId' => $project,
+        ]);
+    })->name('projects.show');
 });
 
 Route::middleware('auth')->group(function () {
