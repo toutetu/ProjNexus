@@ -1,13 +1,23 @@
-import { Head, usePage } from '@inertiajs/react';
-import { FileCheck2, FolderSearch, Plus } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import {
+    CircleDollarSign,
+    FileCheck2,
+    FileText,
+    FolderSearch,
+    GitBranch,
+    Inbox,
+    Plus,
+    Wallet,
+} from 'lucide-react';
 
-import StatusPill, {
-    type ProjectStatus,
-} from '@/Components/StatusPill';
+import ApprovalStepperMini from '@/Components/Approval/ApprovalStepperMini';
+import EmptyState from '@/Components/EmptyState';
+import StatusPill, { type ProjectStatus } from '@/Components/StatusPill';
+import Tabs, { type TabItem } from '@/Components/Tabs';
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { ActiveKey } from '@/Components/Layout/Sidebar';
-import type { PageProps, RoleName } from '@/types';
+import { cn } from '@/lib/utils';
 
 type ProjectTab = 'approval' | 'dev' | 'budget';
 
@@ -16,22 +26,10 @@ interface Props {
     filter?: string | null;
 }
 
-const TAB_LABEL: Record<ProjectTab, string> = {
-    approval: '申請',
-    dev: '開発',
-    budget: '予算',
-};
-
 const TAB_SUBTITLE: Record<ProjectTab, string> = {
     approval: '申請フェーズ',
     dev: '開発フェーズ',
     budget: '予算フェーズ',
-};
-
-const ROLE_LABEL: Record<RoleName, string> = {
-    applicant: '申請者',
-    dept_manager: '部門管理者',
-    hq_manager: '本部管理者',
 };
 
 const TAB_ACTIVE_KEY: Record<ProjectTab, ActiveKey> = {
@@ -40,20 +38,142 @@ const TAB_ACTIVE_KEY: Record<ProjectTab, ActiveKey> = {
     budget: 'projects-budget',
 };
 
-const ALL_STATUSES: ProjectStatus[] = [
-    'draft',
-    'pending_dept',
-    'pending_hq',
-    'approved',
-    'rejected',
+interface ApprovalProjectRow {
+    id: number;
+    title: string;
+    department: string;
+    status: ProjectStatus;
+    appliedAt: string;
+    updatedAt: string;
+    rejectedAt?: 'dept' | 'hq';
+}
+
+interface DevProjectRow {
+    id: number;
+    title: string;
+    department: string;
+    owner: string;
+    progress: number;
+    dueDate: string;
+    updatedAt: string;
+}
+
+interface BudgetProjectRow {
+    id: number;
+    title: string;
+    department: string;
+    budgetAmount: string;
+    actualAmount: string;
+    consumptionRate: string;
+    updatedAt: string;
+}
+
+const TAB_ITEMS: TabItem<ProjectTab>[] = [
+    { value: 'approval', label: '申請', icon: FileText, count: 8 },
+    { value: 'dev', label: '開発', icon: GitBranch, count: 10 },
+    { value: 'budget', label: '予算', icon: Wallet, count: 10 },
+];
+
+const APPROVAL_ROWS: ApprovalProjectRow[] = [
+    {
+        id: 1,
+        title: '次世代EAMシステム開発',
+        department: '開発1部',
+        status: 'pending_hq',
+        appliedAt: '04/14',
+        updatedAt: '2時間前',
+    },
+    {
+        id: 2,
+        title: 'LNGプラント解析ツール刷新',
+        department: '開発1部',
+        status: 'pending_dept',
+        appliedAt: '04/15',
+        updatedAt: '1日前',
+    },
+    {
+        id: 3,
+        title: '現場IoTセンサー可視化ダッシュボード',
+        department: '開発1部',
+        status: 'draft',
+        appliedAt: '—',
+        updatedAt: '3日前',
+    },
+    {
+        id: 4,
+        title: '調達部向けRPA導入PoC',
+        department: '開発1部',
+        status: 'rejected',
+        rejectedAt: 'hq',
+        appliedAt: '04/08',
+        updatedAt: '6日前',
+    },
+];
+
+const DEV_ROWS: DevProjectRow[] = [
+    {
+        id: 11,
+        title: '次世代EAMシステム開発',
+        department: '開発1部',
+        owner: '高橋 朋子',
+        progress: 68,
+        dueDate: '05/30',
+        updatedAt: '2時間前',
+    },
+    {
+        id: 12,
+        title: '人事評価システムリプレース',
+        department: '開発2部',
+        owner: '田中 一郎',
+        progress: 42,
+        dueDate: '06/14',
+        updatedAt: '1日前',
+    },
+];
+
+const BUDGET_ROWS: BudgetProjectRow[] = [
+    {
+        id: 21,
+        title: '次世代EAMシステム開発',
+        department: '開発1部',
+        budgetAmount: '¥6,000,000',
+        actualAmount: '¥2,860,000',
+        consumptionRate: '47.7%',
+        updatedAt: '2時間前',
+    },
+    {
+        id: 22,
+        title: 'LNGプラント解析ツール刷新',
+        department: '開発1部',
+        budgetAmount: '¥4,200,000',
+        actualAmount: '¥1,190,000',
+        consumptionRate: '28.3%',
+        updatedAt: '1日前',
+    },
 ];
 
 export default function ProjectsIndex({ tab, filter }: Props) {
-    const { auth } = usePage<PageProps>().props;
-    const user = auth.user;
-    const roleLabels = user.roles.map((r) => ROLE_LABEL[r] ?? r);
     const activeKey: ActiveKey =
         filter === 'pending' ? 'pending' : TAB_ACTIVE_KEY[tab];
+    const titleCount =
+        tab === 'approval'
+            ? APPROVAL_ROWS.length
+            : tab === 'dev'
+              ? DEV_ROWS.length
+              : BUDGET_ROWS.length;
+
+    const handleTabChange = (nextTab: ProjectTab) => {
+        if (nextTab === tab) return;
+        router.visit(route('projects.index'), {
+            data: {
+                tab: nextTab,
+                ...(filter ? { filter } : {}),
+            },
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
 
     return (
         <AuthenticatedLayout
@@ -74,8 +194,14 @@ export default function ProjectsIndex({ tab, filter }: Props) {
                     <p className="mt-1 text-sm text-brand-muted">
                         {TAB_SUBTITLE[tab]}
                         <span className="mx-1.5">·</span>
-                        Phase 1 骨組み（ダミー表示）
+                        全{titleCount}件
                     </p>
+                    {filter === 'pending' && (
+                        <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#FEE2E2] px-2.5 py-1 text-xs font-semibold text-[#991B1B]">
+                            <Inbox className="h-3.5 w-3.5" />
+                            承認待ち
+                        </span>
+                    )}
                 </div>
                 <Button size="default" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
@@ -83,65 +209,148 @@ export default function ProjectsIndex({ tab, filter }: Props) {
                 </Button>
             </div>
 
-            <section className="space-y-4 rounded-lg border border-brand-border bg-white p-6 shadow-sm">
-                <div>
-                    <h2 className="text-lg font-semibold text-brand-dark">
-                        Phase 1 動作確認
-                    </h2>
-                    <p className="mt-1 text-sm text-brand-muted">
-                        レイアウト・ロール別メニュー・StatusPill の色表示を確認するための暫定画面です。
-                        Phase 2 以降でこのセクションは実際のテーブルに置き換わります。
-                    </p>
+            <section className="overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm">
+                <div className="border-b border-brand-border px-5">
+                    <Tabs value={tab} onChange={handleTabChange} items={TAB_ITEMS} />
                 </div>
+                <div className="overflow-x-auto">
+                    {tab === 'approval' && (
+                        <table className="min-w-full text-sm">
+                            <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
+                                <tr>
+                                    <th className="px-5 py-3 text-left font-semibold">タイトル</th>
+                                    <th className="px-4 py-3 text-left font-semibold">ステータス</th>
+                                    <th className="px-4 py-3 text-left font-semibold">承認ステップ</th>
+                                    <th className="px-4 py-3 text-left font-semibold">申請日</th>
+                                    <th className="px-4 py-3 text-left font-semibold">部門</th>
+                                    <th className="px-4 py-3 text-left font-semibold">最終更新</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-brand-border">
+                                {APPROVAL_ROWS.map((row, index) => (
+                                    <tr
+                                        key={row.id}
+                                        className={cn(
+                                            'hover:bg-slate-50',
+                                            index === 0 && 'bg-white',
+                                        )}
+                                    >
+                                        <td className="px-5 py-3.5 font-medium text-brand-dark">
+                                            {row.title}
+                                        </td>
+                                        <td className="px-4 py-3.5">
+                                            <StatusPill status={row.status} />
+                                        </td>
+                                        <td className="px-4 py-3.5">
+                                            <ApprovalStepperMini
+                                                status={row.status}
+                                                rejectedAt={row.rejectedAt}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-muted">
+                                            {row.appliedAt}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.department}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-muted">
+                                            {row.updatedAt}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
 
-                <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-                    <dt className="font-semibold text-brand-dark">
-                        ログインユーザー
-                    </dt>
-                    <dd className="text-brand-dark">
-                        {user.name}（{user.email}）
-                    </dd>
+                    {tab === 'dev' && (
+                        <table className="min-w-full text-sm">
+                            <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
+                                <tr>
+                                    <th className="px-5 py-3 text-left font-semibold">タイトル</th>
+                                    <th className="px-4 py-3 text-left font-semibold">部門</th>
+                                    <th className="px-4 py-3 text-left font-semibold">主担当</th>
+                                    <th className="px-4 py-3 text-left font-semibold">タスク進捗</th>
+                                    <th className="px-4 py-3 text-left font-semibold">期限</th>
+                                    <th className="px-4 py-3 text-left font-semibold">最終更新</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-brand-border">
+                                {DEV_ROWS.map((row) => (
+                                    <tr key={row.id} className="hover:bg-slate-50">
+                                        <td className="px-5 py-3.5 font-medium text-brand-dark">
+                                            {row.title}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.department}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.owner}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.progress}%
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.dueDate}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-muted">
+                                            {row.updatedAt}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
 
-                    <dt className="font-semibold text-brand-dark">所属部門</dt>
-                    <dd className="text-brand-dark">
-                        {user.department?.name ?? '（未設定）'}
-                        {user.department?.type === 'headquarters' && '（本部）'}
-                    </dd>
-
-                    <dt className="font-semibold text-brand-dark">ロール</dt>
-                    <dd className="text-brand-dark">
-                        {roleLabels.join(' / ') || '（未設定）'}
-                    </dd>
-
-                    <dt className="font-semibold text-brand-dark">
-                        選択中のタブ
-                    </dt>
-                    <dd>
-                        <span className="rounded bg-[#FEE2E2] px-2 py-0.5 text-xs font-semibold text-[#991B1B]">
-                            {TAB_LABEL[tab]}（?tab={tab}）
-                        </span>
-                    </dd>
-
-                    <dt className="font-semibold text-brand-dark">
-                        filter クエリ
-                    </dt>
-                    <dd className="text-brand-dark">{filter ?? '（なし）'}</dd>
-                </dl>
+                    {tab === 'budget' && (
+                        <table className="min-w-full text-sm">
+                            <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
+                                <tr>
+                                    <th className="px-5 py-3 text-left font-semibold">タイトル</th>
+                                    <th className="px-4 py-3 text-left font-semibold">部門</th>
+                                    <th className="px-4 py-3 text-left font-semibold">予算額</th>
+                                    <th className="px-4 py-3 text-left font-semibold">実績額</th>
+                                    <th className="px-4 py-3 text-left font-semibold">消費率</th>
+                                    <th className="px-4 py-3 text-left font-semibold">更新日</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-brand-border">
+                                {BUDGET_ROWS.map((row) => (
+                                    <tr key={row.id} className="hover:bg-slate-50">
+                                        <td className="px-5 py-3.5 font-medium text-brand-dark">
+                                            {row.title}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.department}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.budgetAmount}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.actualAmount}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-dark">
+                                            {row.consumptionRate}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-brand-muted">
+                                            {row.updatedAt}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
             </section>
 
-            <section className="mt-6 rounded-lg border border-brand-border bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-brand-dark">
-                    StatusPill（案件ステータス 5 種）
-                </h2>
-                <p className="mt-1 text-sm text-brand-muted">
-                    design_system.md / components_spec.md の色マッピングに準拠。
-                </p>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                    {ALL_STATUSES.map((status) => (
-                        <StatusPill key={status} status={status} />
-                    ))}
-                </div>
-            </section>
+            {filter === 'pending' && tab === 'approval' && (
+                <section className="mt-6">
+                    <EmptyState
+                        icon={CircleDollarSign}
+                        title="承認待ちフィルタ動作確認用の空表示"
+                        description="データ0件時はこの表示を使う想定です。"
+                    />
+                </section>
+            )}
         </AuthenticatedLayout>
     );
 }
