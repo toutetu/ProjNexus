@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     CircleDollarSign,
     FileCheck2,
@@ -18,12 +18,25 @@ import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { ActiveKey } from '@/Components/Layout/Sidebar';
 import { cn } from '@/lib/utils';
+import type { PageProps, RoleName } from '@/types';
 
 type ProjectTab = 'approval' | 'dev' | 'budget';
 
 interface Props {
     tab: ProjectTab;
     filter?: string | null;
+    projects?: {
+        data: ProjectListItem[];
+    };
+}
+
+interface ProjectListItem {
+    id: number;
+    title: string;
+    department: string | null;
+    status: ProjectStatus;
+    submittedAt: string | null;
+    updatedAt: string;
 }
 
 const TAB_SUBTITLE: Record<ProjectTab, string> = {
@@ -152,12 +165,29 @@ const BUDGET_ROWS: BudgetProjectRow[] = [
     },
 ];
 
-export default function ProjectsIndex({ tab, filter }: Props) {
+export default function ProjectsIndex({ tab, filter, projects }: Props) {
+    const { auth } = usePage<PageProps>().props;
+    const roles = auth.user?.roles ?? [];
+    const isApplicant = roles.includes('applicant' as RoleName);
+    const isDeptManager = roles.includes('dept_manager' as RoleName);
+    const isHqManager = roles.includes('hq_manager' as RoleName);
+
     const activeKey: ActiveKey =
         filter === 'pending' ? 'pending' : TAB_ACTIVE_KEY[tab];
+    const approvalRows: ApprovalProjectRow[] = projects
+        ? projects.data.map((project) => ({
+              id: project.id,
+              title: project.title,
+              department: project.department ?? '—',
+              status: project.status,
+              appliedAt: project.submittedAt ?? '—',
+              updatedAt: project.updatedAt,
+              rejectedAt: undefined,
+          }))
+        : APPROVAL_ROWS;
     const titleCount =
         tab === 'approval'
-            ? APPROVAL_ROWS.length
+            ? approvalRows.length
             : tab === 'dev'
               ? DEV_ROWS.length
               : BUDGET_ROWS.length;
@@ -173,6 +203,26 @@ export default function ProjectsIndex({ tab, filter }: Props) {
             preserveState: true,
             replace: true,
         });
+    };
+
+    const submitProject = (projectId: number) => {
+        router.post(route('projects.submit', projectId), {}, { preserveScroll: true });
+    };
+
+    const approveProject = (projectId: number, level: 'dept' | 'hq') => {
+        router.post(
+            route('projects.approve', projectId),
+            { level },
+            { preserveScroll: true },
+        );
+    };
+
+    const rejectProject = (projectId: number, level: 'dept' | 'hq') => {
+        router.post(
+            route('projects.reject', projectId),
+            { level },
+            { preserveScroll: true },
+        );
     };
 
     return (
@@ -224,10 +274,11 @@ export default function ProjectsIndex({ tab, filter }: Props) {
                                     <th className="px-4 py-3 text-left font-semibold">申請日</th>
                                     <th className="px-4 py-3 text-left font-semibold">部門</th>
                                     <th className="px-4 py-3 text-left font-semibold">最終更新</th>
+                                    <th className="px-4 py-3 text-left font-semibold">操作</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
-                                {APPROVAL_ROWS.map((row, index) => (
+                                {approvalRows.map((row, index) => (
                                     <tr
                                         key={row.id}
                                         className={cn(
@@ -255,6 +306,53 @@ export default function ProjectsIndex({ tab, filter }: Props) {
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-muted">
                                             {row.updatedAt}
+                                        </td>
+                                        <td className="px-4 py-3.5">
+                                            <div className="flex flex-wrap gap-2">
+                                                {isApplicant &&
+                                                    (row.status === 'draft' || row.status === 'rejected') && (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => submitProject(row.id)}
+                                                        >
+                                                            申請
+                                                        </Button>
+                                                    )}
+                                                {isDeptManager && row.status === 'pending_dept' && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => approveProject(row.id, 'dept')}
+                                                        >
+                                                            承認
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => rejectProject(row.id, 'dept')}
+                                                        >
+                                                            却下
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {isHqManager && row.status === 'pending_hq' && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => approveProject(row.id, 'hq')}
+                                                        >
+                                                            承認
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => rejectProject(row.id, 'hq')}
+                                                        >
+                                                            却下
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

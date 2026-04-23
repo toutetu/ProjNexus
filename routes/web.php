@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\ProjectController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+    Route::post('/projects/{project}/submit', [ApprovalController::class, 'submit'])->name('projects.submit');
+    Route::post('/projects/{project}/approve', [ApprovalController::class, 'approve'])->name('projects.approve');
+    Route::post('/projects/{project}/reject', [ApprovalController::class, 'reject'])->name('projects.reject');
 });
 
 Route::middleware('auth')->group(function () {
