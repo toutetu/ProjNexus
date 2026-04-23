@@ -5,11 +5,11 @@
 
 ---
 
-### 基本情報（2026-04-22 更新）
+### 基本情報（2026-04-23 更新）
 
 - **開発期間:** 4/13〜5/15（5週間・100時間以内）
-- **累計実績:** 41h
-- **残り時間:** 59h（目安）
+- **累計実績:** 45h
+- **残り時間:** 55h（目安）
 - **稼働方針:** 平日中心（平均 1日4h目安、火曜は通院で3h）
 - **リスク期間:** GW（4/29, 5/3〜5/6）は稼働1h/日程度に低下
 
@@ -34,9 +34,9 @@
 
 ### 現在地
 
-- **現在の主作業:** Phase 1 完了（共通UI・レイアウト実装を完了）
-- **直近完了:** `Tabs` / `ApprovalStepperMini` / `EmptyState` / `Projects/Show` 骨組み / Login ブランディング調整 / shadcn Input・Dialog・Table・Select 導入
-- **次の着手:** Phase 2（`projects` migration / `Project` Model / `ProjectController@index`）
+- **現在の主作業:** Phase 2 初日完了（申請・承認フロー基盤の土台作成）
+- **直近完了:** `projects` migration / `Project` Model / `ProjectStatus` enum / `ProjectController@index` / `ProjectPolicy` 雛形 / `filter=pending` のロール別分岐下地
+- **次の着手:** `approvals` / `notifications` の DB・Model 層と申請画面接続（S-05）
 
 ---
 
@@ -44,7 +44,7 @@
 
 1. ✅ `AuthenticatedLayout` を 3セクションサイドバー構造に改修（4/21 完了）
 2. ✅ 共通コンポーネント（`StatusPill`、`Tabs`、`ApprovalStepperMini`、`EmptyState`）を先行実装
-3. ⏳ `projects` テーブル migration・Model の雛形作成（Phase 2着手タスクへ移行）
+3. ✅ `projects` テーブル migration・Model の雛形作成（4/23 完了）
 4. ✅ S-03a（案件一覧 申請タブ）をダミーデータで再現
 
 ---
@@ -156,15 +156,15 @@
 ## Phase 2 チェックリスト（申請・承認フロー／22h）
 
 ### DB / Model
-- [ ] `projects` migration（parent_project_id, revision, status, estimated_amount, budget_amount, actual_amount 等）
+- [x] `projects` migration（parent_project_id, revision, status, estimated_amount, budget_amount, actual_amount 等）
 - [ ] `approvals` migration（level, action, approver_id, comment, acted_at）
 - [ ] `notifications` migration（user_id, type, title, body, read_at）
 - [ ] `Project` / `Approval` / `Notification` Model（リレーション・スコープ）
 - [ ] `Enums`：`ProjectStatus` / `ApprovalLevel` / `ApprovalAction` / `NotificationType`
 
 ### Policy / 権限
-- [ ] `ProjectPolicy`（viewAny / view / create / update / delete）
-- [ ] Controller でロール別クエリ分岐（applicant=自分のみ、dept=自部門、hq=全件）
+- [x] `ProjectPolicy`（viewAny / view / create / update / delete）
+- [x] Controller でロール別クエリ分岐（applicant=自分のみ、dept=自部門、hq=全件）
 - [ ] 却下→再申請の分岐（`parent_project_id` でチェイン）
 
 ### 画面：申請側（申請者）

@@ -149,12 +149,12 @@ git push -u origin feat/phase1-layout
 
 ---
 
-## 3. 次回作業予定（2026-04-23 木曜・Phase 2 初日／目安 4h）
+## 3. 次回作業予定（2026-04-24 金曜・Phase 2 Day2／目安 4h）
 
 ### 目的
-- Phase 1 の完了成果を土台に、Phase 2（申請・承認フロー）へ着手する
-- `projects` の DB / Model / Controller の下地を最速で固める
-- 承認待ち一覧プリセット（`filter=pending`）のサーバー側分岐を準備する
+- Phase 2 初日で整えた `projects` 基盤の上に、承認履歴と通知のデータ基盤を追加する
+- 申請・承認ロジック実装に入る前に `approvals` / `notifications` の入れ口を揃える
+- 次回以降の S-05 申請フォーム実装に必要な API 受け口（store/update 方向）を準備する
 
 ### 実行手順（当日の順番）
 
@@ -163,40 +163,34 @@ git push -u origin feat/phase1-layout
    - `php artisan serve` / `npm run dev` の起動を確認
    - `/projects?tab=approval` の表示が崩れていないことを確認
 
-2. **`projects` migration 作成**（100分）
-   - `parent_project_id`, `revision`, `status`, `estimated_amount`, `budget_amount`, `actual_amount` を中心に実装
-   - 外部キー・indexを最小限で定義
-   - migrate 実行確認（必要に応じて seed を再投入）
+2. **`approvals` / `notifications` migration 作成**（110分）
+   - 最小カラム（履歴性と通知表示に必要な項目）を確定して作成
+   - index と外部キーを先に固める
+   - migrate 実行確認
 
-3. **`Project` Model と Enum 雛形**（45分）
-   - リレーション（applicant / department / approvals / tasks）
-   - cast と scope の最小定義
-   - `ProjectStatus` enum の雛形が必要なら同時作成
+3. **`Approval` / `Notification` Model 雛形**（40分）
+   - リレーション（project / user）を先に定義
+   - cast（日時・enum系）を最小実装
 
-4. **`ProjectController@index` 雛形**（55分）
-   - `tab=approval|dev|budget` と `filter=pending` を受ける
-   - ロール別クエリ分岐の TODO を残して骨組みまで実装
-   - Inertia props を `Projects/Index.tsx` と一致させる
+4. **Controller 受け口の拡張**（50分）
+   - `ProjectController` に `show/store/update` 方針の骨組みを追加
+   - FormRequest 導入ポイントを TODO として明示
 
-5. **`ProjectPolicy` 雛形**（20分）
-   - `viewAny / view / create / update / delete` の最小実装
-   - 後続の権限制御実装に備えて分岐ポイントをコメントで明示
-
-6. **確認・日次更新**（30分）
+5. **確認・日次更新**（30分）
    - `npx tsc --noEmit` / `npm run build` / 必要に応じて `php artisan test`
    - `doc/daily` 3ファイル更新、コミット、push
 
 ### 判断理由（なぜこの順番か）
 
-- Phase 1 が完了したため、次は UI よりデータ基盤を優先する
-- migration→Model→Controller の順で進めると手戻りが少ない
-- `filter=pending` のフロント実装済み資産を早めにサーバー側へ接続できる
+- `projects` の土台は初日で完了したため、次は関連テーブルを先に作る方が全体の実装速度が上がる
+- ApprovalService 実装時に DB 設計が未確定だと手戻りが大きいため、先に migration を固定する
+- Controller の受け口を先に整理しておくと、S-05 画面実装時の接続がスムーズになる
 
 ### 完了条件（終了判定）
 
-- [ ] `projects` migration が作成され、ローカルDBに適用できる
-- [ ] `Project` Model / `ProjectPolicy` の雛形が揃う
-- [ ] `ProjectController@index` が `tab` / `filter` を受け取る状態になる
+- [ ] `approvals` / `notifications` migration が作成され、ローカルDBに適用できる
+- [ ] `Approval` / `Notification` Model 雛形が揃う
+- [ ] `ProjectController` の次段受け口（show/store/update 方針）が整理される
 - [ ] `npx tsc --noEmit` と `npm run build` が通る
 - [ ] 当日ブランチに push、日報 3 ファイル更新済み
 
@@ -489,5 +483,32 @@ DB_PASSWORD=
 #### Phase 進捗
 - Phase 1：10h/10h（実装面完了）
 - 次回は Phase 2（土台実装）へ移行
+
+---
+
+### 作業記録 2026-04-23（木）Phase 2 初日（4h）
+
+#### 今日の作業内容（ブランチ: `feat/phase2-projects-foundation`）
+- `projects` migration を作成し、`parent_project_id` / `revision` / `status` / 予算系カラムを実装
+- `ProjectStatus` enum、`Project` Model（主要リレーション、scope、cast）を追加
+- `ProjectController@index` を新規作成し、`tab` / `filter=pending` の受け口を実装
+- `ProjectPolicy` を新規作成し、`viewAny` / `view` / `create` / `update` / `delete` の土台を実装
+- `routes/web.php` の `/projects` を Controller 経由へ変更
+- `php artisan migrate` / `npx tsc --noEmit` / `npm run build` を実施して成功
+- 実装コミット・push 完了（`feat/phase2-projects-foundation`）
+
+#### 詰まった点・判断
+- 一覧UIはダミーデータ継続のため、`projects` prop は先行で渡しつつ UI 側置換は次タスクへ分離
+- `filter=pending` は role 別分岐（applicant/dept/hq）だけ先に入れ、詳細業務条件は次フェーズで詰める
+- 日報系の更新は `docs/daily-20260423` に分離し、実装ブランチと混線しない運用にした
+
+#### 翌日チャットへの引継ぎ
+- `approvals` / `notifications` migration と Model を追加し、ApprovalService 実装前提を固める
+- `ProjectController` の `show/store/update` 骨組みに着手
+- `Projects/Create.tsx`（S-05）接続方針を確定する
+
+#### Phase 進捗
+- Phase 2：4h/22h（初日の土台実装を完了）
+- 次回は承認履歴・通知テーブルの追加へ進む
 
 ---
