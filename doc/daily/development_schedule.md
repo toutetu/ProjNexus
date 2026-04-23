@@ -2,14 +2,22 @@
 
 このファイルは、進捗を短く確認するための要約版です。  
 詳細な実行手順・コマンドは `doc/daily/implementation_schedule.md` を参照します。
+日々の詳細作業記録は `doc/daily/log/` 配下へ分離して管理します。
 
 ---
 
-### 基本情報（2026-04-22 更新）
+### 詳細ログ保管先
+
+- 実装詳細ログ: `doc/daily/log/implementation_schedule_log.md`
+- 日報詳細ログ: `doc/daily/log/daily_report_log.md`
+
+---
+
+### 基本情報（2026-04-23 更新）
 
 - **開発期間:** 4/13〜5/15（5週間・100時間以内）
-- **累計実績:** 41h
-- **残り時間:** 59h（目安）
+- **累計実績:** 48h
+- **残り時間:** 52h（目安）
 - **稼働方針:** 平日中心（平均 1日4h目安、火曜は通院で3h）
 - **リスク期間:** GW（4/29, 5/3〜5/6）は稼働1h/日程度に低下
 
@@ -17,14 +25,14 @@
 
 ### Phase別の時間配分（残り69h）
 
-| Phase | 内容 | 配分 | 状態 |
+| Phase | 内容 | 見積 | 実績 | 状態 |
 |-------|------|------|------|
-| Phase 0 | 設計・環境構築 | 0h | ✅ 完了（実績31h） |
-| Phase 1 | 認証・レイアウト・共通UI | 8h（実績3h） | 🟡 進行中（初日完了） |
-| Phase 2 | 申請・承認フロー（課題1の核） | 22h | 未着手 |
-| Phase 3 | 開発管理・予算管理（MVP優先） | 12h | 未着手 |
-| Phase 4 | +alpha（最小） | 2h | 未着手 |
-| Phase 5 | 資料・最終確認 | 20h | 未着手 |
+| Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了|
+| Phase 1 | 認証・レイアウト・共通UI |  9h | ✅ 完了 |
+| Phase 2 | 申請・承認フロー（課題1の核） | 20h |  5h | 🟡 進行中 |
+| Phase 3 | 開発管理・予算管理（MVP優先） | 10h | 未着手 |
+| Phase 4 | +alpha（最小） | 5h | - | 未着手 |
+| Phase 5 | 資料・最終確認 | 20h |    | 未着手 |
 | 予備バッファ | 遅延吸収・回帰修正 | 5h | — |
 
 > 実装時間は Phase 1〜4 で **44h**、資料・確認に **20h**、バッファ **5h**。  
@@ -34,9 +42,9 @@
 
 ### 現在地
 
-- **現在の主作業:** Phase 1 完了（共通UI・レイアウト実装を完了）
-- **直近完了:** `Tabs` / `ApprovalStepperMini` / `EmptyState` / `Projects/Show` 骨組み / Login ブランディング調整 / shadcn Input・Dialog・Table・Select 導入
-- **次の着手:** Phase 2（`projects` migration / `Project` Model / `ProjectController@index`）
+- **現在の主作業:** Phase 2 進行中（承認アクション接続まで完了）
+- **直近完了:** `approvals` / `notifications` migration、`Approval` / `Notification` Model、`ApprovalService` / `ApprovalController`、案件一覧からの承認・却下アクション導線
+- **次の着手:** `ApprovalDialog`（S-08）と `Projects/Create.tsx`（S-05）接続
 
 ---
 
@@ -44,7 +52,7 @@
 
 1. ✅ `AuthenticatedLayout` を 3セクションサイドバー構造に改修（4/21 完了）
 2. ✅ 共通コンポーネント（`StatusPill`、`Tabs`、`ApprovalStepperMini`、`EmptyState`）を先行実装
-3. ⏳ `projects` テーブル migration・Model の雛形作成（Phase 2着手タスクへ移行）
+3. ✅ `projects` テーブル migration・Model の雛形作成（4/23 完了）
 4. ✅ S-03a（案件一覧 申請タブ）をダミーデータで再現
 
 ---
@@ -156,15 +164,15 @@
 ## Phase 2 チェックリスト（申請・承認フロー／22h）
 
 ### DB / Model
-- [ ] `projects` migration（parent_project_id, revision, status, estimated_amount, budget_amount, actual_amount 等）
-- [ ] `approvals` migration（level, action, approver_id, comment, acted_at）
-- [ ] `notifications` migration（user_id, type, title, body, read_at）
-- [ ] `Project` / `Approval` / `Notification` Model（リレーション・スコープ）
-- [ ] `Enums`：`ProjectStatus` / `ApprovalLevel` / `ApprovalAction` / `NotificationType`
+- [x] `projects` migration（parent_project_id, revision, status, estimated_amount, budget_amount, actual_amount 等）
+- [x] `approvals` migration（level, action, approver_id, comment, acted_at）
+- [x] `notifications` migration（user_id, type, title, body, read_at）
+- [x] `Project` / `Approval` / `Notification` Model（リレーション・スコープ）
+- [x] `Enums`：`ProjectStatus` / `ApprovalLevel` / `ApprovalAction` / `NotificationType`
 
 ### Policy / 権限
-- [ ] `ProjectPolicy`（viewAny / view / create / update / delete）
-- [ ] Controller でロール別クエリ分岐（applicant=自分のみ、dept=自部門、hq=全件）
+- [x] `ProjectPolicy`（viewAny / view / create / update / delete）
+- [x] Controller でロール別クエリ分岐（applicant=自分のみ、dept=自部門、hq=全件）
 - [ ] 却下→再申請の分岐（`parent_project_id` でチェイン）
 
 ### 画面：申請側（申請者）
@@ -174,15 +182,15 @@
 - [ ] `Projects/Show.tsx`（S-04 案件詳細、承認ステッパー表示）
 
 ### 画面：承認側
-- [ ] 承認待ち一覧（`/projects?tab=approval&filter=pending`）のロール別フィルタ
+- [x] 承認待ち一覧（`/projects?tab=approval&filter=pending`）のロール別フィルタ
 - [ ] `ApprovalDialog.tsx`（S-08 承認/却下モーダル、コメント入力）
 - [ ] 部門管理者が申請者の場合 → `pending_hq` 直行（UI にも表示）
 
 ### Service / Controller
-- [ ] `ProjectController`（index / show / store / update / destroy）
-- [ ] `ApprovalController`（approve / reject）
-- [ ] `ApprovalService`（submit / approveDept / approveHq / reject）
-- [ ] `NotificationService`（承認・却下時に関係者へ通知作成）
+- [x] `ProjectController`（index / show / store / update / destroy）
+- [x] `ApprovalController`（approve / reject）
+- [x] `ApprovalService`（submit / approveDept / approveHq / reject）
+- [x] `NotificationService`（承認・却下時に関係者へ通知作成）
 
 ### 通知
 - [ ] `Notifications/Index.tsx`（S-12 通知一覧）
