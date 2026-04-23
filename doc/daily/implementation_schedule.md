@@ -7,6 +7,29 @@
 
 ---
 
+### 作業記録 2026-04-23（木）Phase 2 承認導線接続（+1h）
+
+#### 今日の追加作業内容（ブランチ: `feat/phase2-projects-foundation`）
+- `ApprovalService` を実装（`submit / approveDept / approveHq / reject`）
+- `ApprovalController` を追加し、承認・却下・申請ルートを接続
+- `NotificationService` を追加し、承認イベント時の通知作成を共通化
+- `Projects/Index.tsx` にロール別の申請/承認/却下ボタンを追加
+- 3ロールでログイン・承認導線が 500 なく動作することを確認
+- `npx tsc --noEmit` / `npm run build` で確認済み
+
+#### 判断とメモ
+- まずは最小導線（一覧から直接操作）を先に動かし、次に Dialog 化で UX を上げる方針
+- 承認ロジックは Service に寄せ、Controller を薄く維持した
+
+#### 次回の着手ポイント
+- `ApprovalDialog`（コメント付き承認/却下）を導入
+- `Projects/Create.tsx`（S-05）を `projects.store` に接続
+
+#### Phase 進捗
+- Phase 2：8h/22h（承認フローの最小導線まで実装）
+
+---
+
 ## 1. 実装アプローチ
 
 - **Phase 0**: Laravel / Breeze / Spatie / DB の土台準備 ✅ 完了
@@ -152,9 +175,9 @@ git push -u origin feat/phase1-layout
 ## 3. 次回作業予定（2026-04-24 金曜・Phase 2 Day2／目安 4h）
 
 ### 目的
-- Phase 2 初日で整えた `projects` 基盤の上に、承認履歴と通知のデータ基盤を追加する
-- 申請・承認ロジック実装に入る前に `approvals` / `notifications` の入れ口を揃える
-- 次回以降の S-05 申請フォーム実装に必要な API 受け口（store/update 方向）を準備する
+- 承認フロー導線をコメント入力付き UI まで接続する
+- `ApprovalDialog` と承認APIを結び、操作性を上げる
+- `Projects/Create.tsx`（S-05）の初期接続に着手する
 
 ### 実行手順（当日の順番）
 
@@ -163,18 +186,17 @@ git push -u origin feat/phase1-layout
    - `php artisan serve` / `npm run dev` の起動を確認
    - `/projects?tab=approval` の表示が崩れていないことを確認
 
-2. **`approvals` / `notifications` migration 作成**（110分）
-   - 最小カラム（履歴性と通知表示に必要な項目）を確定して作成
-   - index と外部キーを先に固める
-   - migrate 実行確認
+2. **`ApprovalDialog` の実装**（100分）
+   - 承認/却下コメント入力を追加
+   - `projects.approve` / `projects.reject` へ接続
+   - バリデーションエラーの表示を追加
 
-3. **`Approval` / `Notification` Model 雛形**（40分）
-   - リレーション（project / user）を先に定義
-   - cast（日時・enum系）を最小実装
+3. **`Projects/Create.tsx` の最小接続**（80分）
+   - 案件名・目的・見積の保存導線を追加
+   - `projects.store` へ接続
 
-4. **Controller 受け口の拡張**（50分）
-   - `ProjectController` に `show/store/update` 方針の骨組みを追加
-   - FormRequest 導入ポイントを TODO として明示
+4. **手動検証**（20分）
+   - 3ロールで申請→承認/却下の基本動作を確認
 
 5. **確認・日次更新**（30分）
    - `npx tsc --noEmit` / `npm run build` / 必要に応じて `php artisan test`
@@ -182,15 +204,15 @@ git push -u origin feat/phase1-layout
 
 ### 判断理由（なぜこの順番か）
 
-- `projects` の土台は初日で完了したため、次は関連テーブルを先に作る方が全体の実装速度が上がる
-- ApprovalService 実装時に DB 設計が未確定だと手戻りが大きいため、先に migration を固定する
-- Controller の受け口を先に整理しておくと、S-05 画面実装時の接続がスムーズになる
+- DB・Service基盤は完了したため、次はUI導線の実装が最短で価値を出せる
+- 申請/承認を画面から一気通貫で触れると、ロジック不整合を早期に見つけやすい
+- 次フェーズ（S-05本実装）へ滑らかに接続できる
 
 ### 完了条件（終了判定）
 
-- [ ] `approvals` / `notifications` migration が作成され、ローカルDBに適用できる
-- [ ] `Approval` / `Notification` Model 雛形が揃う
-- [ ] `ProjectController` の次段受け口（show/store/update 方針）が整理される
+- [x] `approvals` / `notifications` migration が作成され、ローカルDBに適用できる
+- [x] `Approval` / `Notification` Model 雛形が揃う
+- [x] `ProjectController` の次段受け口（show/store/update 方針）が整理される
 - [ ] `npx tsc --noEmit` と `npm run build` が通る
 - [ ] 当日ブランチに push、日報 3 ファイル更新済み
 
@@ -512,7 +534,7 @@ DB_PASSWORD=
 
 ---
 
-### 作業記録 2026-04-23（木）Phase 2 初日（4h）
+### 作業記録 2026-04-23（木）Phase 2 初日（2h）
 
 #### 今日の作業内容（ブランチ: `feat/phase2-projects-foundation`）
 - `projects` migration を作成し、`parent_project_id` / `revision` / `status` / 予算系カラムを実装
