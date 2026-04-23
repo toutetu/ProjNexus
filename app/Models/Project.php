@@ -72,7 +72,7 @@ class Project extends Model
 
     public function approvals(): HasMany
     {
-        return $this->hasMany(\App\Models\Approval::class);
+        return $this->hasMany(Approval::class);
     }
 
     public function tasks(): HasMany

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProjectStatus;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -52,5 +54,71 @@ class ProjectController extends Controller
                     'actualAmount' => $project->actual_amount,
                 ]),
         ]);
+    }
+
+    public function show(Project $project): Response
+    {
+        $this->authorize('view', $project);
+
+        return Inertia::render('Projects/Show', [
+            'projectId' => $project->id,
+            'project' => [
+                'id' => $project->id,
+                'title' => $project->title,
+                'status' => $project->status->value,
+                'department' => $project->department?->name,
+                'applicant' => $project->applicant?->name,
+                'primaryAssignee' => $project->primaryAssignee?->name,
+                'estimatedAmount' => $project->estimated_amount,
+                'budgetAmount' => $project->budget_amount,
+                'actualAmount' => $project->actual_amount,
+            ],
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $this->authorize('create', Project::class);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'purpose' => ['nullable', 'string', 'max:2000'],
+            'estimated_amount' => ['required', 'numeric', 'min:0'],
+            'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        $request->user()->appliedProjects()->create([
+            'department_id' => $request->user()->department_id,
+            'status' => ProjectStatus::Draft,
+            'revision' => 1,
+            ...$validated,
+        ]);
+
+        return redirect()->route('projects.index', ['tab' => 'approval']);
+    }
+
+    public function update(Request $request, Project $project): RedirectResponse
+    {
+        $this->authorize('update', $project);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'purpose' => ['nullable', 'string', 'max:2000'],
+            'estimated_amount' => ['required', 'numeric', 'min:0'],
+            'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        $project->update($validated);
+
+        return redirect()->route('projects.show', $project);
+    }
+
+    public function destroy(Project $project): RedirectResponse
+    {
+        $this->authorize('delete', $project);
+
+        $project->delete();
+
+        return redirect()->route('projects.index', ['tab' => 'approval']);
     }
 }

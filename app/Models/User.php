@@ -65,4 +65,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Project::class, 'primary_assignee_id');
     }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(Approval::class, 'approver_id');
+    }
+
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
 }
