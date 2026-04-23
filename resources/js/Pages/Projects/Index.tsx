@@ -1,4 +1,5 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     CircleDollarSign,
     FileCheck2,
@@ -6,12 +7,14 @@ import {
     FolderSearch,
     GitBranch,
     Inbox,
+    Loader2,
     Plus,
     Wallet,
 } from 'lucide-react';
 
 import ApprovalStepperMini from '@/Components/Approval/ApprovalStepperMini';
 import EmptyState from '@/Components/EmptyState';
+import ApprovalDialog from '@/Components/Modals/ApprovalDialog';
 import StatusPill, { type ProjectStatus } from '@/Components/StatusPill';
 import Tabs, { type TabItem } from '@/Components/Tabs';
 import { Button } from '@/Components/ui/button';
@@ -37,6 +40,7 @@ interface ProjectListItem {
     status: ProjectStatus;
     submittedAt: string | null;
     updatedAt: string;
+    canEdit?: boolean;
 }
 
 const TAB_SUBTITLE: Record<ProjectTab, string> = {
@@ -59,7 +63,19 @@ interface ApprovalProjectRow {
     appliedAt: string;
     updatedAt: string;
     rejectedAt?: 'dept' | 'hq';
+    canEdit: boolean;
 }
+
+type ApprovalDialogState =
+    | {
+          open: false;
+      }
+    | {
+          open: true;
+          mode: 'approve' | 'reject';
+          level: 'dept' | 'hq';
+          project: Pick<ApprovalProjectRow, 'id' | 'title' | 'department'>;
+      };
 
 interface DevProjectRow {
     id: number;
@@ -95,6 +111,7 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         status: 'pending_hq',
         appliedAt: '04/14',
         updatedAt: '2時間前',
+        canEdit: false,
     },
     {
         id: 2,
@@ -103,6 +120,7 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         status: 'pending_dept',
         appliedAt: '04/15',
         updatedAt: '1日前',
+        canEdit: true,
     },
     {
         id: 3,
@@ -111,6 +129,7 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         status: 'draft',
         appliedAt: '—',
         updatedAt: '3日前',
+        canEdit: true,
     },
     {
         id: 4,
@@ -120,6 +139,7 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         rejectedAt: 'hq',
         appliedAt: '04/08',
         updatedAt: '6日前',
+        canEdit: true,
     },
 ];
 
@@ -171,6 +191,10 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
     const isApplicant = roles.includes('applicant' as RoleName);
     const isDeptManager = roles.includes('dept_manager' as RoleName);
     const isHqManager = roles.includes('hq_manager' as RoleName);
+    const [approvalDialog, setApprovalDialog] = useState<ApprovalDialogState>({
+        open: false,
+    });
+    const [processingRowId, setProcessingRowId] = useState<number | null>(null);
 
     const activeKey: ActiveKey =
         filter === 'pending' ? 'pending' : TAB_ACTIVE_KEY[tab];
@@ -183,6 +207,7 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
               appliedAt: project.submittedAt ?? '—',
               updatedAt: project.updatedAt,
               rejectedAt: undefined,
+              canEdit: project.canEdit ?? false,
           }))
         : APPROVAL_ROWS;
     const titleCount =
@@ -206,22 +231,57 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
     };
 
     const submitProject = (projectId: number) => {
-        router.post(route('projects.submit', projectId), {}, { preserveScroll: true });
+        setProcessingRowId(projectId);
+        router.post(route('projects.submit', projectId), {}, {
+            preserveScroll: true,
+            onFinish: () => setProcessingRowId(null),
+        });
     };
 
-    const approveProject = (projectId: number, level: 'dept' | 'hq') => {
+    const closeApprovalDialog = () => {
+        setApprovalDialog({ open: false });
+    };
+
+    const openApprovalDialog = (
+        mode: 'approve' | 'reject',
+        level: 'dept' | 'hq',
+        project: Pick<ApprovalProjectRow, 'id' | 'title' | 'department'>,
+    ) => {
+        setApprovalDialog({
+            open: true,
+            mode,
+            level,
+            project,
+        });
+    };
+
+    const approveProject = (projectId: number, level: 'dept' | 'hq', comment: string) => {
+        setProcessingRowId(projectId);
         router.post(
             route('projects.approve', projectId),
-            { level },
-            { preserveScroll: true },
+            { level, comment },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    closeApprovalDialog();
+                    setProcessingRowId(null);
+                },
+            },
         );
     };
 
-    const rejectProject = (projectId: number, level: 'dept' | 'hq') => {
+    const rejectProject = (projectId: number, level: 'dept' | 'hq', comment: string) => {
+        setProcessingRowId(projectId);
         router.post(
             route('projects.reject', projectId),
-            { level },
-            { preserveScroll: true },
+            { level, comment },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    closeApprovalDialog();
+                    setProcessingRowId(null);
+                },
+            },
         );
     };
 
@@ -253,7 +313,11 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                         </span>
                     )}
                 </div>
-                <Button size="default" className="flex items-center gap-2">
+                <Button
+                    size="default"
+                    className="flex items-center gap-2"
+                    onClick={() => router.visit(route('projects.create'))}
+                >
                     <Plus className="h-4 w-4" />
                     新規申請
                 </Button>
@@ -287,7 +351,12 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                                         )}
                                     >
                                         <td className="px-5 py-3.5 font-medium text-brand-dark">
-                                            {row.title}
+                                            <Link
+                                                href={route('projects.show', row.id)}
+                                                className="hover:text-brand-blue hover:underline"
+                                            >
+                                                {row.title}
+                                            </Link>
                                         </td>
                                         <td className="px-4 py-3.5">
                                             <StatusPill status={row.status} />
@@ -308,51 +377,115 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                                             {row.updatedAt}
                                         </td>
                                         <td className="px-4 py-3.5">
-                                            <div className="flex flex-wrap gap-2">
-                                                {isApplicant &&
-                                                    (row.status === 'draft' || row.status === 'rejected') && (
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => submitProject(row.id)}
-                                                        >
-                                                            申請
-                                                        </Button>
-                                                    )}
-                                                {isDeptManager && row.status === 'pending_dept' && (
-                                                    <>
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => approveProject(row.id, 'dept')}
-                                                        >
-                                                            承認
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => rejectProject(row.id, 'dept')}
-                                                        >
-                                                            却下
-                                                        </Button>
-                                                    </>
-                                                )}
-                                                {isHqManager && row.status === 'pending_hq' && (
-                                                    <>
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => approveProject(row.id, 'hq')}
-                                                        >
-                                                            承認
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => rejectProject(row.id, 'hq')}
-                                                        >
-                                                            却下
-                                                        </Button>
-                                                    </>
-                                                )}
-                                            </div>
+                                            {(() => {
+                                                const isRowProcessing =
+                                                    processingRowId === row.id;
+
+                                                return (
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {isApplicant &&
+                                                            (row.status === 'draft' ||
+                                                                row.status === 'rejected') && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    disabled={isRowProcessing}
+                                                                    onClick={() =>
+                                                                        submitProject(row.id)
+                                                                    }
+                                                                >
+                                                                    申請
+                                                                </Button>
+                                                            )}
+                                                        {row.canEdit && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                asChild
+                                                                disabled={isRowProcessing}
+                                                            >
+                                                                <Link
+                                                                    href={route(
+                                                                        'projects.edit',
+                                                                        row.id,
+                                                                    )}
+                                                                >
+                                                                    編集
+                                                                </Link>
+                                                            </Button>
+                                                        )}
+                                                        {isDeptManager &&
+                                                            row.status === 'pending_dept' && (
+                                                                <>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        disabled={isRowProcessing}
+                                                                        onClick={() =>
+                                                                            openApprovalDialog(
+                                                                                'approve',
+                                                                                'dept',
+                                                                                row,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        承認
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        disabled={isRowProcessing}
+                                                                        onClick={() =>
+                                                                            openApprovalDialog(
+                                                                                'reject',
+                                                                                'dept',
+                                                                                row,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        却下
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                        {isHqManager &&
+                                                            row.status === 'pending_hq' && (
+                                                                <>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        disabled={isRowProcessing}
+                                                                        onClick={() =>
+                                                                            openApprovalDialog(
+                                                                                'approve',
+                                                                                'hq',
+                                                                                row,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        承認
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        disabled={isRowProcessing}
+                                                                        onClick={() =>
+                                                                            openApprovalDialog(
+                                                                                'reject',
+                                                                                'hq',
+                                                                                row,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        却下
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                        {isRowProcessing && (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-brand-bg px-2 py-1 text-xs font-medium text-brand-muted">
+                                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                                処理中...
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                     </tr>
                                 ))}
@@ -449,6 +582,24 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                     />
                 </section>
             )}
+
+            <ApprovalDialog
+                mode={approvalDialog.open ? approvalDialog.mode : 'approve'}
+                open={approvalDialog.open}
+                onClose={closeApprovalDialog}
+                approvalLevel={approvalDialog.open ? approvalDialog.level : 'dept'}
+                project={approvalDialog.open ? approvalDialog.project : null}
+                onSubmit={(comment) => {
+                    if (!approvalDialog.open) return;
+
+                    if (approvalDialog.mode === 'approve') {
+                        approveProject(approvalDialog.project.id, approvalDialog.level, comment);
+                        return;
+                    }
+
+                    rejectProject(approvalDialog.project.id, approvalDialog.level, comment);
+                }}
+            />
         </AuthenticatedLayout>
     );
 }

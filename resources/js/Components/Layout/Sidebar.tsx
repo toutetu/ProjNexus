@@ -187,7 +187,7 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                 <SidebarSection label="申請・承認">
                     {canCreate && (
                         <SidebarLink
-                            href="#"
+                            href={route('projects.create')}
                             icon={PlusCircle}
                             label="新規申請"
                             active={activeKey === 'new'}

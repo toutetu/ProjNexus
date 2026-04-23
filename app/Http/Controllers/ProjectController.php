@@ -11,6 +11,13 @@ use Inertia\Response;
 
 class ProjectController extends Controller
 {
+    public function create(): Response
+    {
+        $this->authorize('create', Project::class);
+
+        return Inertia::render('Projects/Create');
+    }
+
     public function index(Request $request): Response
     {
         $validated = $request->validate([
@@ -52,6 +59,7 @@ class ProjectController extends Controller
                     'estimatedAmount' => $project->estimated_amount,
                     'budgetAmount' => $project->budget_amount,
                     'actualAmount' => $project->actual_amount,
+                    'canEdit' => $user->can('update', $project),
                 ]),
         ]);
     }
@@ -59,9 +67,11 @@ class ProjectController extends Controller
     public function show(Project $project): Response
     {
         $this->authorize('view', $project);
+        $canEdit = auth()->user()?->can('update', $project) ?? false;
 
         return Inertia::render('Projects/Show', [
             'projectId' => $project->id,
+            'canEdit' => $canEdit,
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,
@@ -72,6 +82,20 @@ class ProjectController extends Controller
                 'estimatedAmount' => $project->estimated_amount,
                 'budgetAmount' => $project->budget_amount,
                 'actualAmount' => $project->actual_amount,
+            ],
+        ]);
+    }
+
+    public function edit(Project $project): Response
+    {
+        $this->authorize('update', $project);
+
+        return Inertia::render('Projects/Edit', [
+            'project' => [
+                'id' => $project->id,
+                'title' => $project->title,
+                'purpose' => $project->purpose,
+                'estimatedAmount' => $project->estimated_amount,
             ],
         ]);
     }
