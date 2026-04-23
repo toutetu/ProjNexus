@@ -1,32 +1,445 @@
 # 実装スケジュール（詳細実行版）
 
-このドキュメントは、実装作業で実際に使う詳細手順（週次タスク・コマンド・完了条件・次回作業予定）を管理します。  
-方針は「**課題1を優先し、GW前に Phase 2 完了、GW週で Phase 3 MVP、最終週で +α＋資料**」です。  
-要約版の進捗管理・各Phaseのチェックリストは `doc/daily/development_schedule.md` を参照します。  
-日々の作業記録は、末尾に時系列で追記していきます。
+このファイルは「次回やること」と「進行中タスク」を管理する要約版です。  
+日々の詳細作業記録は `doc/daily/log/implementation_schedule_log.md` に分離しています。
 
 ---
 
-### 作業記録 2026-04-23（木）Phase 2 承認導線接続（+1h）
+## 1. 実装アプローチ
 
-#### 今日の追加作業内容（ブランチ: `feat/phase2-projects-foundation`）
-- `ApprovalService` を実装（`submit / approveDept / approveHq / reject`）
-- `ApprovalController` を追加し、承認・却下・申請ルートを接続
-- `NotificationService` を追加し、承認イベント時の通知作成を共通化
-- `Projects/Index.tsx` にロール別の申請/承認/却下ボタンを追加
-- 3ロールでログイン・承認導線が 500 なく動作することを確認
-- `npx tsc --noEmit` / `npm run build` で確認済み
+- Phase 0: 環境構築・設計（完了）
+- Phase 1: レイアウト・共通UI（完了）
+- Phase 2: 申請・承認フロー（進行中）
+- Phase 3: 開発管理・予算管理 MVP（未着手）
+- Phase 4: +alpha 最小（未着手）
+- Phase 5: 資料・最終確認（未着手）
 
-#### 判断とメモ
-- まずは最小導線（一覧から直接操作）を先に動かし、次に Dialog 化で UX を上げる方針
-- 承認ロジックは Service に寄せ、Controller を薄く維持した
+---
+
+## 2. 日次ワークフロー（毎日必須）
+
+### 作業開始時
+
+```powershell
+git checkout main
+git pull origin main
+git checkout -b <work-branch>
+```
+
+### 作業終了時
+
+```powershell
+git add -A
+git commit -m "docs: 日次更新 YYYYMMDD"
+git push -u origin <work-branch>
+```
+
+### 運用ルール
+
+- main 上で直接作業しない
+- 実装コミットと docs コミットは分離する
+- 日次の詳細記録は `doc/daily/log/` に残す
+
+---
+
+## 3. 次回作業予定（2026-04-24 金曜・Phase 2 Day2／目安 4h）
+
+### 目的
+
+- 承認フロー導線をコメント付き UI まで接続する
+- `ApprovalDialog` を導入して承認/却下体験を改善する
+- `Projects/Create.tsx`（S-05）を `projects.store` へ接続する
+
+### 実行手順
+
+1. **事前確認**（10分）
+   - `php artisan serve` / `npm run dev` 起動確認
+   - `/projects?tab=approval` 表示確認
+2. **`ApprovalDialog` 実装**（100分）
+   - コメント入力 UI
+   - `projects.approve` / `projects.reject` 接続
+3. **`Projects/Create.tsx` 最小接続**（80分）
+   - 案件名・目的・見積入力
+   - `projects.store` 接続
+4. **手動検証**（20分）
+   - 3ロールで申請→承認/却下の基本導線確認
+5. **確認・日次更新**（30分）
+   - `npx tsc --noEmit` / `npm run build`
+   - `doc/daily` 更新・commit・push
+
+### 完了条件
+
+- [ ] `ApprovalDialog` から承認/却下できる
+- [ ] `Projects/Create.tsx` から保存できる
+- [ ] `npx tsc --noEmit` と `npm run build` が通る
+- [ ] 日次更新を push まで完了
+
+---
+
+## 4. 次々回以降のガイド
+
+- S-05 `Projects/Create.tsx` 本実装
+- S-06 `Projects/Edit.tsx` 実装
+- S-08 `ApprovalDialog.tsx` 仕上げ
+- 通知一覧（S-12）とヘッダー未読バッジ
+- Feature テスト（承認フロー / 権限境界）
+
+---
+
+## 5. 詳細ログ参照ルール
+
+- 参照対象は **前日の作業記録詳細のみ**
+- 参照ファイル: `doc/daily/log/implementation_schedule_log.md`
+- 日報詳細ログ: `doc/daily/log/daily_report_log.md`
+# 実装スケジュール（詳細実行版）
+
+このファイルは「次回やること」と「進行中タスク」を管理する要約版です。  
+日々の詳細作業記録は `doc/daily/log/implementation_schedule_log.md` に分離しています。
+
+---
+
+## 1. 実装アプローチ
+
+- Phase 0: 環境構築・設計（完了）
+- Phase 1: レイアウト・共通UI（完了）
+- Phase 2: 申請・承認フロー（進行中）
+- Phase 3: 開発管理・予算管理 MVP（未着手）
+- Phase 4: +alpha 最小（未着手）
+- Phase 5: 資料・最終確認（未着手）
+
+---
+
+## 2. 日次ワークフロー（毎日必須）
+
+### 作業開始時
+
+```powershell
+git checkout main
+git pull origin main
+git checkout -b <work-branch>
+```
+
+### 作業終了時
+
+```powershell
+# doc/daily の更新
+git add -A
+git commit -m "docs: 日次更新 YYYYMMDD"
+git push -u origin <work-branch>
+```
+
+### 運用ルール
+
+- main 上で直接作業しない
+- 実装コミットと docs コミットは分離する
+- 日次の詳細記録は `doc/daily/log/` に残す
+
+---
+
+## 3. 次回作業予定（2026-04-24 金曜・Phase 2 Day2／目安 4h）
+
+### 目的
+
+- 承認フロー導線をコメント付き UI まで接続する
+- `ApprovalDialog` を導入して承認/却下体験を改善する
+- `Projects/Create.tsx`（S-05）を `projects.store` へ接続する
+
+### 実行手順
+
+1. **事前確認**（10分）
+   - `php artisan serve` / `npm run dev` 起動確認
+   - `/projects?tab=approval` 表示確認
+2. **`ApprovalDialog` 実装**（100分）
+   - コメント入力 UI
+   - `projects.approve` / `projects.reject` 接続
+   - エラー表示の最小実装
+3. **`Projects/Create.tsx` 最小接続**（80分）
+   - 案件名・目的・見積入力
+   - `projects.store` 接続
+4. **手動検証**（20分）
+   - 3ロールで申請→承認/却下の基本導線確認
+5. **確認・日次更新**（30分）
+   - `npx tsc --noEmit` / `npm run build`
+   - `doc/daily` 更新・commit・push
+
+### 完了条件
+
+- [ ] `ApprovalDialog` から承認/却下できる
+- [ ] `Projects/Create.tsx` から保存できる
+- [ ] `npx tsc --noEmit` と `npm run build` が通る
+- [ ] 日次更新を push まで完了
+
+---
+
+## 4. 次々回以降のガイド
+
+### Phase 2 残タスク
+
+- S-05 `Projects/Create.tsx` 本実装
+- S-06 `Projects/Edit.tsx` 実装
+- S-08 `ApprovalDialog.tsx` 仕上げ
+- 通知一覧（S-12）とヘッダー未読バッジ
+- Feature テスト（承認フロー / 権限境界）
+
+### Phase 3 以降の方針
+
+- Phase 3: タスク・予算の MVP（作成/保存/表示を優先）
+- Phase 4: ステッパー大型版 + レスポンシブ最低限
+- Phase 5: 資料・最終確認・提出準備
+
+---
+
+## 5. 作業記録テンプレ
+
+```markdown
+### 作業記録 YYYY-MM-DD（曜日）
+
+#### 今日の作業内容
+- ...
+
+#### 詰まった点・判断
+- ...
 
 #### 次回の着手ポイント
-- `ApprovalDialog`（コメント付き承認/却下）を導入
-- `Projects/Create.tsx`（S-05）を `projects.store` に接続
+- ...
 
 #### Phase 進捗
-- Phase 2：8h/22h（承認フローの最小導線まで実装）
+- Phase X：YYh/ZZh
+```
+
+---
+
+## 6. 環境情報（参照用）
+
+### 作業ディレクトリ
+
+`C:\xampp\htdocs\ProjNexus`
+
+### 開発サーバ起動
+
+```powershell
+# Terminal A
+php artisan serve
+
+# Terminal B
+npm run dev
+```
+
+### DB 再初期化（必要時）
+
+```powershell
+php artisan migrate:fresh --seed
+```
+
+### `.env` 確認ポイント
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=projnexus
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### デプロイ先
+
+- URL: https://projnexus-main-butvrx.laravel.cloud
+- Build: `composer install` / `npm ci` / `npm run build`
+- Deploy: `php artisan migrate --force`
+
+### テストアカウント
+
+| ロール | メール | パスワード | 所属部門 |
+|---|---|---|---|
+| 申請者 | applicant@example.com | password | 開発1部 |
+| 部門管理者 | dept@example.com | password | 開発1部 |
+| 本部管理者 | hq@example.com | password | 本部 |
+
+---
+
+## 7. 詳細ログ参照ルール
+
+- 参照対象は **前日の作業記録詳細のみ** とする
+- 参照ファイル: `doc/daily/log/implementation_schedule_log.md`
+- 日報詳細ログ: `doc/daily/log/daily_report_log.md`
+# 実装スケジュール（詳細実行版）
+
+このファイルは「次回やること」と「進行中タスク」を管理する要約版です。  
+日々の詳細作業記録は `doc/daily/log/implementation_schedule_log.md` に分離しています。
+
+---
+
+## 1. 実装アプローチ
+
+- Phase 0: 環境構築・設計（完了）
+- Phase 1: レイアウト・共通UI（完了）
+- Phase 2: 申請・承認フロー（進行中）
+- Phase 3: 開発管理・予算管理 MVP（未着手）
+- Phase 4: +alpha 最小（未着手）
+- Phase 5: 資料・最終確認（未着手）
+
+---
+
+## 2. 日次ワークフロー（毎日必須）
+
+### 作業開始時
+
+```powershell
+git checkout main
+git pull origin main
+git checkout -b <work-branch>
+```
+
+### 作業終了時
+
+```powershell
+# doc/daily の更新
+git add -A
+git commit -m "docs: 日次更新 YYYYMMDD"
+git push -u origin <work-branch>
+```
+
+### 運用ルール
+
+- main 上で直接作業しない
+- 実装コミットと docs コミットは分離する
+- 日次の詳細記録は `doc/daily/log/` に残す
+
+---
+
+## 3. 次回作業予定（2026-04-24 金曜・Phase 2 Day2／目安 4h）
+
+### 目的
+
+- 承認フロー導線をコメント付き UI まで接続する
+- `ApprovalDialog` を導入して承認/却下体験を改善する
+- `Projects/Create.tsx`（S-05）を `projects.store` へ接続する
+
+### 実行手順
+
+1. **事前確認**（10分）
+   - `php artisan serve` / `npm run dev` 起動確認
+   - `/projects?tab=approval` 表示確認
+2. **`ApprovalDialog` 実装**（100分）
+   - コメント入力 UI
+   - `projects.approve` / `projects.reject` 接続
+   - エラー表示の最小実装
+3. **`Projects/Create.tsx` 最小接続**（80分）
+   - 案件名・目的・見積入力
+   - `projects.store` 接続
+4. **手動検証**（20分）
+   - 3ロールで申請→承認/却下の基本導線確認
+5. **確認・日次更新**（30分）
+   - `npx tsc --noEmit` / `npm run build`
+   - `doc/daily` 更新・commit・push
+
+### 完了条件
+
+- [ ] `ApprovalDialog` から承認/却下できる
+- [ ] `Projects/Create.tsx` から保存できる
+- [ ] `npx tsc --noEmit` と `npm run build` が通る
+- [ ] 日次更新を push まで完了
+
+---
+
+## 4. 次々回以降のガイド
+
+### Phase 2 残タスク
+
+- S-05 `Projects/Create.tsx` 本実装
+- S-06 `Projects/Edit.tsx` 実装
+- S-08 `ApprovalDialog.tsx` 仕上げ
+- 通知一覧（S-12）とヘッダー未読バッジ
+- Feature テスト（承認フロー / 権限境界）
+
+### Phase 3 以降の方針
+
+- Phase 3: タスク・予算の MVP（作成/保存/表示を優先）
+- Phase 4: ステッパー大型版 + レスポンシブ最低限
+- Phase 5: 資料・最終確認・提出準備
+
+---
+
+## 5. 作業記録テンプレ
+
+```markdown
+### 作業記録 YYYY-MM-DD（曜日）
+
+#### 今日の作業内容
+- ...
+
+#### 詰まった点・判断
+- ...
+
+#### 次回の着手ポイント
+- ...
+
+#### Phase 進捗
+- Phase X：YYh/ZZh
+```
+
+---
+
+## 6. 環境情報（参照用）
+
+### 作業ディレクトリ
+
+`C:\xampp\htdocs\ProjNexus`
+
+### 開発サーバ起動
+
+```powershell
+# Terminal A
+php artisan serve
+
+# Terminal B
+npm run dev
+```
+
+### DB 再初期化（必要時）
+
+```powershell
+php artisan migrate:fresh --seed
+```
+
+### `.env` 確認ポイント
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=projnexus
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### デプロイ先
+
+- URL: https://projnexus-main-butvrx.laravel.cloud
+- Build: `composer install` / `npm ci` / `npm run build`
+- Deploy: `php artisan migrate --force`
+
+### テストアカウント
+
+| ロール | メール | パスワード | 所属部門 |
+|---|---|---|---|
+| 申請者 | applicant@example.com | password | 開発1部 |
+| 部門管理者 | dept@example.com | password | 開発1部 |
+| 本部管理者 | hq@example.com | password | 本部 |
+
+---
+
+## 7. 詳細ログ保管先
+
+- 実装の詳細作業ログ: `doc/daily/log/implementation_schedule_log.md`
+- 日報の詳細ログ: `doc/daily/log/daily_report_log.md`
+# 実装スケジュール（詳細実行版）
+
+このドキュメントは、実装作業で実際に使う詳細手順（ 作業記録詳細、週次タスク・コマンド・完了条件・次回作業予定）を管理します。  
+方針は「**課題1を優先し、GW前に Phase 2 完了、GW週で Phase 3 MVP、最終週で +α＋資料**」です。  
+要約版の進捗管理・各Phaseのチェックリストは `doc/daily/development_schedule.md` を参照します。  
+日々の作業記録は、末尾に時系列で追記していきます。
 
 ---
 
@@ -94,20 +507,7 @@ git push -u origin feat/phase1-layout
 
 ---
 
-## 2. 平日ベースの実行スケジュール（残り 69h）
 
-前提：2026-04-21 時点で残り 69h。稼働日は平日中心、1日4h前後（火曜は通院で3h、GW期間は1h/日）。
-
-### 時間配分（合計 69h）
-
-| Phase | 配分 | 目的 |
-|-------|------|------|
-| Phase 1（認証・レイアウト・共通UI） | 8h | モック再現、共通部品の先行実装 |
-| Phase 2（申請・承認フロー） | 22h | 課題1の核。ここを最優先 |
-| Phase 3（開発管理・予算管理 MVP） | 12h | タスク・予算の最小動作 |
-| Phase 4（+α 最小） | 2h | ステッパーUI・レスポンシブ |
-| Phase 5（資料・最終確認） | 20h | 利用マニュアル・プレゼン・提出 |
-| 予備バッファ | 5h | 遅延吸収・回帰修正 |
 
 ### 週別スケジュール
 
@@ -480,6 +880,7 @@ DB_PASSWORD=
 
 ---
 
+
 ### 作業記録 2026-04-22（水）Phase 1 仕上げ（5h）
 
 #### 今日の作業内容（ブランチ: `feat/phase1-layout-2`, `feat/phase1-layout-3`）
@@ -508,7 +909,30 @@ DB_PASSWORD=
 
 ---
 
-### 作業記録 2026-04-23（木）Phase 2 前倒し追加（+3h）
+
+### 作業記録 2026-04-23（木）Phase 2 承認導線接続（+1h）
+
+#### 今日の追加作業内容（ブランチ: `feat/phase2-projects-foundation`）
+- `ApprovalService` を実装（`submit / approveDept / approveHq / reject`）
+- `ApprovalController` を追加し、承認・却下・申請ルートを接続
+- `NotificationService` を追加し、承認イベント時の通知作成を共通化
+- `Projects/Index.tsx` にロール別の申請/承認/却下ボタンを追加
+- 3ロールでログイン・承認導線が 500 なく動作することを確認
+- `npx tsc --noEmit` / `npm run build` で確認済み
+
+#### 判断とメモ
+- まずは最小導線（一覧から直接操作）を先に動かし、次に Dialog 化で UX を上げる方針
+- 承認ロジックは Service に寄せ、Controller を薄く維持した
+
+#### 次回の着手ポイント
+- `ApprovalDialog`（コメント付き承認/却下）を導入
+- `Projects/Create.tsx`（S-05）を `projects.store` に接続
+
+#### Phase 進捗
+- Phase 2：8h/22h（承認フローの最小導線まで実装）
+
+---
+### 作業記録 2026-04-23（木）Phase 2 前倒し追加（+1h）
 
 #### 今日の追加作業内容（ブランチ: `feat/phase2-projects-foundation`）
 - `approvals` / `notifications` migration を追加して DB 基盤を拡張

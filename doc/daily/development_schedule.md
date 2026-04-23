@@ -2,6 +2,14 @@
 
 このファイルは、進捗を短く確認するための要約版です。  
 詳細な実行手順・コマンドは `doc/daily/implementation_schedule.md` を参照します。
+日々の詳細作業記録は `doc/daily/log/` 配下へ分離して管理します。
+
+---
+
+### 詳細ログ保管先
+
+- 実装詳細ログ: `doc/daily/log/implementation_schedule_log.md`
+- 日報詳細ログ: `doc/daily/log/daily_report_log.md`
 
 ---
 
