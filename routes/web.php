@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,17 +20,7 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/projects', function (\Illuminate\Http\Request $request) {
-        $allowedTabs = ['approval', 'dev', 'budget'];
-        $tab = in_array($request->query('tab'), $allowedTabs, true)
-            ? $request->query('tab')
-            : 'approval';
-
-        return Inertia::render('Projects/Index', [
-            'tab' => $tab,
-            'filter' => $request->query('filter'),
-        ]);
-    })->name('projects.index');
+    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
 
     Route::get('/projects/{project}', function (int $project) {
         return Inertia::render('Projects/Show', [
