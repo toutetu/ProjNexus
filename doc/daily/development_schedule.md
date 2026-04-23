@@ -29,7 +29,7 @@
 |-------|------|------|------|
 | Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了|
 | Phase 1 | 認証・レイアウト・共通UI |  9h | ✅ 完了 |
-| Phase 2 | 申請・承認フロー（課題1の核） | 20h |  5h | 🟡 進行中 |
+| Phase 2 | 申請・承認フロー（課題1の核） | 20h |  8h | 🟡 進行中 |
 | Phase 3 | 開発管理・予算管理（MVP優先） | 10h | 未着手 |
 | Phase 4 | +alpha（最小） | 5h | - | 未着手 |
 | Phase 5 | 資料・最終確認 | 20h |    | 未着手 |
@@ -42,9 +42,9 @@
 
 ### 現在地
 
-- **現在の主作業:** Phase 2 進行中（承認アクション接続まで完了）
-- **直近完了:** `approvals` / `notifications` migration、`Approval` / `Notification` Model、`ApprovalService` / `ApprovalController`、案件一覧からの承認・却下アクション導線
-- **次の着手:** `ApprovalDialog`（S-08）と `Projects/Create.tsx`（S-05）接続
+- **現在の主作業:** Phase 2 進行中（申請・承認の主要画面導線まで接続完了）
+- **直近完了:** `ApprovalDialog`（コメント付き承認/却下）、`Projects/Create.tsx` / `Projects/Edit.tsx`、一覧/詳細からの編集導線、処理中ロック＆スピナー表示
+- **次の着手:** 通知一覧（S-12）と未読バッジ、承認待ち一覧のUI調整
 
 ---
 
@@ -176,14 +176,14 @@
 - [ ] 却下→再申請の分岐（`parent_project_id` でチェイン）
 
 ### 画面：申請側（申請者）
-- [ ] `Projects/Create.tsx`（S-05 新規申請）
-- [ ] `Projects/Edit.tsx`（S-06 案件編集、draft / rejected のみ）
-- [ ] `Projects/Index.tsx` 申請タブ：自案件一覧＋ステータス
-- [ ] `Projects/Show.tsx`（S-04 案件詳細、承認ステッパー表示）
+- [x] `Projects/Create.tsx`（S-05 新規申請）
+- [x] `Projects/Edit.tsx`（S-06 案件編集、draft / rejected のみ）
+- [x] `Projects/Index.tsx` 申請タブ：自案件一覧＋ステータス
+- [x] `Projects/Show.tsx`（S-04 案件詳細、承認ステッパー表示）
 
 ### 画面：承認側
 - [x] 承認待ち一覧（`/projects?tab=approval&filter=pending`）のロール別フィルタ
-- [ ] `ApprovalDialog.tsx`（S-08 承認/却下モーダル、コメント入力）
+- [x] `ApprovalDialog.tsx`（S-08 承認/却下モーダル、コメント入力）
 - [ ] 部門管理者が申請者の場合 → `pending_hq` 直行（UI にも表示）
 
 ### Service / Controller
