@@ -486,6 +486,32 @@ DB_PASSWORD=
 
 ---
 
+### 作業記録 2026-04-23（木）Phase 2 前倒し追加（+3h）
+
+#### 今日の追加作業内容（ブランチ: `feat/phase2-projects-foundation`）
+- `approvals` / `notifications` migration を追加して DB 基盤を拡張
+- `Approval` / `Notification` Model を追加し、enum（`ApprovalLevel`, `ApprovalAction`, `NotificationType`）を作成
+- `ProjectController` に `show/store/update/destroy` の受け口を追加
+- `/projects` の CRUD ルートを Controller に接続
+- `Controller` に `AuthorizesRequests` を導入し、ログイン後 500 エラーを修正
+- 3ロール（申請者/部門管理者/本部管理者）でログイン後にエラーが出ないことを手動確認済み
+- `php artisan migrate` / `npx tsc --noEmit` / `npm run build` を実行して成功
+
+#### 判断とメモ
+- 予定より進捗に余裕が出たため、Phase 2 Day2 の土台実装を前倒しした
+- 承認履歴・通知のDBを先に固めたことで、次は `ApprovalService` 実装に集中できる状態
+- 認可エラーは Controller ベースクラスのトレイト不足が原因で、影響範囲を最小で修正済み
+
+#### 次回の着手ポイント
+- `ApprovalService`（`submit / approveDept / approveHq / reject`）の実装開始
+- `ApprovalController` の承認/却下アクション接続
+- `Projects/Create.tsx`（S-05）と `store` の接続
+
+#### Phase 進捗
+- Phase 2：7h/22h（DB・Model・Controller 基盤の前倒し完了）
+
+---
+
 ### 作業記録 2026-04-23（木）Phase 2 初日（4h）
 
 #### 今日の作業内容（ブランチ: `feat/phase2-projects-foundation`）
