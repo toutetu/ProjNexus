@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->foreignId('department_id')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->enum('role', ['applicant', 'dept_manager', 'hq_manager'])->default('applicant');
             $table->rememberToken();
             $table->timestamps();
         });

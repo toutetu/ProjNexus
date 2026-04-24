@@ -19,11 +19,13 @@ return new class extends Migration
             $table->string('project_code')->nullable()->unique();
             $table->string('title');
             $table->text('purpose')->nullable();
+            $table->text('description')->nullable();
             $table->foreignId('applicant_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('department_id')->constrained('departments')->cascadeOnDelete();
             $table->foreignId('primary_assignee_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('status')->default(ProjectStatus::Draft->value)->index();
             $table->decimal('estimated_amount', 15, 2)->default(0);
+            $table->unsignedInteger('estimated_days')->nullable();
             $table->decimal('budget_amount', 15, 2)->nullable();
             $table->decimal('actual_amount', 15, 2)->default(0);
             $table->timestamp('submitted_at')->nullable();
