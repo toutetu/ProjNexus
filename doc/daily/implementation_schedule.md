@@ -26,22 +26,21 @@ Phase 単位の進捗（Phase 0〜5 の完了／進行中／未着手、実績�
 
 ---
 
-## 3. 次回作業予定（2026-04-24 / Phase 2 Day2）
+## 3. 次回作業予定（2026-04-25 / Phase 2 Day3）
 
 ### 目的
 
-- 承認待ち一覧の操作性とエラーハンドリングを整える
-- 通知一覧（S-12）と未読バッジの最小導線を接続する
+- 3ロールでの申請→承認/却下→通知の手動確認を完了し、結果を日次ログに記録する
+- Phase 2 残タスク（再申請チェイン、部門管理者が申請者の場合の `pending_hq` 直行の UI 反映など）の優先順位を確定し、着手可能なものから実装する
 
 ### 実行手順
 
-1. 事前確認（`php artisan serve` / `npm run dev` / `/projects` 表示）
-2. 承認待ち一覧で行単位操作（申請/承認/却下/編集）の表示と遷移を確認
-3. 通知一覧ページ（S-12）の骨組み作成と `notifications` データ接続
-4. ヘッダー通知バッジ（未読件数）を最小実装
-5. 3ロールで申請→承認/却下→通知の手動確認
-6. `npx tsc --noEmit` / `npm run build` 実行
-7. `doc/daily` 更新・コミット・push
+1. 事前確認（`php artisan serve` / `npm run dev`、ログイン後 `/projects?tab=approval`）
+2. 手動確認チェックリストを 3 アカウントで順に実施し、`development_schedule.md` の検証欄を更新
+3. `/notifications` で未読・既読・案件リンクを確認
+4. 不足があれば `ApprovalService` / 一覧 UI を最小修正
+5. `npx tsc --noEmit` / `npm run build` / `php artisan test`
+6. `doc/daily` 更新・`feat:` と `docs:` を分離コミット・push
 
 ### 手動確認チェックリスト（作業中に使用）
 
@@ -50,13 +49,15 @@ Phase 単位の進捗（Phase 0〜5 の完了／進行中／未着手、実績�
 - [ ] hq_manager: 承認待ち（`pending_hq`）のみ承認/却下できる
 - [ ] 編集不可案件では「編集」導線が表示されない
 - [ ] 承認/却下/申請実行時に行単位ロック + 処理中表示が出る
+- [ ] 通知一覧で未読バッジが減る（既読化後）
 
 ### 完了条件
 
 - [x] `ApprovalDialog` から承認/却下できる
 - [x] `Projects/Create.tsx` から保存できる
-- [ ] `npx tsc --noEmit` と `npm run build` が通る
-- [ ] 通知一覧（S-12）と未読バッジの最小導線が動く
+- [x] `npx tsc --noEmit` と `npm run build` が通る
+- [x] 通知一覧（S-12）と未読バッジの最小導線が動く
+- [ ] 3ロール手動確認の記録完了
 - [ ] 日次更新を push まで完了
 
 ---

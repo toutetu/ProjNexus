@@ -280,3 +280,24 @@
   - 申請・承認の主要導線（Create/Edit/Approve/Reject/Dialog/権限連動表示）まで接続完了
 
 ---
+
+## 2026-04-24（金）— Phase 2 継続（通知 S-12・承認一覧 UI・テスト）
+
+### 実装概要
+- **通知ルート**: `GET /notifications`（`notifications.index`）、`PATCH /notifications/{notification}/read`（`notifications.read`）を `auth`+`verified` グループに追加
+- **共有プロップ**: `HandleInertiaRequests` に `flash.error` と `unreadNotificationCount`（未読件数）を追加
+- **S-12**: `resources/js/Pages/Notifications/Index.tsx` を新規作成（一覧・未読表示・既読 PATCH・`meta.project_id` がある場合は案件詳細リンク・ページネーション）
+- **ヘッダー / サイドバー**: `Header.tsx` のベルを通知一覧リンク＋未読数バッジに接続。`Sidebar.tsx` の「通知」誤リンク（プロフィール向け）を修正し、未読バッジを表示
+- **通知 JSON**: `NotificationController@index` の各要素キーを `readAt` / `createdAt` に統一（フロントの camelCase と整合）
+- **承認一覧**: `ProjectController@index` で却下案件の最新却下レベルを一括取得し `rejectedAt`（`dept`|`hq`）を返却。`Projects/Index.tsx` で空一覧の `EmptyState`、フラッシュエラー、`rejectedAt` の `ApprovalStepperMini` 連動を追加。誤って常時表示されていた承認待ち用 `EmptyState` を削除
+- **エラー表示**: `ApprovalController` の submit/approve/reject で `AuthorizationException` を捕捉し `redirect()->with('error', …)` に変更
+- **テスト**: `ProjectApprovalFlowTest`（部門承認成功・申請者の承認不可）を追加。`AuthenticationTest` のログイン後リダイレクト期待値を `projects.index?tab=approval` に合わせて修正
+
+### 検証
+- `npx tsc --noEmit` / `npm run build` 成功
+- `php artisan test` 全件成功（27 tests）
+
+### Phase 進捗
+- Phase 2：9h/22h（本日 +4h 見込みで development_schedule と整合）
+
+---

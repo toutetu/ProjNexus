@@ -102,3 +102,25 @@
   - 申請・承認の主要導線（Create/Edit/Approve/Reject/Dialog/権限連動表示）まで接続完了
 
 ---
+
+### 作業記録 2026-04-24（金）Phase 2 継続（通知・バッジ・一覧 UI・テスト）
+
+#### 1) 通知（S-12）と未読バッジ
+- `NotificationController` を `web.php` に接続（一覧・既読 PATCH）
+- `Notifications/Index.tsx` 新規、`NotificationController` の JSON キーを `readAt`/`createdAt` に統一
+- `HandleInertiaRequests` に `unreadNotificationCount` と `flash.error` を共有
+- `Header.tsx` のベルを通知一覧へリンク＋未読数バッジ化、`Sidebar.tsx` の通知リンク修正＋未読バッジ
+
+#### 2) 承認一覧 UI / エラー表示
+- `ProjectController@index` で却下案件の `rejectedAt`（`dept`|`hq`）を返却
+- `Projects/Index.tsx`：0件時 `EmptyState`、誤配置していた常時 `EmptyState` を削除、`flash.error` 表示
+- `ApprovalController`：`AuthorizationException` をフラッシュ付きリダイレクトに変換
+
+#### 3) テスト
+- `tests/Feature/ProjectApprovalFlowTest.php` 新規（部門承認・申請者の承認不可）
+- `AuthenticationTest` のログイン後 URL を `projects.index` に修正
+
+#### Phase 進捗
+- Phase 2：9h/22h（詳細は `daily_technical_report_log.md` 2026-04-24 節も参照）
+
+---
