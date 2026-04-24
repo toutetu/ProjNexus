@@ -301,3 +301,26 @@
 - Phase 2：9h/22h（本日 +4h 見込みで development_schedule と整合）
 
 ---
+
+## 2026-04-24（金）— 追加作業（ER整合・migration統合・DB再構築）
+
+### 実装概要
+- `doc/Design/er_diagram.md` と `database/migrations` の差分を比較し、設計優先で migration 構成を再整理
+- `add_*` マイグレーションを縮小し、主要カラムは `create_*` へ統合
+  - `users.role`、`users.department_id`
+  - `projects.description`、`projects.estimated_days`
+  - `approvals.status`
+  - `notifications.project_id`、`notifications.message`、`notifications.is_read`
+- `tasks` / `task_comments` / `task_histories` を `create_tasks_tables` として追加
+- `users` 作成時の `after('email')` 由来SQLエラーを除去（create文での `after` 非対応）
+
+### 検証
+- `php artisan test` 全件成功（29 tests）
+- `php artisan migrate:fresh` 成功
+- `php artisan db:seed` 成功（Department / RolePermission / User）
+
+### 判断メモ
+- migration可読性を優先するため、現フェーズでは `create` 側に統合
+- 共有運用開始後は `add-only` に切替える運用ルールを `design-philosophy.md` に追記
+
+---

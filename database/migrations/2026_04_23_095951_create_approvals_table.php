@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('project_id')->constrained('projects')->cascadeOnDelete();
             $table->enum('level', ApprovalLevel::values())->index();
             $table->enum('action', ApprovalAction::values());
+            $table->enum('status', ['approved', 'rejected'])->nullable();
             $table->foreignId('approver_id')->constrained('users')->cascadeOnDelete();
             $table->text('comment')->nullable();
             $table->timestamp('acted_at')->nullable();

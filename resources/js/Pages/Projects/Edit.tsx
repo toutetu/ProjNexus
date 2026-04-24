@@ -26,12 +26,29 @@ interface EditProjectForm {
     estimated_amount: string;
 }
 
+const toIntegerAmountString = (value: string): string => {
+    const normalized = value.replace(/,/g, '');
+    const integerPart = normalized.split('.')[0] ?? '';
+    return integerPart.replace(/\D/g, '');
+};
+
+const formatAmountForDisplay = (value: string): string => {
+    const integerValue = toIntegerAmountString(value);
+    if (integerValue === '') {
+        return '';
+    }
+
+    return integerValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
 export default function ProjectsEdit({ project }: Props) {
     const { data, setData, put, processing, errors } = useForm<EditProjectForm>({
         title: project.title ?? '',
         purpose: project.purpose ?? '',
         estimated_amount:
-            project.estimatedAmount !== null ? String(project.estimatedAmount) : '',
+            project.estimatedAmount !== null
+                ? String(Math.trunc(project.estimatedAmount))
+                : '',
     });
 
     const submit: FormEventHandler = (event) => {
@@ -93,13 +110,15 @@ export default function ProjectsEdit({ project }: Props) {
                         <InputLabel htmlFor="estimated_amount" value="見積金額（円）" />
                         <Input
                             id="estimated_amount"
-                            type="number"
-                            min={0}
-                            step="1"
-                            value={data.estimated_amount}
-                            onChange={(event) =>
-                                setData('estimated_amount', event.target.value)
-                            }
+                            type="text"
+                            inputMode="numeric"
+                            value={formatAmountForDisplay(data.estimated_amount)}
+                            onChange={(event) => {
+                                setData(
+                                    'estimated_amount',
+                                    toIntegerAmountString(event.target.value),
+                                );
+                            }}
                             className="mt-2"
                             required
                         />
