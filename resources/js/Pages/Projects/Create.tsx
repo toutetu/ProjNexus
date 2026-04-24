@@ -15,6 +15,14 @@ interface CreateProjectForm {
     estimated_amount: string;
 }
 
+const formatAmountForDisplay = (value: string): string => {
+    if (value === '') {
+        return '';
+    }
+
+    return value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
 export default function ProjectsCreate() {
     const { data, setData, post, processing, errors } = useForm<CreateProjectForm>({
         title: '',
@@ -83,14 +91,14 @@ export default function ProjectsCreate() {
                         <InputLabel htmlFor="estimated_amount" value="見積金額（円）" />
                         <Input
                             id="estimated_amount"
-                            type="number"
-                            min={0}
-                            step="1"
-                            value={data.estimated_amount}
-                            onChange={(event) =>
-                                setData('estimated_amount', event.target.value)
-                            }
-                            placeholder="例: 5000000"
+                            type="text"
+                            inputMode="numeric"
+                            value={formatAmountForDisplay(data.estimated_amount)}
+                            onChange={(event) => {
+                                const digitsOnly = event.target.value.replace(/\D/g, '');
+                                setData('estimated_amount', digitsOnly);
+                            }}
+                            placeholder="例: 5,000,000"
                             className="mt-2"
                             required
                         />
