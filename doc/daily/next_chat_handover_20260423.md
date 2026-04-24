@@ -8,15 +8,18 @@
 ## 最優先ルール
 
 1. **main 上で作業しない**（作業ブランチで実装）
-   - 作業終了時にコミット → push
-2. 日次更新は `main` から `docs/daily-YYYYMMDD` を切って `doc/daily/` を更新
-3. 詳細ルールは `doc/Design/CLAUDE.md` §9 日次ワークフロー参照
-4. Sonnet / Opus 切替判断時は必ず事前通知
+2. 実装コミットと docs コミットは**同じ `feat/xxx` ブランチ内で別コミット**に分ける（`feat:` / `docs:` の prefix で区別）
+3. 作業まとまりごとに log/ 配下と development_schedule.md 実績時間を更新、1日の終わりに直下3ファイルを更新
+4. 詳細ルールは `doc/Design/AI.md` §9 日次ワークフロー参照（唯一の正本）
+5. Sonnet / Opus 切替判断時は必ず事前通知
 
-### 日報運用ルール
-- `daily_report.md` は非エンジニア向けに簡潔
-- `development_schedule.md` は技術的に詳細
-- `implementation_schedule.md` は翌日の実行手順と引継ぎ重視
+### ドキュメント運用ルール
+
+- `daily_report.md`：非エンジニア向けに簡潔（既提出分は改変せず追記のみ）
+- `daily_report_log.md`：非エンジニア向け・詳細版（`doc/daily/log/` 配下）
+- `daily_technical_report.md`：技術的に詳細（`doc/daily/log/` 配下）
+- `development_schedule.md`：Phase 見積・実績・累計時間の**唯一の正本**。毎日更新
+- `implementation_schedule.md`：翌日の実行手順と引継ぎ重視
 
 ---
 
@@ -46,11 +49,17 @@
 
 ## 作業前に読むファイル
 
-- `doc/Design/CLAUDE.md`
-- `doc/daily/development_schedule.md`
-- `doc/daily/implementation_schedule.md` §3
-- `doc/daily/log/implementation_schedule_log.md`
-- `routes/web.php`
+### 共通（毎回必読）
+- `doc/Design/AI.md` — プロジェクト全体ルール
+- `doc/daily/development_schedule.md` — 現在の進捗・Phase 状態
+- `doc/daily/implementation_schedule.md` §3 — 次回作業予定
+- `doc/daily/log/implementation_schedule_log.md` — 前日の詳細ログ
+
+### 今日の作業向け（S-12 通知 / UI 調整）
+- `doc/Design/components_spec.md` — 共通コンポーネントの Props・配置（Pages 実装前に必読）
+- `doc/Design/screen_flow.md` — S-12 通知一覧の URL・画面遷移
+- `doc/Design/design_system.md` — バッジ・色・スタイル
+- `routes/web.php` — 通知ルートの追加箇所
 
 ---
 

@@ -8,34 +8,39 @@
 
 ### 詳細ログ保管先
 
-- 実装詳細ログ: `doc/daily/log/implementation_schedule_log.md`
-- 日報詳細ログ: `doc/daily/log/daily_report_log.md`
+`doc/daily/` 直下は「簡潔版・提出用」、`doc/daily/log/` 配下は「詳細版・作業記録用」という住み分け。
+
+| 用途 | 簡潔版（`doc/daily/`） | 詳細版（`doc/daily/log/`） |
+|------|----------------------|--------------------------|
+| 日報（非エンジニア向け） | `daily_report.md` | `daily_report_log.md` |
+| 技術的な作業記録 | — | `daily_technical_report.md` |
+| 実装スケジュール | `implementation_schedule.md` | `implementation_schedule_log.md` |
 
 ---
 
 ### 基本情報（2026-04-23 更新）
 
 - **開発期間:** 4/13〜5/15（5週間・100時間以内）
-- **累計実績:** 48h
-- **残り時間:** 52h（目安）
+- **累計実績:** 45h
+- **残り時間:** 55h（目安）
 - **稼働方針:** 平日中心（平均 1日4h目安、火曜は通院で3h）
 - **リスク期間:** GW（4/29, 5/3〜5/6）は稼働1h/日程度に低下
 
 ---
 
-### Phase別の時間配分（残り69h）
+### Phase別の時間配分（残り55h）
 
 | Phase | 内容 | 見積 | 実績 | 状態 |
-|-------|------|------|------|
-| Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了|
-| Phase 1 | 認証・レイアウト・共通UI |  9h | ✅ 完了 |
-| Phase 2 | 申請・承認フロー（課題1の核） | 20h |  8h | 🟡 進行中 |
-| Phase 3 | 開発管理・予算管理（MVP優先） | 10h | 未着手 |
-| Phase 4 | +alpha（最小） | 5h | - | 未着手 |
-| Phase 5 | 資料・最終確認 | 20h |    | 未着手 |
-| 予備バッファ | 遅延吸収・回帰修正 | 5h | — |
+|-------|------|------|------|------|
+| Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了 |
+| Phase 1 | 認証・レイアウト・共通UI | 8h | 9h | ✅ 完了 |
+| Phase 2 | 申請・承認フロー（課題1の核） | 20h | 5h | 🟡 進行中 |
+| Phase 3 | 開発管理・予算管理（MVP優先） | 10h | - | 未着手 |
+| Phase 4 | +α（最小） | 5h | - | 未着手 |
+| Phase 5 | 資料・最終確認 | 20h | - | 未着手 |
+| 予備バッファ | 遅延吸収・回帰修正 | 5h | - | - |
 
-> 実装時間は Phase 1〜4 で **44h**、資料・確認に **20h**、バッファ **5h**。  
+> 実装時間は Phase 1〜4 で **43h**、資料・確認に **20h**、バッファ **5h**。  
 > GW前までに Phase 2 を完了 → GW週で Phase 3 MVP → 最終週で +α＋資料、が基本線。
 
 ---
@@ -81,29 +86,9 @@
 
 ### 日次ワークフロー（必須ルーティン）
 
-> 詳細は `doc/Design/CLAUDE.md §9 Git / 提出 > 日次ワークフロー` を参照。Cursor / Claude との協働でも必ず遵守。
+日次の git 手順・コミット方針・チェックリストは **`doc/Design/CLAUDE.md §9 日次ワークフロー` を唯一の正本**とする。本ファイルには手順を記載しない（二重管理を避けるため）。
 
-#### 作業開始時
-1. `git checkout main && git pull origin main` で最新化
-2. **作業ブランチを切る**：`git checkout -b <branch-name>`
-   - 実装：`feat/phase1-layout` / `feat/phase2-apply-form` など
-   - 日報のみ：`docs/daily-YYYYMMDD`
-3. main 上では作業しない。必ずブランチを切ってから開始
-
-#### 作業終了時
-1. **`doc/daily/` を更新**
-   - `daily_report.md`：本日の実績・気づき・翌日の予定（既存提出分は変更せず追記）
-   - `development_schedule.md`：累計実績 h・残り h・現在地・今週の目標を更新
-   - `implementation_schedule.md`：次回作業予定（具体的な手順）を更新
-2. コミット：`git add -A && git commit -m "docs: 日次更新 YYYY-MM-DD"`（実装は別 prefix で別コミット）
-3. push：`git push -u origin <branch-name>`
-4. main へのマージは自己レビュー後（直 push 禁止）
-
-#### チェックリスト（毎日使う）
-- [ ] 作業開始前に main を pull した
-- [ ] ブランチを切ってから作業を始めた
-- [ ] 作業終了時に `doc/daily/` 3 ファイルを更新した
-- [ ] コミット・push を完了した
+Cursor / Claude との協働でも必ず遵守。
 
 ---
 
@@ -281,4 +266,3 @@
 - [ ] 提出物チェックリスト（requirements.md §提出物）5項目すべて完了
 - [ ] `php artisan test` が通る
 - [ ] コンソールエラー・TypeScript エラーなし
-
