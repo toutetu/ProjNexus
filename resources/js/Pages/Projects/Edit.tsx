@@ -26,12 +26,19 @@ interface EditProjectForm {
     estimated_amount: string;
 }
 
+const toIntegerAmountString = (value: string): string => {
+    const normalized = value.replace(/,/g, '');
+    const integerPart = normalized.split('.')[0] ?? '';
+    return integerPart.replace(/\D/g, '');
+};
+
 const formatAmountForDisplay = (value: string): string => {
-    if (value === '') {
+    const integerValue = toIntegerAmountString(value);
+    if (integerValue === '') {
         return '';
     }
 
-    return value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return integerValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
 export default function ProjectsEdit({ project }: Props) {
@@ -39,7 +46,9 @@ export default function ProjectsEdit({ project }: Props) {
         title: project.title ?? '',
         purpose: project.purpose ?? '',
         estimated_amount:
-            project.estimatedAmount !== null ? String(project.estimatedAmount) : '',
+            project.estimatedAmount !== null
+                ? String(Math.trunc(project.estimatedAmount))
+                : '',
     });
 
     const submit: FormEventHandler = (event) => {
@@ -105,8 +114,10 @@ export default function ProjectsEdit({ project }: Props) {
                             inputMode="numeric"
                             value={formatAmountForDisplay(data.estimated_amount)}
                             onChange={(event) => {
-                                const digitsOnly = event.target.value.replace(/\D/g, '');
-                                setData('estimated_amount', digitsOnly);
+                                setData(
+                                    'estimated_amount',
+                                    toIntegerAmountString(event.target.value),
+                                );
                             }}
                             className="mt-2"
                             required
