@@ -1,7 +1,7 @@
-# CLAUDE.md — Cursor 向け実装指示書
+# AI.md — Cursor 向け実装指示書
 
-> 本ドキュメントはプロジェクトルート（`C:\xampp\htdocs\ProjNexus\CLAUDE.md`）に配置して使用することを想定しています。
-> Cursor 上の Claude がこのファイルを読み、設計思想・制約・ディレクトリ構造を把握したうえで実装を進めます。
+> 本ドキュメントはプロジェクトルート（`C:\xampp\htdocs\ProjNexus\doc/design/AI.md`）に配置して使用することを想定しています。
+> Cursor 上の AI がこのファイルを読み、設計思想・制約・ディレクトリ構造を把握したうえで実装を進めます。
 
 
 ---
@@ -148,19 +148,11 @@ ProjNexus/                               # リポジトリルート = Laravel �
 │  └─ auth.php                             # Breeze
 ├─ doc/
 │  ├─ Design/                               # 設計資料（本ファイル群）
-│  │  ├─ requirements.md
-│  │  ├─ design-philosophy.md
-│  │  ├─ screen_flow.md
-│  │  ├─ design_system.md
-│  │  ├─ components_spec.md                # 共通コンポーネント仕様（Pages 実装前に必読）
-│  │  ├─ er_diagram.md
-│  │  ├─ color-guide.md
-│  │  └─ v0_prompts.md
 │  ├─ daily/                                # 日報・進捗管理
 │  ├─ Information.md                        # デプロイURL・テストアカウント
-│  └─ presentation_高橋朋子.md              # プレゼン資料
-├─ mockups/                                 # Claude 作成の HTML モック
-└─ CLAUDE.md                                # 本ファイル
+│  └─ presentation.md　　　　　              # プレゼン資料
+└─ mockups/                                 # Claude 作成の HTML モック
+
 ```
 
 > 共通コンポーネントの詳細な Props・仕様は `doc/Design/components_spec.md` を参照。  
@@ -320,6 +312,9 @@ draft → pending_dept → pending_hq → approved
 - ステータスバッジ・ステッパー・カードはコンポーネント化して重複を避ける
 - shadcn/ui のコンポーネントは `npx shadcn-ui@latest add` で個別追加
 - モバイル対応は後回しでよいが、Tailwind のレスポンシブクラスは付けておく（後から崩れにくくする）
+- 承認/却下アクションは `ApprovalDialog` 経由で実行する（直接POSTボタンのみにはしない）
+- 一覧の操作系（申請/承認/却下/編集）は行単位の処理中ロックと状態表示（スピナー）を入れる
+- 編集可否はフロントの条件分岐だけでなく、サーバーから返す `canEdit` と Policy の両方で制御する
 
 ### テスト
 - PoC では Feature テストを承認フローと権限境界に絞って書く（全網羅は不要）
@@ -341,6 +336,7 @@ draft → pending_dept → pending_hq → approved
    - 命名規則：`feat/phase1-layout`、`feat/phase2-apply-form`、`docs/daily-YYYYMMDD` など
    - 日報のみの更新日は `docs/daily-YYYYMMDD` を使う
 3. ブランチを切ってから **実装 or ドキュメント更新を開始**（main 上では作業しない）
+4. 次回再開時は `doc/daily/next_chat_handover_YYYYMMDD.md` を先に確認してから着手する
 
 #### 作業終了時（毎日）
 1. **`doc/daily/` の各ファイルを更新**：
@@ -355,6 +351,7 @@ draft → pending_dept → pending_hq → approved
 - `doc/daily/daily_report.md` は**提出済み部分は変更しない**（追記のみ）
 - 1 日の途中でブランチを切り直す必要が出た場合は、現在のブランチを push してから新ブランチを切る（作業ロスト防止）
 - main への直 push は禁止（上記ルール参照）
+- PowerShell 環境では `&&` が使えないため、複数コマンドは `;` 連結で実行する
 
 ---
 
