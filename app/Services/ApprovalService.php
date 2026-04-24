@@ -28,26 +28,57 @@ class ApprovalService
             throw new AuthorizationException('現在のステータスでは申請できません。');
         }
 
+        if ($project->status === ProjectStatus::Draft) {
+            return DB::transaction(function () use ($project, $actor) {
+                $nextStatus = $actor->hasRole(Role::DeptManager->value)
+                    ? ProjectStatus::PendingHq
+                    : ProjectStatus::PendingDept;
+
+                $project->update([
+                    'status' => $nextStatus,
+                    'submitted_at' => now(),
+                    'rejected_at' => null,
+                ]);
+
+                $this->notificationService->notifyUsers(
+                    users: [$project->applicant],
+                    type: NotificationType::ProjectSubmitted,
+                    title: '申請を受け付けました',
+                    body: "案件「{$project->title}」を申請しました。",
+                    meta: ['project_id' => $project->id, 'status' => $nextStatus->value],
+                );
+
+                return $project->fresh();
+            });
+        }
+
         return DB::transaction(function () use ($project, $actor) {
             $nextStatus = $actor->hasRole(Role::DeptManager->value)
                 ? ProjectStatus::PendingHq
                 : ProjectStatus::PendingDept;
 
-            $project->update([
+            $new = Project::query()->create([
+                'parent_project_id' => $project->id,
+                'revision' => $project->revision + 1,
+                'title' => $project->title,
+                'purpose' => $project->purpose,
+                'applicant_id' => $project->applicant_id,
+                'department_id' => $project->department_id,
+                'primary_assignee_id' => $project->primary_assignee_id,
                 'status' => $nextStatus,
+                'estimated_amount' => $project->estimated_amount,
                 'submitted_at' => now(),
-                'rejected_at' => null,
             ]);
 
             $this->notificationService->notifyUsers(
                 users: [$project->applicant],
                 type: NotificationType::ProjectSubmitted,
-                title: '申請を受け付けました',
-                body: "案件「{$project->title}」を申請しました。",
-                meta: ['project_id' => $project->id, 'status' => $nextStatus->value],
+                title: '再申請を受け付けました',
+                body: "案件「{$new->title}」を再申請しました（案件ID: {$new->id}）。",
+                meta: ['project_id' => $new->id, 'status' => $nextStatus->value, 'resubmit_of' => $project->id],
             );
 
-            return $project->fresh();
+            return $new;
         });
     }
 

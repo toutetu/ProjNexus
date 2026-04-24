@@ -44,12 +44,31 @@ class ProjectPolicy
             return false;
         }
 
-        return $project->applicant_id === $user->id;
+        if ($project->applicant_id !== $user->id) {
+            return false;
+        }
+
+        if (! in_array($project->status, [ProjectStatus::Draft, ProjectStatus::Rejected], true)) {
+            return false;
+        }
+
+        if ($project->status === ProjectStatus::Rejected && $project->childProjects()->exists()) {
+            return false;
+        }
+
+        return true;
     }
 
     public function delete(User $user, Project $project): bool
     {
-        return $project->applicant_id === $user->id
-            && in_array($project->status, [ProjectStatus::Draft, ProjectStatus::Rejected], true);
+        if ($project->applicant_id !== $user->id) {
+            return false;
+        }
+
+        if (! in_array($project->status, [ProjectStatus::Draft, ProjectStatus::Rejected], true)) {
+            return false;
+        }
+
+        return ! $project->childProjects()->exists();
     }
 }

@@ -1,7 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
-    CircleDollarSign,
     FileCheck2,
     FileText,
     FolderSearch,
@@ -41,6 +40,8 @@ interface ProjectListItem {
     submittedAt: string | null;
     updatedAt: string;
     canEdit?: boolean;
+    rejectedAt?: 'dept' | 'hq' | null;
+    applicantSubmitsToHqDirect?: boolean;
 }
 
 const TAB_SUBTITLE: Record<ProjectTab, string> = {
@@ -64,6 +65,7 @@ interface ApprovalProjectRow {
     updatedAt: string;
     rejectedAt?: 'dept' | 'hq';
     canEdit: boolean;
+    applicantSubmitsToHqDirect?: boolean;
 }
 
 type ApprovalDialogState =
@@ -186,7 +188,7 @@ const BUDGET_ROWS: BudgetProjectRow[] = [
 ];
 
 export default function ProjectsIndex({ tab, filter, projects }: Props) {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, flash } = usePage<PageProps>().props;
     const roles = auth.user?.roles ?? [];
     const isApplicant = roles.includes('applicant' as RoleName);
     const isDeptManager = roles.includes('dept_manager' as RoleName);
@@ -206,8 +208,9 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
               status: project.status,
               appliedAt: project.submittedAt ?? '—',
               updatedAt: project.updatedAt,
-              rejectedAt: undefined,
+              rejectedAt: project.rejectedAt ?? undefined,
               canEdit: project.canEdit ?? false,
+              applicantSubmitsToHqDirect: project.applicantSubmitsToHqDirect ?? false,
           }))
         : APPROVAL_ROWS;
     const titleCount =
@@ -295,6 +298,15 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
         >
             <Head title="案件一覧" />
 
+            {flash?.error && (
+                <div
+                    role="alert"
+                    className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+                >
+                    {flash.error}
+                </div>
+            )}
+
             <div className="mb-5 flex items-start justify-between">
                 <div>
                     <h1 className="flex items-center text-2xl font-bold tracking-tight text-brand-dark">
@@ -328,7 +340,23 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                     <Tabs value={tab} onChange={handleTabChange} items={TAB_ITEMS} />
                 </div>
                 <div className="overflow-x-auto">
-                    {tab === 'approval' && (
+                    {tab === 'approval' && approvalRows.length === 0 ? (
+                        <div className="px-6 py-14">
+                            <EmptyState
+                                icon={Inbox}
+                                title={
+                                    filter === 'pending'
+                                        ? '承認待ちの案件はありません'
+                                        : '案件がありません'
+                                }
+                                description={
+                                    filter === 'pending'
+                                        ? '現在、あなたが対応すべき承認待ち案件は表示されません。'
+                                        : '新規申請を作成すると、ここに表示されます。'
+                                }
+                            />
+                        </div>
+                    ) : tab === 'approval' ? (
                         <table className="min-w-full text-sm">
                             <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
                                 <tr>
@@ -359,7 +387,14 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                                             </Link>
                                         </td>
                                         <td className="px-4 py-3.5">
-                                            <StatusPill status={row.status} />
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <StatusPill status={row.status} />
+                                                {row.applicantSubmitsToHqDirect && (
+                                                    <span className="rounded-full bg-[#E0F2FE] px-2 py-0.5 text-[10px] font-semibold text-[#0369A1]">
+                                                        本部直行
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3.5">
                                             <ApprovalStepperMini
@@ -491,7 +526,7 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                                 ))}
                             </tbody>
                         </table>
-                    )}
+                    ) : null}
 
                     {tab === 'dev' && (
                         <table className="min-w-full text-sm">
@@ -572,16 +607,6 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                     )}
                 </div>
             </section>
-
-            {filter === 'pending' && tab === 'approval' && (
-                <section className="mt-6">
-                    <EmptyState
-                        icon={CircleDollarSign}
-                        title="承認待ちフィルタ動作確認用の空表示"
-                        description="データ0件時はこの表示を使う想定です。"
-                    />
-                </section>
-            )}
 
             <ApprovalDialog
                 mode={approvalDialog.open ? approvalDialog.mode : 'approve'}

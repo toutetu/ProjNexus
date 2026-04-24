@@ -145,7 +145,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeKey = null }: SidebarProps) {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, unreadNotificationCount = 0 } = usePage<PageProps>().props;
     const user = auth.user;
     const roles = user.roles;
     const hasRole = (role: RoleName) => roles.includes(role);
@@ -244,10 +244,17 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
 
                 <div className="mt-5 border-t border-white/10 pt-4">
                     <SidebarLink
-                        href={route('profile.edit')}
+                        href={route('notifications.index')}
                         icon={Bell}
                         label="通知"
                         active={activeKey === 'notifications'}
+                        badge={
+                            unreadNotificationCount > 0
+                                ? unreadNotificationCount > 99
+                                    ? '99+'
+                                    : unreadNotificationCount
+                                : undefined
+                        }
                     />
                     <SidebarLink
                         href={route('profile.edit')}

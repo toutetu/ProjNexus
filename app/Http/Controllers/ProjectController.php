@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ApprovalAction;
 use App\Enums\ProjectStatus;
+use App\Enums\Role;
+use App\Models\Approval;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -32,21 +35,58 @@ class ProjectController extends Controller
         $this->authorize('viewAny', Project::class);
 
         $query = Project::query()
-            ->with(['department:id,name', 'applicant:id,name', 'primaryAssignee:id,name'])
+            ->with([
+                'department:id,name',
+                'applicant' => static function ($q): void {
+                    $q->select('users.id', 'users.name');
+                },
+                'applicant.roles',
+                'primaryAssignee:id,name',
+            ])
             ->visibleTo($user)
-            ->forTab($tab);
+            ->forTab($tab)
+            ->where(function ($q) {
+                $q->where('status', '!=', ProjectStatus::Rejected->value)
+                    ->orWhereDoesntHave('childProjects');
+            });
 
         if ($tab === 'approval' && $filter === 'pending') {
             $query->pendingFor($user);
         }
 
+        $paginator = $query->latest('updated_at')->paginate(15);
+
+        $rejectedIds = $paginator
+            ->getCollection()
+            ->filter(fn (Project $project) => $project->status === ProjectStatus::Rejected)
+            ->pluck('id')
+            ->values();
+
+        $rejectionLevelByProjectId = [];
+        if ($rejectedIds->isNotEmpty()) {
+            $rejectionLevelByProjectId = Approval::query()
+                ->whereIn('project_id', $rejectedIds)
+                ->where('action', ApprovalAction::Rejected)
+                ->orderByDesc('acted_at')
+                ->get()
+                ->unique('project_id')
+                ->mapWithKeys(fn (Approval $approval) => [
+                    $approval->project_id => $approval->level->value,
+                ])
+                ->all();
+        }
+
         return Inertia::render('Projects/Index', [
             'tab' => $tab,
             'filter' => $filter,
-            'projects' => $query
-                ->latest('updated_at')
-                ->paginate(15)
-                ->through(fn (Project $project) => [
+            'projects' => $paginator->through(function (Project $project) use ($user, $rejectionLevelByProjectId) {
+                $rejectedAt = null;
+                if ($project->status === ProjectStatus::Rejected) {
+                    $level = $rejectionLevelByProjectId[$project->id] ?? null;
+                    $rejectedAt = $level === 'dept' || $level === 'hq' ? $level : null;
+                }
+
+                return [
                     'id' => $project->id,
                     'title' => $project->title,
                     'department' => $project->department?->name,
@@ -60,7 +100,10 @@ class ProjectController extends Controller
                     'budgetAmount' => $project->budget_amount,
                     'actualAmount' => $project->actual_amount,
                     'canEdit' => $user->can('update', $project),
-                ]),
+                    'rejectedAt' => $rejectedAt,
+                    'applicantSubmitsToHqDirect' => $project->applicant?->hasRole(Role::DeptManager->value) ?? false,
+                ];
+            }),
         ]);
     }
 

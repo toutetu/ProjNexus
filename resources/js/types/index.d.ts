@@ -24,10 +24,16 @@ export interface BreadcrumbItem {
     icon?: LucideIcon;
 }
 
+export interface FlashMessages {
+    error?: string | null;
+}
+
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
     auth: {
         user: User;
     };
+    flash?: FlashMessages;
+    unreadNotificationCount?: number;
 };
