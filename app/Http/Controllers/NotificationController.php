@@ -14,10 +14,12 @@ class NotificationController extends Controller
     {
         $user = $request->user();
 
-        $notifications = $user->appNotifications()
+        $paginator = $user->appNotifications()
             ->latest()
-            ->paginate(20)
-            ->through(fn (Notification $notification) => [
+            ->paginate(20);
+
+        $notifications = [
+            'data' => $paginator->getCollection()->map(fn (Notification $notification) => [
                 'id' => $notification->id,
                 'type' => $notification->type->value,
                 'title' => $notification->title,
@@ -25,7 +27,16 @@ class NotificationController extends Controller
                 'meta' => $notification->meta,
                 'readAt' => $notification->read_at?->toIso8601String(),
                 'createdAt' => $notification->created_at->toIso8601String(),
-            ]);
+            ])->values(),
+            'links' => $paginator->linkCollection()->toArray(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+                'total' => $paginator->total(),
+            ],
+        ];
 
         return Inertia::render('Notifications/Index', [
             'notifications' => $notifications,
