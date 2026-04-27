@@ -523,6 +523,23 @@ interface BudgetActualDialogPropsV2 {
 `⌘K` などのキーボードショートカット表示。`mono` フォント + 薄いボーダー。
 → Header 内で利用。別ファイルに切り出す（後で他でも使う可能性あり）。
 
+### Challenge2Badge
+`課題2` 機能であることを示す共通ラベル。
+**配置**: `resources/js/Components/Badge/Challenge2Badge.tsx`
+**見た目**:
+- 背景: `--brand-logo-accent`（`#EDB100`）
+- 文字色: ダークブラウン系（濃色）
+- 角丸・小さめ文字（`text-[9px]`）でチップ表示
+**用途**:
+- Sidebar の「タスク一覧」ラベル横
+- S-05 新規申請の「ファイル添付（課題2）」ラベル横
+**Props**:
+```ts
+interface Challenge2BadgeProps {
+  className?: string;
+}
+```
+
 ### UserAvatar
 イニシャル表示のアバター。氏名から1文字取ってグラデーション背景。
 → Sidebar下部ユーザーカード、タスク担当者表示、コメント欄 で共通利用。

@@ -15,6 +15,7 @@ import {
 
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -290,6 +291,22 @@ export default function ProjectsCreate({
                                 </p>
                                 <InputError className="mt-2" message={errors.estimated_days} />
                             </div>
+                        </div>
+
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <InputLabel htmlFor="attachments" value="ファイル添付" />
+                                <Challenge2Badge />
+                            </div>
+                            <Input
+                                id="attachments"
+                                type="file"
+                                className="mt-1.5 cursor-not-allowed bg-brand-bg"
+                                disabled
+                            />
+                            <p className="mt-1 text-xs text-brand-muted">
+                                課題2で実装予定のため、現在は準備中です。
+                            </p>
                         </div>
 
                         {draftCount > 0 && (

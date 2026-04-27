@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ReactNode } from 'react';
 
+import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
 import { cn } from '@/lib/utils';
 import type { PageProps, RoleName } from '@/types';
 
@@ -74,9 +75,13 @@ function SidebarLink({
                 <span className="flex items-center gap-1.5">
                     {label}
                     {dimLabel && (
-                        <span className="rounded bg-white/10 px-1 py-0.5 text-[9px] font-medium">
-                            {dimLabel}
-                        </span>
+                        dimLabel === '課題2' ? (
+                            <Challenge2Badge />
+                        ) : (
+                            <span className="rounded bg-white/10 px-1 py-0.5 text-[9px] font-medium">
+                                {dimLabel}
+                            </span>
+                        )
                     )}
                 </span>
             </span>
