@@ -1,26 +1,24 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
 import {
+    ChevronRight,
     FileCheck2,
     FileText,
     FolderSearch,
     GitBranch,
     Inbox,
-    Loader2,
     Plus,
     Wallet,
 } from 'lucide-react';
 
 import ApprovalStepperMini from '@/Components/Approval/ApprovalStepperMini';
 import EmptyState from '@/Components/EmptyState';
-import ApprovalDialog from '@/Components/Modals/ApprovalDialog';
 import StatusPill, { type ProjectStatus } from '@/Components/StatusPill';
 import Tabs, { type TabItem } from '@/Components/Tabs';
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { ActiveKey } from '@/Components/Layout/Sidebar';
 import { cn } from '@/lib/utils';
-import type { PageProps, RoleName } from '@/types';
+import type { PageProps } from '@/types';
 
 type ProjectTab = 'approval' | 'dev' | 'budget';
 
@@ -67,17 +65,6 @@ interface ApprovalProjectRow {
     canEdit: boolean;
     applicantSubmitsToHqDirect?: boolean;
 }
-
-type ApprovalDialogState =
-    | {
-          open: false;
-      }
-    | {
-          open: true;
-          mode: 'approve' | 'reject';
-          level: 'dept' | 'hq';
-          project: Pick<ApprovalProjectRow, 'id' | 'title' | 'department'>;
-      };
 
 interface DevProjectRow {
     id: number;
@@ -188,15 +175,7 @@ const BUDGET_ROWS: BudgetProjectRow[] = [
 ];
 
 export default function ProjectsIndex({ tab, filter, projects }: Props) {
-    const { auth, flash } = usePage<PageProps>().props;
-    const roles = auth.user?.roles ?? [];
-    const isApplicant = roles.includes('applicant' as RoleName);
-    const isDeptManager = roles.includes('dept_manager' as RoleName);
-    const isHqManager = roles.includes('hq_manager' as RoleName);
-    const [approvalDialog, setApprovalDialog] = useState<ApprovalDialogState>({
-        open: false,
-    });
-    const [processingRowId, setProcessingRowId] = useState<number | null>(null);
+    const { flash } = usePage<PageProps>().props;
 
     const activeKey: ActiveKey =
         filter === 'pending' ? 'pending' : TAB_ACTIVE_KEY[tab];
@@ -233,60 +212,10 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
         });
     };
 
-    const submitProject = (projectId: number) => {
-        setProcessingRowId(projectId);
-        router.post(route('projects.submit', projectId), {}, {
-            preserveScroll: true,
-            onFinish: () => setProcessingRowId(null),
-        });
-    };
-
-    const closeApprovalDialog = () => {
-        setApprovalDialog({ open: false });
-    };
-
-    const openApprovalDialog = (
-        mode: 'approve' | 'reject',
-        level: 'dept' | 'hq',
-        project: Pick<ApprovalProjectRow, 'id' | 'title' | 'department'>,
-    ) => {
-        setApprovalDialog({
-            open: true,
-            mode,
-            level,
-            project,
-        });
-    };
-
-    const approveProject = (projectId: number, level: 'dept' | 'hq', comment: string) => {
-        setProcessingRowId(projectId);
-        router.post(
-            route('projects.approve', projectId),
-            { level, comment },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    closeApprovalDialog();
-                    setProcessingRowId(null);
-                },
-            },
-        );
-    };
-
-    const rejectProject = (projectId: number, level: 'dept' | 'hq', comment: string) => {
-        setProcessingRowId(projectId);
-        router.post(
-            route('projects.reject', projectId),
-            { level, comment },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    closeApprovalDialog();
-                    setProcessingRowId(null);
-                },
-            },
-        );
-    };
+    const approvalRowHref = (row: ApprovalProjectRow): string =>
+        row.status === 'draft'
+            ? route('projects.edit', row.id)
+            : route('projects.show', row.id);
 
     return (
         <AuthenticatedLayout
@@ -366,7 +295,7 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                                     <th className="px-4 py-3 text-left font-semibold">申請日</th>
                                     <th className="px-4 py-3 text-left font-semibold">部門</th>
                                     <th className="px-4 py-3 text-left font-semibold">最終更新</th>
-                                    <th className="px-4 py-3 text-left font-semibold">操作</th>
+                                    <th className="px-4 py-3 text-left font-semibold" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
@@ -374,13 +303,14 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                                     <tr
                                         key={row.id}
                                         className={cn(
-                                            'hover:bg-slate-50',
+                                            'cursor-pointer hover:bg-slate-50',
                                             index === 0 && 'bg-white',
                                         )}
+                                        onClick={() => router.visit(approvalRowHref(row))}
                                     >
                                         <td className="px-5 py-3.5 font-medium text-brand-dark">
                                             <Link
-                                                href={route('projects.show', row.id)}
+                                                href={approvalRowHref(row)}
                                                 className="hover:text-brand-blue hover:underline"
                                             >
                                                 {row.title}
@@ -422,116 +352,8 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                                         <td className="px-4 py-3.5 text-brand-muted">
                                             {row.updatedAt}
                                         </td>
-                                        <td className="px-4 py-3.5">
-                                            {(() => {
-                                                const isRowProcessing =
-                                                    processingRowId === row.id;
-
-                                                return (
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        {isApplicant &&
-                                                            (row.status === 'draft' ||
-                                                                row.status === 'rejected') && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    disabled={isRowProcessing}
-                                                                    onClick={() =>
-                                                                        submitProject(row.id)
-                                                                    }
-                                                                >
-                                                                    申請
-                                                                </Button>
-                                                            )}
-                                                        {row.canEdit && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                asChild
-                                                                disabled={isRowProcessing}
-                                                            >
-                                                                <Link
-                                                                    href={route(
-                                                                        'projects.edit',
-                                                                        row.id,
-                                                                    )}
-                                                                >
-                                                                    編集
-                                                                </Link>
-                                                            </Button>
-                                                        )}
-                                                        {isDeptManager &&
-                                                            row.status === 'pending_dept' && (
-                                                                <>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        disabled={isRowProcessing}
-                                                                        onClick={() =>
-                                                                            openApprovalDialog(
-                                                                                'approve',
-                                                                                'dept',
-                                                                                row,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        承認
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        disabled={isRowProcessing}
-                                                                        onClick={() =>
-                                                                            openApprovalDialog(
-                                                                                'reject',
-                                                                                'dept',
-                                                                                row,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        却下
-                                                                    </Button>
-                                                                </>
-                                                            )}
-                                                        {isHqManager &&
-                                                            row.status === 'pending_hq' && (
-                                                                <>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        disabled={isRowProcessing}
-                                                                        onClick={() =>
-                                                                            openApprovalDialog(
-                                                                                'approve',
-                                                                                'hq',
-                                                                                row,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        承認
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        disabled={isRowProcessing}
-                                                                        onClick={() =>
-                                                                            openApprovalDialog(
-                                                                                'reject',
-                                                                                'hq',
-                                                                                row,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        却下
-                                                                    </Button>
-                                                                </>
-                                                            )}
-                                                        {isRowProcessing && (
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-brand-bg px-2 py-1 text-xs font-medium text-brand-muted">
-                                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                                                処理中...
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })()}
+                                        <td className="px-4 py-3.5 text-right text-brand-muted">
+                                            <ChevronRight className="ml-auto h-4 w-4" />
                                         </td>
                                     </tr>
                                 ))}
@@ -619,23 +441,6 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                 </div>
             </section>
 
-            <ApprovalDialog
-                mode={approvalDialog.open ? approvalDialog.mode : 'approve'}
-                open={approvalDialog.open}
-                onClose={closeApprovalDialog}
-                approvalLevel={approvalDialog.open ? approvalDialog.level : 'dept'}
-                project={approvalDialog.open ? approvalDialog.project : null}
-                onSubmit={(comment) => {
-                    if (!approvalDialog.open) return;
-
-                    if (approvalDialog.mode === 'approve') {
-                        approveProject(approvalDialog.project.id, approvalDialog.level, comment);
-                        return;
-                    }
-
-                    rejectProject(approvalDialog.project.id, approvalDialog.level, comment);
-                }}
-            />
         </AuthenticatedLayout>
     );
 }

@@ -1,7 +1,17 @@
-import { Head, Link } from '@inertiajs/react';
-import { CalendarDays, FileCheck2, FolderSearch, GitBranch, ListChecks } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
+import {
+    CalendarDays,
+    CheckCircle2,
+    FileCheck2,
+    FolderSearch,
+    GitBranch,
+    ListChecks,
+    XCircle,
+} from 'lucide-react';
 
 import ApprovalStepperMini from '@/Components/Approval/ApprovalStepperMini';
+import ApprovalDialog from '@/Components/Modals/ApprovalDialog';
 import StatusPill, { type ProjectStatus } from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -26,17 +36,33 @@ interface Props {
     projectId: number;
     project: ProjectShowData;
     canEdit: boolean;
+    canApproveDept: boolean;
+    canApproveHq: boolean;
 }
 
 const formatCurrency = (value: number | null) =>
     value === null ? '—' : `¥${value.toLocaleString('ja-JP')}`;
 
-export default function ProjectsShow({ projectId, project, canEdit }: Props) {
+export default function ProjectsShow({
+    projectId,
+    project,
+    canEdit,
+    canApproveDept,
+    canApproveHq,
+}: Props) {
     const skipsDeptStep =
         !!project.applicantSubmitsToHqDirect &&
         (project.status === 'pending_hq' ||
             project.status === 'approved' ||
             (project.status === 'rejected' && project.rejectedAt === 'hq'));
+    const [approvalDialog, setApprovalDialog] = useState<{
+        open: boolean;
+        mode: 'approve' | 'reject';
+    }>({
+        open: false,
+        mode: 'approve',
+    });
+    const approvalLevel: 'dept' | 'hq' = canApproveDept ? 'dept' : 'hq';
 
     return (
         <AuthenticatedLayout
@@ -44,10 +70,10 @@ export default function ProjectsShow({ projectId, project, canEdit }: Props) {
             breadcrumb={[
                 { label: '申請・承認', icon: FileCheck2 },
                 { label: '案件一覧', href: '/projects?tab=approval', icon: FolderSearch },
-                { label: '案件詳細' },
+                { label: '承認画面' },
             ]}
         >
-            <Head title="案件詳細" />
+            <Head title="承認画面" />
 
             <div className="space-y-6">
                 <section className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
@@ -149,7 +175,56 @@ export default function ProjectsShow({ projectId, project, canEdit }: Props) {
                         タスク・予算詳細タブは次フェーズで接続します。
                     </p>
                 </section>
+
+                {(canApproveDept || canApproveHq) && (
+                    <section className="rounded-lg border border-brand-border bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex items-center gap-1.5"
+                                onClick={() => setApprovalDialog({ open: true, mode: 'reject' })}
+                            >
+                                <XCircle className="h-4 w-4" />
+                                却下
+                            </Button>
+                            <Button
+                                type="button"
+                                className="flex items-center gap-1.5"
+                                onClick={() => setApprovalDialog({ open: true, mode: 'approve' })}
+                            >
+                                <CheckCircle2 className="h-4 w-4" />
+                                承認
+                            </Button>
+                        </div>
+                    </section>
+                )}
             </div>
+
+            <ApprovalDialog
+                mode={approvalDialog.mode}
+                open={approvalDialog.open}
+                onClose={() => setApprovalDialog((prev) => ({ ...prev, open: false }))}
+                approvalLevel={approvalLevel}
+                project={{
+                    id: project.id,
+                    title: project.title,
+                    department: project.department ?? '—',
+                }}
+                onSubmit={(comment) => {
+                    const routeName =
+                        approvalDialog.mode === 'approve' ? 'projects.approve' : 'projects.reject';
+                    router.post(
+                        route(routeName, project.id),
+                        { level: approvalLevel, comment },
+                        {
+                            preserveScroll: true,
+                            onSuccess: () =>
+                                setApprovalDialog((prev) => ({ ...prev, open: false })),
+                        },
+                    );
+                }}
+            />
         </AuthenticatedLayout>
     );
 }

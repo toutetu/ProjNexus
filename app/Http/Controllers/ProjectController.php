@@ -122,7 +122,8 @@ class ProjectController extends Controller
     public function show(Project $project): Response
     {
         $this->authorize('view', $project);
-        $canEdit = auth()->user()?->can('update', $project) ?? false;
+        $user = auth()->user();
+        $canEdit = $user?->can('update', $project) ?? false;
 
         $project->load([
             'department:id,name',
@@ -144,10 +145,17 @@ class ProjectController extends Controller
         }
 
         $applicantIsDeptManager = $project->applicant?->hasRole(Role::DeptManager->value) ?? false;
+        $canApproveDept = $user?->hasRole(Role::DeptManager->value)
+            && $project->status === ProjectStatus::PendingDept
+            && $project->department_id === $user->department_id;
+        $canApproveHq = $user?->hasRole(Role::HqManager->value)
+            && $project->status === ProjectStatus::PendingHq;
 
         return Inertia::render('Projects/Show', [
             'projectId' => $project->id,
             'canEdit' => $canEdit,
+            'canApproveDept' => $canApproveDept,
+            'canApproveHq' => $canApproveHq,
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,
