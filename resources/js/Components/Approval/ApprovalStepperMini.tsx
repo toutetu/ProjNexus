@@ -4,15 +4,18 @@ import { cn } from '@/lib/utils';
 interface ApprovalStepperMiniProps {
     status: ProjectStatus;
     rejectedAt?: 'dept' | 'hq';
+    /** 部門管理者が申請者で部門承認を経由しないフロー（pending_hq 直行など） */
+    skipsDeptStep?: boolean;
 }
 
-type StepState = 'todo' | 'done' | 'current' | 'rejected';
+type StepState = 'todo' | 'done' | 'current' | 'rejected' | 'skipped';
 
 const STEP_LABELS = ['申請', '部門', '本部', '済'] as const;
 
 function getStepStates(
     status: ProjectStatus,
-    rejectedAt?: 'dept' | 'hq',
+    rejectedAt: 'dept' | 'hq' | undefined,
+    skipsDeptStep: boolean,
 ): StepState[] {
     switch (status) {
         case 'draft':
@@ -20,12 +23,21 @@ function getStepStates(
         case 'pending_dept':
             return ['done', 'current', 'todo', 'todo'];
         case 'pending_hq':
+            if (skipsDeptStep) {
+                return ['done', 'skipped', 'current', 'todo'];
+            }
             return ['done', 'done', 'current', 'todo'];
         case 'approved':
+            if (skipsDeptStep) {
+                return ['done', 'skipped', 'done', 'done'];
+            }
             return ['done', 'done', 'done', 'done'];
         case 'rejected':
             if (rejectedAt === 'dept') {
                 return ['done', 'rejected', 'todo', 'todo'];
+            }
+            if (skipsDeptStep && rejectedAt === 'hq') {
+                return ['done', 'skipped', 'rejected', 'todo'];
             }
             return ['done', 'done', 'rejected', 'todo'];
         default:
@@ -40,15 +52,16 @@ function getCurrentIndex(states: StepState[]): number {
     const currentIndex = states.findIndex((s) => s === 'current');
     if (currentIndex >= 0) return currentIndex;
 
-    if (states.every((s) => s === 'done')) return 3;
+    if (states.every((s) => s === 'done' || s === 'skipped')) return 3;
     return 0;
 }
 
 export default function ApprovalStepperMini({
     status,
     rejectedAt,
+    skipsDeptStep = false,
 }: ApprovalStepperMiniProps) {
-    const states = getStepStates(status, rejectedAt);
+    const states = getStepStates(status, rejectedAt, skipsDeptStep);
     const currentIndex = getCurrentIndex(states);
     const isRejected = states.includes('rejected');
 
@@ -68,6 +81,8 @@ export default function ApprovalStepperMini({
                                     'border-brand-blue bg-brand-blue animate-brand-pulse',
                                 state === 'rejected' &&
                                     'border-brand-red bg-brand-red',
+                                state === 'skipped' &&
+                                    'border-dashed border-brand-muted/60 bg-brand-bg',
                             )}
                             aria-hidden="true"
                         />
@@ -77,6 +92,9 @@ export default function ApprovalStepperMini({
                                     'h-0.5 w-3.5 bg-brand-border',
                                     states[index] === 'done' &&
                                         states[index + 1] !== 'todo' &&
+                                        'bg-brand-blue',
+                                    states[index] === 'skipped' &&
+                                        states[index + 1] === 'current' &&
                                         'bg-brand-blue',
                                 )}
                                 aria-hidden="true"
@@ -92,9 +110,12 @@ export default function ApprovalStepperMini({
                             className={cn(
                                 index === currentIndex && !isRejected && 'font-bold text-brand-blue',
                                 index === currentIndex && isRejected && 'font-bold text-brand-red',
+                                states[index] === 'skipped' &&
+                                    index !== currentIndex &&
+                                    'text-brand-muted line-through decoration-brand-muted/70',
                             )}
                         >
-                            {label}
+                            {states[index] === 'skipped' ? `${label}（スキップ）` : label}
                         </span>
                         {index < STEP_LABELS.length - 1 && <span> → </span>}
                     </span>

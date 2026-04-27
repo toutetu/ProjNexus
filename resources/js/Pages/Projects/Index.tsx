@@ -1,12 +1,13 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
-    CircleDollarSign,
+    ChevronRight,
     FileCheck2,
     FileText,
     FolderSearch,
     GitBranch,
     Inbox,
     Plus,
+    Search,
     Wallet,
 } from 'lucide-react';
 
@@ -18,12 +19,32 @@ import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { ActiveKey } from '@/Components/Layout/Sidebar';
 import { cn } from '@/lib/utils';
+import type { PageProps } from '@/types';
 
 type ProjectTab = 'approval' | 'dev' | 'budget';
 
 interface Props {
     tab: ProjectTab;
     filter?: string | null;
+    status?: string | null;
+    department?: number | null;
+    q?: string | null;
+    departments?: Array<{ id: number; name: string }>;
+    projects?: {
+        data: ProjectListItem[];
+    };
+}
+
+interface ProjectListItem {
+    id: number;
+    title: string;
+    department: string | null;
+    status: ProjectStatus;
+    submittedAt: string | null;
+    updatedAt: string;
+    canEdit?: boolean;
+    rejectedAt?: 'dept' | 'hq' | null;
+    applicantSubmitsToHqDirect?: boolean;
 }
 
 const TAB_SUBTITLE: Record<ProjectTab, string> = {
@@ -46,6 +67,8 @@ interface ApprovalProjectRow {
     appliedAt: string;
     updatedAt: string;
     rejectedAt?: 'dept' | 'hq';
+    canEdit: boolean;
+    applicantSubmitsToHqDirect?: boolean;
 }
 
 interface DevProjectRow {
@@ -82,6 +105,7 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         status: 'pending_hq',
         appliedAt: '04/14',
         updatedAt: '2時間前',
+        canEdit: false,
     },
     {
         id: 2,
@@ -90,6 +114,7 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         status: 'pending_dept',
         appliedAt: '04/15',
         updatedAt: '1日前',
+        canEdit: true,
     },
     {
         id: 3,
@@ -98,6 +123,7 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         status: 'draft',
         appliedAt: '—',
         updatedAt: '3日前',
+        canEdit: true,
     },
     {
         id: 4,
@@ -107,6 +133,7 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         rejectedAt: 'hq',
         appliedAt: '04/08',
         updatedAt: '6日前',
+        canEdit: true,
     },
 ];
 
@@ -152,12 +179,39 @@ const BUDGET_ROWS: BudgetProjectRow[] = [
     },
 ];
 
-export default function ProjectsIndex({ tab, filter }: Props) {
+export default function ProjectsIndex({
+    tab,
+    filter,
+    status,
+    department,
+    q,
+    departments = [],
+    projects,
+}: Props) {
+    const { flash } = usePage<PageProps>().props;
+    const isPendingFilter = filter === 'pending';
+
     const activeKey: ActiveKey =
-        filter === 'pending' ? 'pending' : TAB_ACTIVE_KEY[tab];
+        isPendingFilter ? 'pending' : TAB_ACTIVE_KEY[tab];
+    const visibleTabItems = isPendingFilter
+        ? TAB_ITEMS.filter((item) => item.value === 'approval')
+        : TAB_ITEMS;
+    const approvalRows: ApprovalProjectRow[] = projects
+        ? projects.data.map((project) => ({
+              id: project.id,
+              title: project.title,
+              department: project.department ?? '—',
+              status: project.status,
+              appliedAt: project.submittedAt ?? '—',
+              updatedAt: project.updatedAt,
+              rejectedAt: project.rejectedAt ?? undefined,
+              canEdit: project.canEdit ?? false,
+              applicantSubmitsToHqDirect: project.applicantSubmitsToHqDirect ?? false,
+          }))
+        : APPROVAL_ROWS;
     const titleCount =
         tab === 'approval'
-            ? APPROVAL_ROWS.length
+            ? approvalRows.length
             : tab === 'dev'
               ? DEV_ROWS.length
               : BUDGET_ROWS.length;
@@ -168,12 +222,46 @@ export default function ProjectsIndex({ tab, filter }: Props) {
             data: {
                 tab: nextTab,
                 ...(filter ? { filter } : {}),
+                ...(status ? { status } : {}),
+                ...(department ? { department } : {}),
+                ...(q ? { q } : {}),
             },
             preserveScroll: true,
             preserveState: true,
             replace: true,
         });
     };
+
+    const submitApprovalFilters = ({
+        keyword,
+        nextStatus,
+        nextDepartment,
+    }: {
+        keyword: string;
+        nextStatus?: string;
+        nextDepartment?: string;
+    }) => {
+        const nextQ = keyword.trim();
+        const statusValue = (nextStatus ?? status ?? '').trim();
+        const departmentValue = (nextDepartment ?? String(department ?? '')).trim();
+        router.visit(route('projects.index'), {
+            data: {
+                tab: 'approval',
+                ...(filter ? { filter } : {}),
+                ...(statusValue ? { status: statusValue } : {}),
+                ...(departmentValue ? { department: Number(departmentValue) } : {}),
+                ...(nextQ ? { q: nextQ } : {}),
+            },
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const approvalRowHref = (row: ApprovalProjectRow): string =>
+        row.status === 'draft'
+            ? route('projects.edit', row.id)
+            : route('projects.show', row.id);
 
     return (
         <AuthenticatedLayout
@@ -184,6 +272,15 @@ export default function ProjectsIndex({ tab, filter }: Props) {
             ]}
         >
             <Head title="案件一覧" />
+
+            {flash?.error && (
+                <div
+                    role="alert"
+                    className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+                >
+                    {flash.error}
+                </div>
+            )}
 
             <div className="mb-5 flex items-start justify-between">
                 <div>
@@ -203,7 +300,11 @@ export default function ProjectsIndex({ tab, filter }: Props) {
                         </span>
                     )}
                 </div>
-                <Button size="default" className="flex items-center gap-2">
+                <Button
+                    size="default"
+                    className="flex items-center gap-2"
+                    onClick={() => router.visit(route('projects.create'))}
+                >
                     <Plus className="h-4 w-4" />
                     新規申請
                 </Button>
@@ -211,10 +312,129 @@ export default function ProjectsIndex({ tab, filter }: Props) {
 
             <section className="overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm">
                 <div className="border-b border-brand-border px-5">
-                    <Tabs value={tab} onChange={handleTabChange} items={TAB_ITEMS} />
+                    <Tabs value={tab} onChange={handleTabChange} items={visibleTabItems} />
                 </div>
+                {tab === 'approval' && (
+                    <div className="border-b border-brand-border px-5 py-3">
+                        <form
+                            className="flex flex-wrap items-center gap-3"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                const form = event.currentTarget;
+                                const formData = new FormData(form);
+                                submitApprovalFilters({
+                                    keyword: String(formData.get('q') ?? ''),
+                                    nextStatus: String(formData.get('status') ?? ''),
+                                    nextDepartment: String(formData.get('department') ?? ''),
+                                });
+                            }}
+                        >
+                            <div className="relative w-full max-w-[20rem]">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                                <input
+                                    name="q"
+                                    defaultValue={q ?? ''}
+                                    placeholder="案件名・申請者で検索"
+                                    className="w-full rounded-md border border-brand-border bg-white py-2 pl-9 pr-3 text-sm text-brand-dark placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                />
+                            </div>
+                            <select
+                                name="status"
+                                defaultValue={status ?? ''}
+                                className="min-w-[170px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                onChange={(event) =>
+                                    submitApprovalFilters({
+                                        keyword: String(
+                                            (
+                                                event.currentTarget.form?.elements.namedItem(
+                                                    'q',
+                                                ) as HTMLInputElement | null
+                                            )?.value ?? '',
+                                        ),
+                                        nextStatus: event.currentTarget.value,
+                                        nextDepartment: String(
+                                            (
+                                                event.currentTarget.form?.elements.namedItem(
+                                                    'department',
+                                                ) as HTMLSelectElement | null
+                                            )?.value ?? '',
+                                        ),
+                                    })
+                                }
+                            >
+                                <option value="">ステータス：すべて</option>
+                                <option value="draft">下書き</option>
+                                <option value="pending_dept">部門承認待ち</option>
+                                <option value="pending_hq">本部承認待ち</option>
+                                <option value="rejected">却下</option>
+                            </select>
+                            <select
+                                name="department"
+                                defaultValue={department ? String(department) : ''}
+                                className="min-w-[150px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                onChange={(event) =>
+                                    submitApprovalFilters({
+                                        keyword: String(
+                                            (
+                                                event.currentTarget.form?.elements.namedItem(
+                                                    'q',
+                                                ) as HTMLInputElement | null
+                                            )?.value ?? '',
+                                        ),
+                                        nextStatus: String(
+                                            (
+                                                event.currentTarget.form?.elements.namedItem(
+                                                    'status',
+                                                ) as HTMLSelectElement | null
+                                            )?.value ?? '',
+                                        ),
+                                        nextDepartment: event.currentTarget.value,
+                                    })
+                                }
+                            >
+                                <option value="">部門：すべて</option>
+                                {departments.map((dept) => (
+                                    <option key={dept.id} value={dept.id}>
+                                        {dept.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {(q || status || department) && (
+                                <button
+                                    type="button"
+                                    className="ml-auto text-sm text-brand-blue hover:underline"
+                                    onClick={() =>
+                                        submitApprovalFilters({
+                                            keyword: '',
+                                            nextStatus: '',
+                                            nextDepartment: '',
+                                        })
+                                    }
+                                >
+                                    クリア
+                                </button>
+                            )}
+                        </form>
+                    </div>
+                )}
                 <div className="overflow-x-auto">
-                    {tab === 'approval' && (
+                    {tab === 'approval' && approvalRows.length === 0 ? (
+                        <div className="px-6 py-14">
+                            <EmptyState
+                                icon={Inbox}
+                                title={
+                                    filter === 'pending'
+                                        ? '承認待ちの案件はありません'
+                                        : '案件がありません'
+                                }
+                                description={
+                                    filter === 'pending'
+                                        ? '現在、あなたが対応すべき承認待ち案件は表示されません。'
+                                        : '新規申請を作成すると、ここに表示されます。'
+                                }
+                            />
+                        </div>
+                    ) : tab === 'approval' ? (
                         <table className="min-w-full text-sm">
                             <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
                                 <tr>
@@ -224,27 +444,52 @@ export default function ProjectsIndex({ tab, filter }: Props) {
                                     <th className="px-4 py-3 text-left font-semibold">申請日</th>
                                     <th className="px-4 py-3 text-left font-semibold">部門</th>
                                     <th className="px-4 py-3 text-left font-semibold">最終更新</th>
+                                    <th className="px-4 py-3 text-left font-semibold" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
-                                {APPROVAL_ROWS.map((row, index) => (
+                                {approvalRows.map((row, index) => (
                                     <tr
                                         key={row.id}
                                         className={cn(
-                                            'hover:bg-slate-50',
+                                            'cursor-pointer hover:bg-slate-50',
                                             index === 0 && 'bg-white',
                                         )}
+                                        onClick={() => router.visit(approvalRowHref(row))}
                                     >
                                         <td className="px-5 py-3.5 font-medium text-brand-dark">
-                                            {row.title}
+                                            <Link
+                                                href={approvalRowHref(row)}
+                                                className="hover:text-brand-blue hover:underline"
+                                            >
+                                                {row.title}
+                                            </Link>
                                         </td>
                                         <td className="px-4 py-3.5">
-                                            <StatusPill status={row.status} />
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <StatusPill status={row.status} />
+                                                {row.applicantSubmitsToHqDirect &&
+                                                    (row.status === 'pending_hq' ||
+                                                        row.status === 'approved' ||
+                                                        (row.status === 'rejected' &&
+                                                            row.rejectedAt === 'hq')) && (
+                                                        <span className="rounded-full bg-[#E0F2FE] px-2 py-0.5 text-[10px] font-semibold text-[#0369A1]">
+                                                            本部直行
+                                                        </span>
+                                                    )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3.5">
                                             <ApprovalStepperMini
                                                 status={row.status}
                                                 rejectedAt={row.rejectedAt}
+                                                skipsDeptStep={
+                                                    !!row.applicantSubmitsToHqDirect &&
+                                                    (row.status === 'pending_hq' ||
+                                                        row.status === 'approved' ||
+                                                        (row.status === 'rejected' &&
+                                                            row.rejectedAt === 'hq'))
+                                                }
                                             />
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-muted">
@@ -256,11 +501,14 @@ export default function ProjectsIndex({ tab, filter }: Props) {
                                         <td className="px-4 py-3.5 text-brand-muted">
                                             {row.updatedAt}
                                         </td>
+                                        <td className="px-4 py-3.5 text-right text-brand-muted">
+                                            <ChevronRight className="ml-auto h-4 w-4" />
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    )}
+                    ) : null}
 
                     {tab === 'dev' && (
                         <table className="min-w-full text-sm">
@@ -342,15 +590,17 @@ export default function ProjectsIndex({ tab, filter }: Props) {
                 </div>
             </section>
 
-            {filter === 'pending' && tab === 'approval' && (
-                <section className="mt-6">
-                    <EmptyState
-                        icon={CircleDollarSign}
-                        title="承認待ちフィルタ動作確認用の空表示"
-                        description="データ0件時はこの表示を使う想定です。"
-                    />
-                </section>
+            {tab === 'approval' && (
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-brand-muted">
+                    <StatusPill status="draft" />
+                    <StatusPill status="pending_dept" />
+                    <StatusPill status="pending_hq" />
+                    <StatusPill status="approved" />
+                    <StatusPill status="rejected" />
+                    <span className="ml-auto">※ 承認済み案件は「開発タブ」で確認できます</span>
+                </div>
             )}
+
         </AuthenticatedLayout>
     );
 }

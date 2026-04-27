@@ -23,6 +23,11 @@ class Department extends Model
         return $this->hasMany(User::class);
     }
 
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
+
     public function isHeadquarters(): bool
     {
         return $this->type === self::TYPE_HEADQUARTERS;

@@ -18,60 +18,49 @@
 
 ## 2. 日次ワークフロー
 
-### 作業開始時
+日次の git 手順（作業開始時・終了時のコマンド、ブランチ命名、コミット方針）は **`doc/Design/AI.md §9 日次ワークフロー` が唯一の正本**。本ファイルには記載しない。
 
-```powershell
-git checkout main
-git pull origin main
-git checkout -b <work-branch>
-```
+本ファイルは「実装作業中に守るべき運用ルール」に限定して記述する。
 
-### 作業終了時
+### 実装時の運用ルール
 
-```powershell
-git add -A
-git commit -m "docs: 日次更新 YYYY-MM-DD"
-git push -u origin <work-branch>
-```
-
-### 運用ルール
-
-- main 上で直接作業しない
-- 実装コミットと docs コミットは分離する
-- 日次の詳細記録は `doc/daily/log/` に残す
+- 申請・承認などの操作系変更は、`3ロール × 主要導線` の手動確認を当日中に実施する
+- 操作系 UI は「押せる/押せない」だけでなく、処理中表示（ロック/スピナー）まで確認する
 
 ---
 
-## 3. 次回作業予定（2026-04-24 / Phase 2 Day3）
+## 3. 次回作業予定（2026-0427 / Phase 2 Day3）
 
 ### 目的
 
-- 承認待ち一覧の操作性とエラーハンドリングを整える
-- 通知一覧（S-12）と未読バッジの最小導線を接続する
+- 3ロールでの申請→承認/却下→通知の手動確認を完了し、結果を日次ログに記録する
+- Phase 2 残タスク（再申請チェイン、部門管理者が申請者の場合の `pending_hq` 直行の UI 反映など）の優先順位を確定し、着手可能なものから実装する
 
 ### 実行手順
 
-1. 事前確認（`php artisan serve` / `npm run dev` / `/projects` 表示）
-2. 承認待ち一覧で行単位操作（申請/承認/却下/編集）の表示と遷移を確認
-3. 通知一覧ページ（S-12）の骨組み作成と `notifications` データ接続
-4. ヘッダー通知バッジ（未読件数）を最小実装
-5. 3ロールで申請→承認/却下→通知の手動確認
-6. `npx tsc --noEmit` / `npm run build` 実行
-7. `doc/daily` 更新・コミット・push
+1. 事前確認（`php artisan serve` / `npm run dev`、ログイン後 `/projects?tab=approval`）
+2. 手動確認チェックリストを 3 アカウントで順に実施し、`development_schedule.md` の検証欄を更新
+3. `/notifications` で未読・既読・案件リンクを確認
+4. 不足があれば `ApprovalService` / 一覧 UI を最小修正
+5. `npx tsc --noEmit` / `npm run build` / `php artisan test`
+6. `doc/daily` 更新・`feat:` と `docs:` を分離コミット・push
+
+### 手動確認チェックリスト（作業中に使用）
+
 
 ### 完了条件
 
 - [x] `ApprovalDialog` から承認/却下できる
 - [x] `Projects/Create.tsx` から保存できる
-- [ ] `npx tsc --noEmit` と `npm run build` が通る
-- [ ] 通知一覧（S-12）と未読バッジの最小導線が動く
+- [x] `npx tsc --noEmit` と `npm run build` が通る
+- [x] 通知一覧（S-12）と未読バッジの最小導線が動く
+- [ ] 3ロール手動確認の記録完了
 - [ ] 日次更新を push まで完了
 
 ---
 
 ## 4. Phase 2 残タスク
 
-- S-12 通知一覧と未読バッジ
 - Feature テスト（承認フロー / 権限境界）
 
 ---
@@ -80,4 +69,7 @@ git push -u origin <work-branch>
 
 - `implementation_schedule.md` では **前日の作業記録詳細のみ参照** する
 - 参照先: `doc/daily/log/implementation_schedule_log.md`
-- 日報詳細: `doc/daily/log/daily_report_log.md`
+- 技術詳細日報: `doc/daily/log/daily_technical_report.md`
+
+> 非エンジニア向け日報の詳細版（`daily_report_log.md`）は実装作業では参照しない。
+> 全ログファイル一覧は `development_schedule.md` §詳細ログ保管先 を参照。

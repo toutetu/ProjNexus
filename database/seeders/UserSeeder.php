@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
         $dept2 = Department::where('name', '開発2部')->firstOrFail();
         $dept3 = Department::where('name', '開発3部')->firstOrFail();
 
-        // CLAUDE.md §11 のテストアカウント（primary）
+        // AI.md §11 のテストアカウント（primary）
         $accounts = [
             [
                 'name' => '申請 太郎',

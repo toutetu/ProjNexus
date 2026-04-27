@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Project;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,6 +44,19 @@ class HandleInertiaRequests extends Middleware
                     'roles' => $user->getRoleNames()->values(),
                 ] : null,
             ],
+            'flash' => [
+                'error' => fn () => $request->session()->get('error'),
+            ],
+            'unreadNotificationCount' => fn () => $user
+                ? $user->appNotifications()->whereNull('read_at')->count()
+                : 0,
+            'pendingApprovalCount' => fn () => $user
+                ? Project::query()
+                    ->visibleTo($user)
+                    ->forTab('approval')
+                    ->pendingFor($user)
+                    ->count()
+                : 0,
         ];
     }
 }

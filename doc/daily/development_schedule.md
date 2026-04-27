@@ -8,53 +8,54 @@
 
 ### 詳細ログ保管先
 
-- 実装詳細ログ: `doc/daily/log/implementation_schedule_log.md`
-- 日報詳細ログ: `doc/daily/log/daily_report_log.md`
+`doc/daily/` 直下は「簡潔版・提出用」、`doc/daily/log/` 配下は「詳細版・作業記録用」という住み分け。
+
+| 用途 | 簡潔版（`doc/daily/`） | 詳細版（`doc/daily/log/`） |
+|------|----------------------|--------------------------|
+| 日報（非エンジニア向け） | `daily_report.md` | `daily_report_log.md` |
+| 技術的な作業記録 | — | `daily_technical_report.md` |
+| 実装スケジュール | `implementation_schedule.md` | `implementation_schedule_log.md` |
 
 ---
 
-### 基本情報（2026-04-23 更新）
+### 基本情報（2026-04-24 更新）
 
 - **開発期間:** 4/13〜5/15（5週間・100時間以内）
-- **累計実績:** 48h
-- **残り時間:** 52h（目安）
-- **稼働方針:** 平日中心（平均 1日4h目安、火曜は通院で3h）
+- **累計実績:** 55h
+- **残り時間:** 45h
+- **稼働方針:** 平日中心（平均 1日5h目安、火曜は通院で3h）
 - **リスク期間:** GW（4/29, 5/3〜5/6）は稼働1h/日程度に低下
 
 ---
 
-### Phase別の時間配分（残り69h）
+### Phase別の時間配分（残り51h）
 
 | Phase | 内容 | 見積 | 実績 | 状態 |
-|-------|------|------|------|
-| Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了|
-| Phase 1 | 認証・レイアウト・共通UI |  9h | ✅ 完了 |
-| Phase 2 | 申請・承認フロー（課題1の核） | 20h |  8h | 🟡 進行中 |
-| Phase 3 | 開発管理・予算管理（MVP優先） | 10h | 未着手 |
-| Phase 4 | +alpha（最小） | 5h | - | 未着手 |
-| Phase 5 | 資料・最終確認 | 20h |    | 未着手 |
-| 予備バッファ | 遅延吸収・回帰修正 | 5h | — |
+|-------|------|------|------|------|
+| Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了 |
+| Phase 1 | 認証・レイアウト・共通UI | 8h | 9h | ✅ 完了 |
+| Phase 2 | 申請・承認フロー（課題1の核） | 20h | 10h | 🟡 進行中 |
+| Phase 3 | 開発管理・予算管理（MVP優先） | 10h | - | 未着手 |
+| Phase 4 | +α（最小） | 5h | - | 未着手 |
+| Phase 5 | 資料・最終確認 | 20h | - | 未着手 |
+| 予備バッファ | 遅延吸収・回帰修正 | 5h | - | - |
 
-> 実装時間は Phase 1〜4 で **44h**、資料・確認に **20h**、バッファ **5h**。  
+> 実装時間は Phase 1〜4 で **43h**、資料・確認に **20h**、バッファ **5h**。  
 > GW前までに Phase 2 を完了 → GW週で Phase 3 MVP → 最終週で +α＋資料、が基本線。
 
 ---
 
 ### 現在地
 
-- **現在の主作業:** Phase 2 進行中（申請・承認の主要画面導線まで接続完了）
-- **直近完了:** `ApprovalDialog`（コメント付き承認/却下）、`Projects/Create.tsx` / `Projects/Edit.tsx`、一覧/詳細からの編集導線、処理中ロック＆スピナー表示
-- **次の着手:** 通知一覧（S-12）と未読バッジ、承認待ち一覧のUI調整
+- **現在の主作業:** Phase 2 進行中（通知一覧・未読バッジ・一覧エラー表示まで接続）
+- **直近完了:** S-12 `Notifications/Index.tsx`、ヘッダー／サイドバー未読バッジ、承認一覧の空状態・フラッシュエラー・却下レベル連動、`ProjectApprovalFlowTest` ほか
+- **次の着手:** 3ロール手動確認の記録と残タスク（再申請チェイン、部門管理者が申請者の場合の `pending_hq` 直行 UI 等）
 
 ---
 
-### 今週の目標（4/21〜4/24）
+### 今週の目標（4/27〜5/1）
 
-1. ✅ `AuthenticatedLayout` を 3セクションサイドバー構造に改修（4/21 完了）
-2. ✅ 共通コンポーネント（`StatusPill`、`Tabs`、`ApprovalStepperMini`、`EmptyState`）を先行実装
-3. ✅ `projects` テーブル migration・Model の雛形作成（4/23 完了）
-4. ✅ S-03a（案件一覧 申請タブ）をダミーデータで再現
-
+1.フェーズ２，フェーズ３完了
 ---
 
 ### リスクと対策
@@ -81,29 +82,9 @@
 
 ### 日次ワークフロー（必須ルーティン）
 
-> 詳細は `doc/Design/CLAUDE.md §9 Git / 提出 > 日次ワークフロー` を参照。Cursor / Claude との協働でも必ず遵守。
+日次の git 手順・コミット方針・チェックリストは **`doc/Design/CLAUDE.md §9 日次ワークフロー` を唯一の正本**とする。本ファイルには手順を記載しない（二重管理を避けるため）。
 
-#### 作業開始時
-1. `git checkout main && git pull origin main` で最新化
-2. **作業ブランチを切る**：`git checkout -b <branch-name>`
-   - 実装：`feat/phase1-layout` / `feat/phase2-apply-form` など
-   - 日報のみ：`docs/daily-YYYYMMDD`
-3. main 上では作業しない。必ずブランチを切ってから開始
-
-#### 作業終了時
-1. **`doc/daily/` を更新**
-   - `daily_report.md`：本日の実績・気づき・翌日の予定（既存提出分は変更せず追記）
-   - `development_schedule.md`：累計実績 h・残り h・現在地・今週の目標を更新
-   - `implementation_schedule.md`：次回作業予定（具体的な手順）を更新
-2. コミット：`git add -A && git commit -m "docs: 日次更新 YYYY-MM-DD"`（実装は別 prefix で別コミット）
-3. push：`git push -u origin <branch-name>`
-4. main へのマージは自己レビュー後（直 push 禁止）
-
-#### チェックリスト（毎日使う）
-- [ ] 作業開始前に main を pull した
-- [ ] ブランチを切ってから作業を始めた
-- [ ] 作業終了時に `doc/daily/` 3 ファイルを更新した
-- [ ] コミット・push を完了した
+Cursor / Claude との協働でも必ず遵守。
 
 ---
 
@@ -137,7 +118,7 @@
   - [x] 共通（下部）「通知」「プロフィール」配置（4/21）
   - [x] ロール別のメニュー表示制御（applicant に承認待ちは非表示 等）（4/21）
 - [x] サイドバー下部にログインユーザー名・ロール・部門表示（4/21）
-- [ ] トップバー（Header）の ⌘K 検索・通知ベルの実機能接続（Phase 2 以降）
+- [x] トップバー（Header）の通知ベル → 通知一覧・未読件数（4/24）
 - [ ] モバイル用のハンバーガーメニュー骨組み（中身は Phase 4 で仕上げ）
 
 ### 共通コンポーネント（shadcn/ui ベース）
@@ -161,7 +142,7 @@
 
 ---
 
-## Phase 2 チェックリスト（申請・承認フロー／22h）
+## Phase 2 チェックリスト（申請・承認フロー／20h）
 
 ### DB / Model
 - [x] `projects` migration（parent_project_id, revision, status, estimated_amount, budget_amount, actual_amount 等）
@@ -173,7 +154,7 @@
 ### Policy / 権限
 - [x] `ProjectPolicy`（viewAny / view / create / update / delete）
 - [x] Controller でロール別クエリ分岐（applicant=自分のみ、dept=自部門、hq=全件）
-- [ ] 却下→再申請の分岐（`parent_project_id` でチェイン）
+- [x] 却下→再申請の分岐（`parent_project_id` でチェイン）（4/24 追記）
 
 ### 画面：申請側（申請者）
 - [x] `Projects/Create.tsx`（S-05 新規申請）
@@ -184,7 +165,7 @@
 ### 画面：承認側
 - [x] 承認待ち一覧（`/projects?tab=approval&filter=pending`）のロール別フィルタ
 - [x] `ApprovalDialog.tsx`（S-08 承認/却下モーダル、コメント入力）
-- [ ] 部門管理者が申請者の場合 → `pending_hq` 直行（UI にも表示）
+- [x] 部門管理者が申請者の場合 → `pending_hq` 直行（UI にも表示）（4/24 追記）
 
 ### Service / Controller
 - [x] `ProjectController`（index / show / store / update / destroy）
@@ -193,16 +174,15 @@
 - [x] `NotificationService`（承認・却下時に関係者へ通知作成）
 
 ### 通知
-- [ ] `Notifications/Index.tsx`（S-12 通知一覧）
-- [ ] トップバーの通知バッジ（未読件数）
-- [ ] 承認・却下・差戻し時に通知が発行される
+- [x] `Notifications/Index.tsx`（S-12 通知一覧）（4/24）
+- [x] トップバー／サイドバーの通知バッジ（未読件数）（4/24）
+- [x] 承認・却下・申請時に通知が発行される（`NotificationService` 経由・4/24 時点で動作確認は手動継続）
 
 ### 検証
-- [ ] 3ロール × 申請〜最終承認のハッピーパス
-- [ ] 3ロール × 部門却下 / 本部却下 → 再申請シナリオ
-- [ ] ロール境界：他部門の pending 案件が見えない／編集できない
-- [ ] Feature テスト：承認フロー 1 本、権限境界 1 本（最低限）
-
+- [x] 3ロール × 部門却下 / 本部却下 → 再申請シナリオ（手動確認済み・2026-04-27）
+- [x] ロール境界：他部門の pending 案件が見えない／編集できない（手動確認済み・2026-04-27）
+- [x] Feature テスト：承認フロー 1 本、権限境界 1 本（`ProjectApprovalFlowTest`・4/24）
+- [x] 3ロール × 申請〜最終承認のハッピーパス（手動確認済み・2026-04-27）
 ---
 
 ## Phase 3 チェックリスト（開発管理・予算管理 MVP／12h）
@@ -281,4 +261,3 @@
 - [ ] 提出物チェックリスト（requirements.md §提出物）5項目すべて完了
 - [ ] `php artisan test` が通る
 - [ ] コンソールエラー・TypeScript エラーなし
-

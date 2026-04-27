@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProjectController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,23 +22,21 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/projects', function (\Illuminate\Http\Request $request) {
-        $allowedTabs = ['approval', 'dev', 'budget'];
-        $tab = in_array($request->query('tab'), $allowedTabs, true)
-            ? $request->query('tab')
-            : 'approval';
+    Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
+    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::get('/projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
+    Route::put('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
+    Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
-        return Inertia::render('Projects/Index', [
-            'tab' => $tab,
-            'filter' => $request->query('filter'),
-        ]);
-    })->name('projects.index');
+    Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+    Route::post('/projects/{project}/submit', [ApprovalController::class, 'submit'])->name('projects.submit');
+    Route::post('/projects/{project}/take-back', [ApprovalController::class, 'takeBack'])->name('projects.takeBack');
+    Route::post('/projects/{project}/approve', [ApprovalController::class, 'approve'])->name('projects.approve');
+    Route::post('/projects/{project}/reject', [ApprovalController::class, 'reject'])->name('projects.reject');
 
-    Route::get('/projects/{project}', function (int $project) {
-        return Inertia::render('Projects/Show', [
-            'projectId' => $project,
-        ]);
-    })->name('projects.show');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 });
 
 Route::middleware('auth')->group(function () {

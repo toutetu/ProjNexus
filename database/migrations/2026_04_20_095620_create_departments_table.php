@@ -17,6 +17,13 @@ return new class extends Migration
             $table->string('type')->default('department'); // department / headquarters
             $table->timestamps();
         });
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreign('department_id')
+                ->references('id')
+                ->on('departments')
+                ->nullOnDelete();
+        });
     }
 
     /**
@@ -24,6 +31,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['department_id']);
+        });
+
         Schema::dropIfExists('departments');
     }
 };

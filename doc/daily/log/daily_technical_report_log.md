@@ -5,6 +5,55 @@
 
 ---
 
+### 作業記録 2026-04-27（月）Phase 2 UI/通知仕上げ
+
+#### 1) 申請一覧 UI のモック準拠調整
+- `Projects/Index.tsx` の approval フィルターバーを再構成（検索・ステータス・部門・クリア）
+- テーブル下凡例（StatusPill 5種 + 注記）を追加
+- セレクト表示崩れ（文言と矢印の重なり）を `min-w` と `pr` 調整で修正
+- `filter=pending` 時は申請タブのみ表示、開発/予算タブを非表示化
+
+#### 2) サイドバー/ヘッダーの導線調整
+- サイドバー「承認待ち一覧」に `pendingApprovalCount` バッジを表示
+  - 0件時は非表示、99件超は `99+`
+- ヘッダー右上の検索窓を全画面から削除
+- 却下案件の詳細画面ではサイドバーのアクティブを `projects-approval` に切替
+
+#### 3) 申請・承認フローの挙動修正
+- `Projects/Create.tsx` の submit 送信競合を修正
+  - `useForm.transform` で `submit_action=submit` を確実に送信
+- 申請取り戻し機能を追加
+  - ルート: `projects.takeBack`
+  - 条件: 申請者本人の `pending_dept`、または部門管理者申請者の `pending_hq`
+  - 処理: `status -> draft`, `submitted_at -> null`
+
+#### 4) 通知ロジックの見直し
+- 申請時に承認者へ通知（部門管理者/本部管理者）を送信
+- 申請者への「申請受付」通知は `read_at` を即時セット（既読化）
+- 部門承認後に本部管理者へ承認依頼通知を送信
+- 本部却下時に、途中で部門承認した部門管理者へ却下通知を送信
+
+#### 5) 却下コメント表示の改善
+- `ProjectController@show` で最新却下コメントを取得
+- `Projects/Show.tsx` で承認ステップ直下に却下コメント枠を表示
+  - `bg-[#FEE2E2]` / `text-[#991B1B]` の注意表示スタイル
+- 表示条件を拡張し、却下ステータスならロール共通で表示
+
+#### 6) 検証
+- `npx tsc --noEmit` 複数回実行、全て成功
+- `php artisan test --filter=ProjectApprovalFlowTest` を継続実行し、追加ケース含め成功
+  - 申請通知、取り戻し、部門承認→本部通知、本部却下→部門通知を確認
+
+#### 7) コミット/プッシュ（feature ブランチ）
+- `ac455c21` fix: update logout redirect and pending approval tabs
+- `cead3308` feat: show pending approval count in sidebar
+- `0cedfb29` feat: rebuild approval filter bar and add query filters
+- `0a431784` fix: correct submit flow and notification delivery behavior
+- `f2343add` feat: allow applicants to take back pending requests
+- `43362b0c` feat: show reject comments and notify HQ after dept approval
+- `6adfb956` chore: add shared password hint on login test users
+- `af458c65` feat: improve rejected project visibility and rejection notifications
+
 ## 作業記録（時系列、最新が下）
 
 ### 作業記録 2026-04-20（月）Phase 0 完了
@@ -182,6 +231,7 @@
 #### Phase 進捗
 - Phase 2：8h/22h（承認フローの最小導線まで実装）
 
+
 ---
 
 ### 作業記録 2026-04-23（木）Phase 2 追加実装・日次運用（本チャット分）
@@ -275,7 +325,51 @@
 - Featureテスト（承認フロー1本、権限境界1本）の追加
 
 #### Phase 進捗
-- Phase 2：5h/22h → **12h/22h**
+- Phase 2：5h/22h 
   - 申請・承認の主要導線（Create/Edit/Approve/Reject/Dialog/権限連動表示）まで接続完了
+
+---
+
+## 2026-04-24（金）— Phase 2 継続（通知 S-12・承認一覧 UI・テスト）
+
+### 実装概要
+- **通知ルート**: `GET /notifications`（`notifications.index`）、`PATCH /notifications/{notification}/read`（`notifications.read`）を `auth`+`verified` グループに追加
+- **共有プロップ**: `HandleInertiaRequests` に `flash.error` と `unreadNotificationCount`（未読件数）を追加
+- **S-12**: `resources/js/Pages/Notifications/Index.tsx` を新規作成（一覧・未読表示・既読 PATCH・`meta.project_id` がある場合は案件詳細リンク・ページネーション）
+- **ヘッダー / サイドバー**: `Header.tsx` のベルを通知一覧リンク＋未読数バッジに接続。`Sidebar.tsx` の「通知」誤リンク（プロフィール向け）を修正し、未読バッジを表示
+- **通知 JSON**: `NotificationController@index` の各要素キーを `readAt` / `createdAt` に統一（フロントの camelCase と整合）
+- **承認一覧**: `ProjectController@index` で却下案件の最新却下レベルを一括取得し `rejectedAt`（`dept`|`hq`）を返却。`Projects/Index.tsx` で空一覧の `EmptyState`、フラッシュエラー、`rejectedAt` の `ApprovalStepperMini` 連動を追加。誤って常時表示されていた承認待ち用 `EmptyState` を削除
+- **エラー表示**: `ApprovalController` の submit/approve/reject で `AuthorizationException` を捕捉し `redirect()->with('error', …)` に変更
+- **テスト**: `ProjectApprovalFlowTest`（部門承認成功・申請者の承認不可）を追加。`AuthenticationTest` のログイン後リダイレクト期待値を `projects.index?tab=approval` に合わせて修正
+
+### 検証
+- `npx tsc --noEmit` / `npm run build` 成功
+- `php artisan test` 全件成功（27 tests）
+
+### Phase 進捗
+- Phase 2：9h/22h（本日 +4h 見込みで development_schedule と整合）
+
+---
+
+## 2026-04-24（金）— 追加作業（ER整合・migration統合・DB再構築）
+
+### 実装概要
+- `doc/Design/er_diagram.md` と `database/migrations` の差分を比較し、設計優先で migration 構成を再整理
+- `add_*` マイグレーションを縮小し、主要カラムは `create_*` へ統合
+  - `users.role`、`users.department_id`
+  - `projects.description`、`projects.estimated_days`
+  - `approvals.status`
+  - `notifications.project_id`、`notifications.message`、`notifications.is_read`
+- `tasks` / `task_comments` / `task_histories` を `create_tasks_tables` として追加
+- `users` 作成時の `after('email')` 由来SQLエラーを除去（create文での `after` 非対応）
+
+### 検証
+- `php artisan test` 全件成功（29 tests）
+- `php artisan migrate:fresh` 成功
+- `php artisan db:seed` 成功（Department / RolePermission / User）
+
+### 判断メモ
+- migration可読性を優先するため、現フェーズでは `create` 側に統合
+- 共有運用開始後は `add-only` に切替える運用ルールを `design-philosophy.md` に追記
 
 ---

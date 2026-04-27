@@ -105,6 +105,39 @@ export default function Login({
                     </PrimaryButton>
                 </div>
             </form>
+
+            <section className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-800">テストユーザー</p>
+                <div className="mt-3 overflow-x-auto">
+                    <table className="min-w-full text-left text-xs text-gray-700">
+                        <thead className="border-b border-gray-200 text-gray-600">
+                            <tr>
+                                <th className="px-2 py-2 font-semibold">ロール</th>
+                                <th className="px-2 py-2 font-semibold">メール</th>
+                                <th className="px-2 py-2 font-semibold">所属部門</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="border-b border-gray-100">
+                                <td className="px-2 py-2">申請者</td>
+                                <td className="px-2 py-2">applicant@example.com</td>
+                                <td className="px-2 py-2">開発1部</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                                <td className="px-2 py-2">部門管理者</td>
+                                <td className="px-2 py-2">dept@example.com</td>
+                                <td className="px-2 py-2">開発1部</td>
+                            </tr>
+                            <tr>
+                                <td className="px-2 py-2">本部管理者</td>
+                                <td className="px-2 py-2">hq@example.com</td>
+                                <td className="px-2 py-2">本部</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="mt-3 text-xs font-semibold text-gray-700"> パスワード：password</p>
+            </section>
         </GuestLayout>
     );
 }

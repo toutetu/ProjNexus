@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ReactNode } from 'react';
 
+import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
 import { cn } from '@/lib/utils';
 import type { PageProps, RoleName } from '@/types';
 
@@ -74,9 +75,13 @@ function SidebarLink({
                 <span className="flex items-center gap-1.5">
                     {label}
                     {dimLabel && (
-                        <span className="rounded bg-white/10 px-1 py-0.5 text-[9px] font-medium">
-                            {dimLabel}
-                        </span>
+                        dimLabel === '課題2' ? (
+                            <Challenge2Badge />
+                        ) : (
+                            <span className="rounded bg-white/10 px-1 py-0.5 text-[9px] font-medium">
+                                {dimLabel}
+                            </span>
+                        )
                     )}
                 </span>
             </span>
@@ -145,7 +150,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeKey = null }: SidebarProps) {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, unreadNotificationCount = 0, pendingApprovalCount = 0 } =
+        usePage<PageProps>().props;
     const user = auth.user;
     const roles = user.roles;
     const hasRole = (role: RoleName) => roles.includes(role);
@@ -163,7 +169,7 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
 
     return (
         <aside
-            className="flex w-64 shrink-0 flex-col text-white"
+            className="flex h-screen w-64 shrink-0 flex-col overflow-hidden text-white"
             style={{ background: '#212429' }}
         >
             <div className="flex h-14 items-center border-b border-white/10 px-5">
@@ -183,11 +189,11 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                 </Link>
             </div>
 
-            <nav className="flex-1 overflow-y-auto py-3 text-sm">
+            <nav className="flex-1 py-3 text-sm">
                 <SidebarSection label="申請・承認">
                     {canCreate && (
                         <SidebarLink
-                            href="#"
+                            href={route('projects.create')}
                             icon={PlusCircle}
                             label="新規申請"
                             active={activeKey === 'new'}
@@ -199,6 +205,13 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                             icon={Inbox}
                             label="承認待ち一覧"
                             active={activeKey === 'pending'}
+                            badge={
+                                pendingApprovalCount > 0
+                                    ? pendingApprovalCount > 99
+                                        ? '99+'
+                                        : pendingApprovalCount
+                                    : undefined
+                            }
                         />
                     )}
                     <SidebarLink
@@ -244,10 +257,17 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
 
                 <div className="mt-5 border-t border-white/10 pt-4">
                     <SidebarLink
-                        href={route('profile.edit')}
+                        href={route('notifications.index')}
                         icon={Bell}
                         label="通知"
                         active={activeKey === 'notifications'}
+                        badge={
+                            unreadNotificationCount > 0
+                                ? unreadNotificationCount > 99
+                                    ? '99+'
+                                    : unreadNotificationCount
+                                : undefined
+                        }
                     />
                     <SidebarLink
                         href={route('profile.edit')}

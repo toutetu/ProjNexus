@@ -1,7 +1,7 @@
-# CLAUDE.md — Cursor 向け実装指示書
+﻿# AI.md — Cursor 向け実装指示書
 
-> 本ドキュメントはプロジェクトルート（`C:\xampp\htdocs\ProjNexus\CLAUDE.md`）に配置して使用することを想定しています。
-> Cursor 上の Claude がこのファイルを読み、設計思想・制約・ディレクトリ構造を把握したうえで実装を進めます。
+> 本ドキュメントはプロジェクトルート（`C:\xampp\htdocs\ProjNexus\doc/Design/AI.md`）に配置して使用することを想定しています。
+> Cursor 上の AI がこのファイルを読み、設計思想・制約・ディレクトリ構造を把握したうえで実装を進めます。
 
 
 ---
@@ -60,111 +60,30 @@
 
 ---
 
-## 3. ディレクトリ構造（抜粋）
+## 3. ディレクトリ構造（方針）
 
-> 2026-04-20 にリポジトリ構造をフラット化済み。`quest_1/` は存在せず、リポジトリ直下が Laravel プロジェクトルート。
+> 2026-04-20 にフラット化済み。リポジトリ直下 = Laravel プロジェクトルート（`quest_1/` 階層は存在しない）。
 
-```
-ProjNexus/                               # リポジトリルート = Laravel プロジェクトルート
-├─ app/
-│  ├─ Http/
-│  │  ├─ Controllers/
-│  │  │  ├─ ProjectController.php         # 案件 CRUD + 一覧タブ切替
-│  │  │  ├─ ApprovalController.php        # 承認・却下アクション
-│  │  │  ├─ TaskController.php            # タスク CRUD（モーダル）
-│  │  │  ├─ BudgetController.php          # 予算実績入力
-│  │  │  └─ NotificationController.php
-│  │  ├─ Requests/                         # FormRequest
-│  │  └─ Middleware/
-│  ├─ Models/
-│  │  ├─ Department.php
-│  │  ├─ User.php                          # HasRoles trait
-│  │  ├─ Project.php
-│  │  ├─ Approval.php
-│  │  ├─ Task.php
-│  │  ├─ TaskComment.php
-│  │  ├─ TaskHistory.php
-│  │  └─ Notification.php
-│  ├─ Policies/                            # 案件・タスクの可視範囲
-│  ├─ Services/
-│  │  ├─ ApprovalService.php               # 承認フロー遷移ロジック
-│  │  ├─ TaskHistoryService.php            # 変更履歴の自動記録
-│  │  └─ NotificationService.php
-│  └─ Enums/                               # status / role / level / type など
-├─ database/
-│  ├─ migrations/
-│  ├─ seeders/
-│  │  ├─ DepartmentSeeder.php              # 本部+3部門（計4部門）
-│  │  ├─ RolePermissionSeeder.php          # 3ロール + 権限定義
-│  │  ├─ UserSeeder.php                    # 3ロール × 4部門で 7 テストアカウント
-│  │  └─ DatabaseSeeder.php
-│  └─ factories/
-├─ resources/
-│  ├─ js/
-│  │  ├─ Pages/
-│  │  │  ├─ Auth/Login.tsx
-│  │  │  ├─ Projects/
-│  │  │  │  ├─ Index.tsx                   # S-03a/b/c 案件一覧（tab props で列切替）
-│  │  │  │  ├─ Show.tsx                    # S-04 案件詳細
-│  │  │  │  ├─ Create.tsx                  # S-05 新規申請
-│  │  │  │  └─ Edit.tsx                    # S-06 案件編集
-│  │  │  ├─ Notifications/Index.tsx        # S-12
-│  │  │  └─ Profile/Edit.tsx               # S-13（Breeze 標準）
-│  │  │                                     # ※ S-07 承認待ち一覧は独立画面を持たず
-│  │  │                                     #    /projects?tab=approval&filter=pending のプリセット
-│  │  ├─ Layouts/
-│  │  │  └─ AuthenticatedLayout.tsx        # 3セクションサイドバー
-│  │  ├─ Components/
-│  │  │  ├─ ui/                            # shadcn/ui
-│  │  │  ├─ Layout/
-│  │  │  │  ├─ Sidebar.tsx                 # 3セクション構造のダークナビ
-│  │  │  │  ├─ Header.tsx                  # パンくず + ⌘K + 通知ベル
-│  │  │  │  └─ Breadcrumb.tsx
-│  │  │  ├─ Approval/
-│  │  │  │  ├─ ApprovalStepperMini.tsx     # 一覧行用の小型ステッパー
-│  │  │  │  ├─ ApprovalStepperFull.tsx     # S-04 詳細用の大型ステッパー
-│  │  │  │  └─ ApprovalFlowGuide.tsx       # S-05 上部の4ステップ説明バナー
-│  │  │  ├─ Projects/
-│  │  │  │  └─ ProjectTable.tsx            # tab props で approval/dev/budget の列切替
-│  │  │  ├─ Form/
-│  │  │  │  ├─ FieldLabel.tsx
-│  │  │  │  └─ AmountInput.tsx             # 金額入力（カンマ区切り + 単位）
-│  │  │  ├─ Modals/
-│  │  │  │  ├─ ConfirmDialog.tsx           # 汎用確認ダイアログ（ApprovalDialog の基盤）
-│  │  │  │  ├─ ApprovalDialog.tsx          # S-08
-│  │  │  │  ├─ TaskFormDialog.tsx          # S-10
-│  │  │  │  └─ BudgetActualDialog.tsx      # S-11
-│  │  │  ├─ StatusPill.tsx
-│  │  │  ├─ Tabs.tsx                       # URL クエリ同期のタブ
-│  │  │  ├─ Pagination.tsx
-│  │  │  ├─ UserAvatar.tsx
-│  │  │  ├─ ProgressBar.tsx                # 4段階色分け（予算用）/ 2閾値（進捗用）
-│  │  │  ├─ EmptyState.tsx
-│  │  │  └─ KbdBadge.tsx                   # ⌘K などの表示
-│  │  └─ lib/
-│  └─ views/app.blade.php
-├─ routes/
-│  ├─ web.php
-│  └─ auth.php                             # Breeze
-├─ doc/
-│  ├─ Design/                               # 設計資料（本ファイル群）
-│  │  ├─ requirements.md
-│  │  ├─ design-philosophy.md
-│  │  ├─ screen_flow.md
-│  │  ├─ design_system.md
-│  │  ├─ components_spec.md                # 共通コンポーネント仕様（Pages 実装前に必読）
-│  │  ├─ er_diagram.md
-│  │  ├─ color-guide.md
-│  │  └─ v0_prompts.md
-│  ├─ daily/                                # 日報・進捗管理
-│  ├─ Information.md                        # デプロイURL・テストアカウント
-│  └─ presentation_高橋朋子.md              # プレゼン資料
-├─ mockups/                                 # Claude 作成の HTML モック
-└─ CLAUDE.md                                # 本ファイル
-```
+標準の Laravel 11 + Breeze (Inertia + React) 構成に準拠。本プロジェクト固有の方針のみ以下に示す。詳細な配置はコードベースを直接参照すること。
 
-> 共通コンポーネントの詳細な Props・仕様は `doc/Design/components_spec.md` を参照。  
-> Pages を実装する前に components_spec.md を読み、使用する共通部品を先に作成する。
+- **`app/Http/Controllers/`**: Controller は薄く保ち、ビジネスロジックは Service クラスへ委譲
+- **`app/Services/`**: `ApprovalService`（承認フロー遷移）、`TaskHistoryService`（変更履歴自動記録）、`NotificationService` を処理単位で配置
+- **`app/Policies/`**: 案件・タスクの可視範囲。Controller のクエリ分岐と合わせて二重防御
+- **`app/Enums/`**: PHP 8.1+ Native Enum（status / role / level / type など）
+- **`app/Models/`**: `User` は Spatie の `HasRoles` trait を使用。主要モデルは Department / User / Project / Approval / Task / TaskComment / TaskHistory / Notification
+- **`database/seeders/`**: `DepartmentSeeder`（本部+3部門）、`RolePermissionSeeder`（3ロール）、`UserSeeder`（7アカウント）
+- **`resources/js/Pages/`**: Inertia ページ単位。URL と 1:1 対応（例: `Projects/Index.tsx`、`Projects/Show.tsx`）
+- **`resources/js/Components/ui/`**: shadcn/ui（個別に `npx shadcn-ui@latest add` で追加）
+- **`resources/js/Components/{Approval,Projects,Form,Modals,Layout}/`**: ドメイン別共通部品。**Pages 実装前に `doc/Design/components_spec.md` を読み、使用部品を先に作成すること**
+- **`routes/web.php`**: Inertia ルート。`auth.php` は Breeze 標準
+- **`doc/Design/`**: 設計資料（本ファイル群）
+- **`doc/daily/`**: 日報・進捗管理
+- **`doc/presentation/`**: プレゼン資料（提出物の一部）
+- **`mockups/`**: Claude 作成の HTML モック
+
+### URL 設計メモ
+- 案件一覧は `/projects?tab=approval|dev|budget` でタブ切替（単一コンポーネント + tab props で列セット切替）
+- 承認待ち一覧は独立画面を持たず `/projects?tab=approval&filter=pending` のプリセット
 
 ---
 
@@ -231,15 +150,7 @@ ProjNexus/                               # リポジトリルート = Laravel �
 
 ### サイドバー「承認待ち一覧」のルーティング
 
-サイドバー左メニューの「承認待ち一覧」は独立した画面を持たず、
-案件一覧（申請タブ）のプリセット表示として実装する：
-
-- 遷移先: `/projects?tab=approval&filter=pending`
-- Controller 側で `filter=pending` を検出し、ロール別に以下で絞り込む：
-  - dept_manager: `status = pending_dept` かつ `department_id = self.dept`
-  - hq_manager: `status = pending_hq`（全部門）
-  - applicant: 本メニューは非表示（または自分の pending 案件のみ）
-- UI は s03a と完全共通。タイトル下に「承認待ち」バッジを表示して文脈を示す
+独立画面なし。`/projects?tab=approval&filter=pending` で S-03a を共用し、ロール別絞り込みは §6 の表を参照。タイトル下に「承認待ち」バッジで文脈を示す。
 
 ### ログイン直後ホーム
 `/projects?tab=approval` を暫定ホームに。理想は本部管理者ダッシュボードだが課題2扱い。
@@ -290,17 +201,16 @@ draft → pending_dept → pending_hq → approved
 
 ## 8. 実装順序（Phase）
 
-> 実績に基づく最新の時間配分と詳細チェックリストは `doc/daily/development_schedule.md`、週次・日次の実行手順は `doc/daily/implementation_schedule.md` を参照。
+> 見積・実績・詳細チェックリストは `doc/daily/development_schedule.md`、週次・日次の実行手順は `doc/daily/implementation_schedule.md` を参照。
 
-| Phase | 内容 | 配分（残69h ベース） | 状態 |
-|---|---|---|---|
-| 0 | 設計・Laravel環境構築・Breeze/Spatieインストール・DB設計 | 実績 31h | ✅ 完了（2026-04-20） |
-| 1 | 認証（Breeze カスタマイズ）・レイアウト（3セクションサイドバー）・共通UI | 8h | 着手前 |
-| 2 | 申請・承認フロー（S-03a/04/05/06/08 + 通知 S-12） | 22h | 未着手 |
-| 3 | 開発管理・予算管理（S-03b/03c/10/11 の MVP） | 12h | 未着手 |
-| 4 | +α（承認ステッパー大型版 + レスポンシブ最低限） | 2h | 未着手 |
-| 5 | ドキュメント・マニュアル・プレゼン資料・デプロイ最終確認 | 20h | 未着手 |
-| 予備 | 遅延吸収・回帰修正 | 5h | — |
+| Phase | 内容 |
+|---|---|
+| 0 | 設計・Laravel環境構築・Breeze/Spatieインストール・DB設計 |
+| 1 | 認証（Breeze カスタマイズ）・レイアウト（3セクションサイドバー）・共通UI |
+| 2 | 申請・承認フロー（S-03a/04/05/06/08 + 通知 S-12） |
+| 3 | 開発管理・予算管理（S-03b/03c/10/11 の MVP） |
+| 4 | +α（承認ステッパー大型版 + レスポンシブ最低限） |
+| 5 | ドキュメント・マニュアル・プレゼン資料・デプロイ最終確認 |
 
 > **GW期間（4/29, 5/3〜5/6）は 1日1h程度**しか稼働できない。**GW前（5/1 まで）に Phase 2 完了**、GW週で Phase 3 MVP、最終週で +α ＋ 資料、が基本線。
 
@@ -320,6 +230,9 @@ draft → pending_dept → pending_hq → approved
 - ステータスバッジ・ステッパー・カードはコンポーネント化して重複を避ける
 - shadcn/ui のコンポーネントは `npx shadcn-ui@latest add` で個別追加
 - モバイル対応は後回しでよいが、Tailwind のレスポンシブクラスは付けておく（後から崩れにくくする）
+- 承認/却下アクションは `ApprovalDialog` 経由で実行する（直接POSTボタンのみにはしない）
+- 一覧の操作系（申請/承認/却下/編集）は行単位の処理中ロックと状態表示（スピナー）を入れる
+- 編集可否はフロントの条件分岐だけでなく、サーバーから返す `canEdit` と Policy の両方で制御する
 
 ### テスト
 - PoC では Feature テストを承認フローと権限境界に絞って書く（全網羅は不要）
@@ -341,10 +254,12 @@ draft → pending_dept → pending_hq → approved
    - 命名規則：`feat/phase1-layout`、`feat/phase2-apply-form`、`docs/daily-YYYYMMDD` など
    - 日報のみの更新日は `docs/daily-YYYYMMDD` を使う
 3. ブランチを切ってから **実装 or ドキュメント更新を開始**（main 上では作業しない）
+4. 次回再開時は `doc/daily/next_chat_handover_YYYYMMDD.md` を先に確認してから着手する
 
 #### 作業終了時（毎日）
 1. **`doc/daily/` の各ファイルを更新**：
    - `doc/daily/daily_report.md`：本日の実績・気づき・翌日の予定を追記
+   -`/daily/log/daily_technical_report.md`：技術的に書いた日次の詳細作業記録
    - `doc/daily/development_schedule.md`：現在地・累計実績 h・残り h・今週の目標の更新
    - `doc/daily/implementation_schedule.md`：次回作業予定（具体的手順）を更新
 2. **変更をコミット**：`git add -A && git commit -m "docs: 日次更新 YYYY-MM-DD"`（実装があれば `feat:` などの prefix で別コミット）
@@ -355,41 +270,57 @@ draft → pending_dept → pending_hq → approved
 - `doc/daily/daily_report.md` は**提出済み部分は変更しない**（追記のみ）
 - 1 日の途中でブランチを切り直す必要が出た場合は、現在のブランチを push してから新ブランチを切る（作業ロスト防止）
 - main への直 push は禁止（上記ルール参照）
+- PowerShell 環境では `&&` が使えないため、複数コマンドは `;` 連結で実行する
 
 ---
 
 ## 10. 設計モック・参照資料
 
-Cursor 上で実装する際は、対応する HTML モックと設計資料を必ず確認すること。
+実装する画面ごとに HTML モックと画面ポリシー（`_policy.md`）を必ず確認してから着手すること。
 
-| 画面 | モック | 設計資料 |
+### (1) 画面モック一覧
+
+| 画面ID | 画面名 | HTML モック | 画面ポリシー |
+|---|---|---|---|
+| S-02 | ダッシュボード（課題2） | `mockups/s02_dashboard.html` | `mockups/s02_policy.md` |
+| S-03a | 案件一覧（申請タブ） | `mockups/s03a_projects_approval.html` | `mockups/s03a_policy.md` |
+| S-03b | 案件一覧（開発タブ） | `mockups/s03b_projects_dev.html` | `mockups/s03b_policy.md` |
+| S-03c | 案件一覧（予算タブ） | `mockups/s03c_projects_budget.html` | `mockups/s03c_policy.md` |
+| S-04 | 案件詳細 | `mockups/s04_project_show.html` | `mockups/s04_policy.md` |
+| S-05 | 新規申請 | `mockups/s05_project_create.html` | `mockups/s05_policy.md` |
+| S-10 | タスク作成・編集モーダル | `mockups/s10_task_form_modal.html` | `mockups/s10_policy.md` |
+| S-11 | 予算実績入力モーダル | `mockups/s11_budget_actual_modal.html` | `mockups/s11_policy.md` |
+
+> S-06（案件編集）・S-07（承認待ち一覧）・S-08（承認ダイアログ）・S-12（通知）は独立したモックなし。S-03a / S-05 モックおよび各ポリシー内の記述を参照。
+
+### (2) 設計資料一覧
+
+| 資料 | パス | 用途 |
 |---|---|---|
-| S-03a 案件一覧(申請) | `mockups/s03a_projects_approval.html` | screen_flow.md §4-1 |
-| S-02 ダッシュボード（課題2） | `mockups/s02_dashboard.html` | — |
-| 全画面のUI仕様 | — | v0_prompts.md |
-| 画面遷移 | — | screen_flow.md |
-| 設計思想 | — | design-philosophy.md |
-| 色・フォント・部品 | — | design_system.md + color-guide.md |
-| 共通コンポーネントの Props・配置 | — | **components_spec.md（Pages 実装前に必読）** |
-| ER図・区分値 | — | er_diagram.md |
-
+| 要件定義 | `doc/Design/requirements.md` | 機能要件・非機能要件の原文 |
+| 設計思想 | `doc/Design/design-philosophy.md` | 設計判断の背景・スコープ境界 |
+| 画面遷移 | `doc/Design/screen_flow.md` | 全画面の遷移図・URL設計 |
+| ER図・区分値 | `doc/Design/er_diagram.md` | テーブル定義・Enum 一覧 |
+| デザインシステム | `doc/Design/design_system.md` | 色・フォント・余白ルール |
+| カラーガイド | `doc/Design/color-guide.md` | ステータス色・バッジ色の統一基準 |
+| 共通コンポーネント仕様 | `doc/Design/components_spec.md` | Props・使用条件（**Pages 実装前に必読**） |
 ---
 
-## 11. テストアカウント（シーダーで投入）
+## 11. テストアカウント
 
-部門は **4部門**（「本部」＋「開発1部」「開発2部」「開発3部」）。**3ロール × 4部門で 7 アカウント**をシードし、動作確認を容易にする。
+部門は **4部門**（本部 + 開発1〜3部）。**3ロール × 4部門で 7 アカウント** をシードし、権限境界検証を容易にする。全アカウントのパスワードは `password`。
 
-| ロール | 氏名 | メール | パスワード | 所属部門 |
-|---|---|---|---|---|
-| 申請者（主） | 申請 太郎 | applicant@example.com | password | 開発1部 |
-| 申請者 | 申請 次郎 | applicant2@example.com | password | 開発2部 |
-| 申請者 | 申請 三郎 | applicant3@example.com | password | 開発3部 |
-| 部門管理者（主） | 部門 花子 | dept@example.com | password | 開発1部 |
-| 部門管理者 | 部門 慎二 | dept2@example.com | password | 開発2部 |
-| 部門管理者 | 部門 美咲 | dept3@example.com | password | 開発3部 |
-| 本部管理者 | 本部 一郎 | hq@example.com | password | 本部 |
+### 主系アカウント（単一動作確認用）
 
-> 実装は `database/seeders/UserSeeder.php`。主アカウント（applicant / dept / hq）は単一動作確認用、他部門の申請者・部門管理者は権限境界検証用。デプロイ後の動作確認アカウントは `doc/Information.md` に掲載。
+| ロール | メール | 所属部門 |
+|---|---|---|
+| 申請者 | applicant@example.com | 開発1部 |
+| 部門管理者 | dept@example.com | 開発1部 |
+| 本部管理者 | hq@example.com | 本部 |
+
+権限境界検証用として `applicant2/3@example.com`（開発2/3部）、`dept2/3@example.com`（開発2/3部）を追加シード。
+
+> 全アカウントの氏名・用途・デプロイ後の動作確認アカウントは `doc/Design/Information.md`、実装は `database/seeders/UserSeeder.php` を参照。
 
 ---
 
@@ -399,3 +330,17 @@ Cursor 上で実装する際は、対応する HTML モックと設計資料を�
 - **Q: テーブル追加したい？** → `doc/Design/design-philosophy.md §2` の「将来テーブル追加」に該当するか確認。PoCで必要なら追加 OK、そうでなければ nullable FK のみ残す。
 - **Q: UI を変えたい** → design_system.md の色・余白ルールの範囲で。バッジ・ステッパーの色は「統一済み」なので変えない。
 - **Q: APIが欲しい** → Inertia を採用しているため REST API は作らない。内部は Inertia response で返す。
+
+### 実装前のプラン確認（必須ルール）
+
+**どのような作業でも、実装（コード変更・ファイル作成・マイグレーション作成・ブランチ操作など）に着手する前に、必ずユーザーに以下のプランを提示して承認を得ること。**
+
+1. **対象**: 実装する画面・機能（課題1 / 課題2 のどちらか明示）
+2. **変更ファイル**: 追加・編集するファイルの一覧（新規 / 既存の区別を明記）
+3. **実装方針**: 使用する Service / Policy / 共通コンポーネント、クエリ分岐の方針
+4. **影響範囲**: 既存コードへの変更、マイグレーションの有無、シーダー更新の要否
+5. **スコープ外**: 今回やらないこと（課題2扱いで残す項目）
+
+プラン承認前にコードを書き始めない。ユーザーが「OK」「進めて」等の明示的な承認を返してから実装に移る。
+
+スコープや方針が不明な場合は §1（スコープ表）・§6（ロール別アクセス）・§12 FAQ を参照して自力で判断し、それでも判断に迷う場合のみ質問する（些末な確認で作業を止めない）。
