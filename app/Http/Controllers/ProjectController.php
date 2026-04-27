@@ -23,9 +23,13 @@ class ProjectController extends Controller
 
         return Inertia::render('Projects/Create', [
             'departments' => Department::query()
+                ->where('type', '!=', Department::TYPE_HEADQUARTERS)
                 ->select(['id', 'name'])
                 ->orderBy('id')
                 ->get(),
+            'defaultDepartmentId' => auth()->user()?->department?->isHeadquarters() === false
+                ? auth()->user()?->department_id
+                : null,
             'draftCount' => Project::query()
                 ->where('applicant_id', auth()->id())
                 ->where('status', ProjectStatus::Draft->value)
@@ -38,10 +42,12 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'tab' => ['nullable', 'in:approval,dev,budget'],
             'filter' => ['nullable', 'string', 'max:40'],
+            'status' => ['nullable', 'in:draft,pending_dept,pending_hq,approved,rejected'],
         ]);
 
         $tab = $validated['tab'] ?? 'approval';
         $filter = $validated['filter'] ?? null;
+        $status = $validated['status'] ?? null;
         $user = $request->user();
 
         $this->authorize('viewAny', Project::class);
@@ -64,6 +70,10 @@ class ProjectController extends Controller
 
         if ($tab === 'approval' && $filter === 'pending') {
             $query->pendingFor($user);
+        }
+
+        if ($tab === 'approval' && $status !== null) {
+            $query->where('status', $status);
         }
 
         $paginator = $query->latest('updated_at')->paginate(15);
@@ -91,6 +101,7 @@ class ProjectController extends Controller
         return Inertia::render('Projects/Index', [
             'tab' => $tab,
             'filter' => $filter,
+            'status' => $status,
             'projects' => $paginator->through(function (Project $project) use ($user, $rejectionLevelByProjectId) {
                 $rejectedAt = null;
                 if ($project->status === ProjectStatus::Rejected) {

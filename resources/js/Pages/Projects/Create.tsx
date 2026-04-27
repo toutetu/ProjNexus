@@ -35,6 +35,7 @@ interface Props {
         id: number;
         name: string;
     }>;
+    defaultDepartmentId?: number | null;
     draftCount?: number;
 }
 
@@ -53,7 +54,11 @@ const formatAmountForDisplay = (value: string): string => {
     return integerValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
-export default function ProjectsCreate({ departments, draftCount = 0 }: Props) {
+export default function ProjectsCreate({
+    departments,
+    defaultDepartmentId = null,
+    draftCount = 0,
+}: Props) {
     const { auth } = usePage<PageProps>().props;
     const roles = auth.user.roles ?? [];
     const submitsToHqDirect = roles.includes('dept_manager' as RoleName);
@@ -61,7 +66,7 @@ export default function ProjectsCreate({ departments, draftCount = 0 }: Props) {
 
     const { data, setData, post, processing, errors } = useForm<CreateProjectForm>({
         title: '',
-        department_id: '',
+        department_id: defaultDepartmentId ? String(defaultDepartmentId) : '',
         purpose: '',
         description: '',
         estimated_amount: '',
@@ -296,7 +301,16 @@ export default function ProjectsCreate({ departments, draftCount = 0 }: Props) {
                                     </p>
                                     <p className="mt-0.5 text-brand-muted">
                                         過去に保存した下書きが <b>{draftCount}件</b>{' '}
-                                        あります。案件一覧から再編集できます。
+                                        あります。
+                                        <Link
+                                            href={route('projects.index', {
+                                                tab: 'approval',
+                                                status: 'draft',
+                                            })}
+                                            className="ml-1 font-medium text-brand-blue hover:underline"
+                                        >
+                                            案件一覧から再編集できます。
+                                        </Link>
                                     </p>
                                 </div>
                             </div>

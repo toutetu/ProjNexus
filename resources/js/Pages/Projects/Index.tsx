@@ -25,6 +25,7 @@ type ProjectTab = 'approval' | 'dev' | 'budget';
 interface Props {
     tab: ProjectTab;
     filter?: string | null;
+    status?: string | null;
     projects?: {
         data: ProjectListItem[];
     };
@@ -174,7 +175,7 @@ const BUDGET_ROWS: BudgetProjectRow[] = [
     },
 ];
 
-export default function ProjectsIndex({ tab, filter, projects }: Props) {
+export default function ProjectsIndex({ tab, filter, status, projects }: Props) {
     const { flash } = usePage<PageProps>().props;
 
     const activeKey: ActiveKey =
@@ -205,6 +206,7 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
             data: {
                 tab: nextTab,
                 ...(filter ? { filter } : {}),
+                ...(status ? { status } : {}),
             },
             preserveScroll: true,
             preserveState: true,
