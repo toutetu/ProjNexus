@@ -447,6 +447,7 @@ class ProjectController extends Controller
         );
         $submitAction = $validated['submit_action'] ?? 'draft';
         unset($validated['submit_action']);
+        $validated['primary_assignee_id'] = $request->user()->id;
 
         $project = $request->user()->appliedProjects()->create([
             'status' => ProjectStatus::Draft,
