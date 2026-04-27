@@ -177,9 +177,13 @@ const BUDGET_ROWS: BudgetProjectRow[] = [
 
 export default function ProjectsIndex({ tab, filter, status, projects }: Props) {
     const { flash } = usePage<PageProps>().props;
+    const isPendingFilter = filter === 'pending';
 
     const activeKey: ActiveKey =
-        filter === 'pending' ? 'pending' : TAB_ACTIVE_KEY[tab];
+        isPendingFilter ? 'pending' : TAB_ACTIVE_KEY[tab];
+    const visibleTabItems = isPendingFilter
+        ? TAB_ITEMS.filter((item) => item.value === 'approval')
+        : TAB_ITEMS;
     const approvalRows: ApprovalProjectRow[] = projects
         ? projects.data.map((project) => ({
               id: project.id,
@@ -268,7 +272,7 @@ export default function ProjectsIndex({ tab, filter, status, projects }: Props) 
 
             <section className="overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm">
                 <div className="border-b border-brand-border px-5">
-                    <Tabs value={tab} onChange={handleTabChange} items={TAB_ITEMS} />
+                    <Tabs value={tab} onChange={handleTabChange} items={visibleTabItems} />
                 </div>
                 <div className="overflow-x-auto">
                     {tab === 'approval' && approvalRows.length === 0 ? (
