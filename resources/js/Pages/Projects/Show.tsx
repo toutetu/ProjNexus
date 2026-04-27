@@ -46,7 +46,6 @@ interface Props {
     canApproveDept: boolean;
     canApproveHq: boolean;
     canTakeBack: boolean;
-    canViewRejectedComment: boolean;
 }
 
 const formatCurrency = (value: number | null) =>
@@ -62,8 +61,9 @@ export default function ProjectsShow({
     canApproveDept,
     canApproveHq,
     canTakeBack,
-    canViewRejectedComment,
 }: Props) {
+    const activeSidebarKey =
+        project.status === 'rejected' ? 'projects-approval' : 'projects-dev';
     const skipsDeptStep =
         !!project.applicantSubmitsToHqDirect &&
         (project.status === 'pending_hq' ||
@@ -80,7 +80,7 @@ export default function ProjectsShow({
 
     return (
         <AuthenticatedLayout
-            activeKey="projects-dev"
+            activeKey={activeSidebarKey}
             breadcrumb={[
                 { label: '申請・承認', icon: FileCheck2 },
                 { label: '案件一覧', href: '/projects?tab=approval', icon: FolderSearch },
@@ -171,16 +171,14 @@ export default function ProjectsShow({
                                 />
                             </div>
                         </div>
-                        {project.status === 'rejected' &&
-                            canViewRejectedComment &&
-                            project.rejectedComment && (
+                        {project.status === 'rejected' && project.rejectedComment && (
                                 <div className="rounded-md border border-brand-red/20 bg-[#FEE2E2] px-4 py-3 text-sm text-[#991B1B]">
                                     <p className="font-semibold">却下コメント</p>
                                     <p className="mt-1 whitespace-pre-wrap leading-relaxed">
                                         {project.rejectedComment}
                                     </p>
                                 </div>
-                            )}
+                        )}
 
                         <div>
                             <InputLabel htmlFor="title" value="案件名" />

@@ -203,4 +203,42 @@ class ProjectApprovalFlowTest extends TestCase
         $this->assertSame(ProjectStatus::Draft->value, $project->status->value);
         $this->assertNull($project->submitted_at);
     }
+
+    public function test_hq_reject_notifies_dept_manager_who_approved(): void
+    {
+        $applicant = $this->applicantUser();
+        $deptManager = $this->deptManagerUser();
+        $hqManager = $this->hqManagerUser();
+        $dept = Department::query()->where('name', '開発1部')->firstOrFail();
+
+        $project = Project::query()->create([
+            'title' => '本部却下通知テスト',
+            'applicant_id' => $applicant->id,
+            'department_id' => $dept->id,
+            'status' => ProjectStatus::PendingDept,
+            'estimated_amount' => 30000,
+            'submitted_at' => now(),
+            'revision' => 1,
+        ]);
+
+        $this->actingAs($deptManager)->post(
+            route('projects.approve', $project, absolute: false),
+            ['level' => 'dept', 'comment' => '部門承認'],
+        );
+
+        $response = $this->actingAs($hqManager)->post(
+            route('projects.reject', $project, absolute: false),
+            ['level' => 'hq', 'comment' => '本部却下'],
+        );
+
+        $response->assertRedirect(route('projects.index', ['tab' => 'approval'], absolute: false));
+
+        $project->refresh();
+        $this->assertSame(ProjectStatus::Rejected->value, $project->status->value);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $deptManager->id,
+            'type' => NotificationType::ProjectRejected->value,
+            'title' => '本部で案件が却下されました',
+        ]);
+    }
 }

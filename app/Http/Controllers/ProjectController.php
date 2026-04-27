@@ -235,7 +235,6 @@ class ProjectController extends Controller
                     && $user?->hasRole(Role::DeptManager->value)
                 )
             );
-        $canViewRejectedComment = $project->applicant_id === $user?->id;
 
         return Inertia::render('Projects/Show', [
             'projectId' => $project->id,
@@ -243,7 +242,6 @@ class ProjectController extends Controller
             'canApproveDept' => $canApproveDept,
             'canApproveHq' => $canApproveHq,
             'canTakeBack' => $canTakeBack,
-            'canViewRejectedComment' => $canViewRejectedComment,
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,

@@ -225,6 +225,15 @@ class ApprovalService
                 body: "案件「{$project->title}」が却下されました。",
                 meta: ['project_id' => $project->id, 'level' => $level->value],
             );
+            if ($level === ApprovalLevel::Hq) {
+                $this->notificationService->notifyUsers(
+                    users: $this->deptApproversWhoApproved($project),
+                    type: NotificationType::ProjectRejected,
+                    title: '本部で案件が却下されました',
+                    body: "案件「{$project->title}」が本部却下されました。",
+                    meta: ['project_id' => $project->id, 'level' => $level->value],
+                );
+            }
 
             return $project->fresh();
         });
@@ -266,5 +275,24 @@ class ApprovalService
         return User::role(Role::DeptManager->value)
             ->where('department_id', $project->department_id)
             ->get();
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function deptApproversWhoApproved(Project $project): Collection
+    {
+        $approverIds = $project->approvals()
+            ->where('level', ApprovalLevel::Dept)
+            ->where('action', ApprovalAction::Approved)
+            ->pluck('approver_id')
+            ->unique()
+            ->values();
+
+        if ($approverIds->isEmpty()) {
+            return collect();
+        }
+
+        return User::query()->whereIn('id', $approverIds)->get();
     }
 }
