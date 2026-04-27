@@ -72,4 +72,17 @@ class ApprovalController extends Controller
 
         return redirect()->route('projects.index', ['tab' => 'approval']);
     }
+
+    public function takeBack(Project $project, Request $request): RedirectResponse
+    {
+        try {
+            $this->approvalService->takeBack($project, $request->user());
+        } catch (AuthorizationException $e) {
+            return redirect()
+                ->route('projects.index', ['tab' => 'approval'])
+                ->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('projects.index', ['tab' => 'approval']);
+    }
 }

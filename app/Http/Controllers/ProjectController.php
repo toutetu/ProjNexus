@@ -225,12 +225,21 @@ class ProjectController extends Controller
             && $project->department_id === $user->department_id;
         $canApproveHq = $user?->hasRole(Role::HqManager->value)
             && $project->status === ProjectStatus::PendingHq;
+        $canTakeBack = $project->applicant_id === $user?->id
+            && (
+                $project->status === ProjectStatus::PendingDept
+                || (
+                    $project->status === ProjectStatus::PendingHq
+                    && $user?->hasRole(Role::DeptManager->value)
+                )
+            );
 
         return Inertia::render('Projects/Show', [
             'projectId' => $project->id,
             'canEdit' => $canEdit,
             'canApproveDept' => $canApproveDept,
             'canApproveHq' => $canApproveHq,
+            'canTakeBack' => $canTakeBack,
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,

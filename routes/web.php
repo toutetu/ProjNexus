@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::post('/projects/{project}/submit', [ApprovalController::class, 'submit'])->name('projects.submit');
+    Route::post('/projects/{project}/take-back', [ApprovalController::class, 'takeBack'])->name('projects.takeBack');
     Route::post('/projects/{project}/approve', [ApprovalController::class, 'approve'])->name('projects.approve');
     Route::post('/projects/{project}/reject', [ApprovalController::class, 'reject'])->name('projects.reject');
 

@@ -137,4 +137,56 @@ class ProjectApprovalFlowTest extends TestCase
         $this->assertNotNull($applicantNotification);
         $this->assertNotNull($applicantNotification->read_at);
     }
+
+    public function test_applicant_can_take_back_pending_dept_to_draft(): void
+    {
+        $applicant = $this->applicantUser();
+        $dept = Department::query()->where('name', '開発1部')->firstOrFail();
+
+        $project = Project::query()->create([
+            'title' => '申請取り戻しテスト',
+            'applicant_id' => $applicant->id,
+            'department_id' => $dept->id,
+            'status' => ProjectStatus::PendingDept,
+            'estimated_amount' => 12000,
+            'submitted_at' => now(),
+            'revision' => 1,
+        ]);
+
+        $response = $this->actingAs($applicant)->post(
+            route('projects.takeBack', $project, absolute: false),
+        );
+
+        $response->assertRedirect(route('projects.index', ['tab' => 'approval'], absolute: false));
+
+        $project->refresh();
+        $this->assertSame(ProjectStatus::Draft->value, $project->status->value);
+        $this->assertNull($project->submitted_at);
+    }
+
+    public function test_dept_manager_applicant_can_take_back_pending_hq_direct_to_draft(): void
+    {
+        $managerApplicant = $this->deptManagerUser();
+        $dept = Department::query()->where('name', '開発1部')->firstOrFail();
+
+        $project = Project::query()->create([
+            'title' => '本部直行取り戻しテスト',
+            'applicant_id' => $managerApplicant->id,
+            'department_id' => $dept->id,
+            'status' => ProjectStatus::PendingHq,
+            'estimated_amount' => 15000,
+            'submitted_at' => now(),
+            'revision' => 1,
+        ]);
+
+        $response = $this->actingAs($managerApplicant)->post(
+            route('projects.takeBack', $project, absolute: false),
+        );
+
+        $response->assertRedirect(route('projects.index', ['tab' => 'approval'], absolute: false));
+
+        $project->refresh();
+        $this->assertSame(ProjectStatus::Draft->value, $project->status->value);
+        $this->assertNull($project->submitted_at);
+    }
 }

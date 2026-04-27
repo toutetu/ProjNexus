@@ -44,6 +44,7 @@ interface Props {
     canEdit: boolean;
     canApproveDept: boolean;
     canApproveHq: boolean;
+    canTakeBack: boolean;
 }
 
 const formatCurrency = (value: number | null) =>
@@ -58,6 +59,7 @@ export default function ProjectsShow({
     canEdit,
     canApproveDept,
     canApproveHq,
+    canTakeBack,
 }: Props) {
     const skipsDeptStep =
         !!project.applicantSubmitsToHqDirect &&
@@ -92,11 +94,27 @@ export default function ProjectsShow({
                             申請内容を確認し、承認または却下を行います
                         </p>
                     </div>
-                    {canEdit && (
-                        <Button asChild variant="outline" size="sm">
-                            <Link href={route('projects.edit', project.id)}>編集</Link>
-                        </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {canTakeBack && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    router.post(route('projects.takeBack', project.id), {}, {
+                                        preserveScroll: true,
+                                    });
+                                }}
+                            >
+                                取り戻して下書きに戻す
+                            </Button>
+                        )}
+                        {canEdit && (
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={route('projects.edit', project.id)}>編集</Link>
+                            </Button>
+                        )}
+                    </div>
                 </section>
 
                 <section className="rounded-lg border border-brand-border bg-white shadow-sm">

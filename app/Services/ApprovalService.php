@@ -223,6 +223,30 @@ class ApprovalService
         });
     }
 
+    public function takeBack(Project $project, User $actor): Project
+    {
+        if ($project->applicant_id !== $actor->id) {
+            throw new AuthorizationException('申請者本人のみ取り戻しできます。');
+        }
+
+        $canTakeBackFromPendingDept = $project->status === ProjectStatus::PendingDept;
+        $canTakeBackFromPendingHqDirect = $project->status === ProjectStatus::PendingHq
+            && $actor->hasRole(Role::DeptManager->value);
+
+        if (! $canTakeBackFromPendingDept && ! $canTakeBackFromPendingHqDirect) {
+            throw new AuthorizationException('部門承認待ち、または本部直行の本部承認待ち案件のみ取り戻しできます。');
+        }
+
+        return DB::transaction(function () use ($project) {
+            $project->update([
+                'status' => ProjectStatus::Draft,
+                'submitted_at' => null,
+            ]);
+
+            return $project->fresh();
+        });
+    }
+
     /**
      * @return Collection<int, User>
      */
