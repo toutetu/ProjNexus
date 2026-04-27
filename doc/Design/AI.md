@@ -259,6 +259,7 @@ draft → pending_dept → pending_hq → approved
 #### 作業終了時（毎日）
 1. **`doc/daily/` の各ファイルを更新**：
    - `doc/daily/daily_report.md`：本日の実績・気づき・翌日の予定を追記
+   -`/daily/log/daily_technical_report.md`：技術的に書いた日次の詳細作業記録
    - `doc/daily/development_schedule.md`：現在地・累計実績 h・残り h・今週の目標の更新
    - `doc/daily/implementation_schedule.md`：次回作業予定（具体的手順）を更新
 2. **変更をコミット**：`git add -A && git commit -m "docs: 日次更新 YYYY-MM-DD"`（実装があれば `feat:` などの prefix で別コミット）

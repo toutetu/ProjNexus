@@ -23,5 +23,5 @@
 
 ## 参照
 
-- 日次ワークフロー: `doc/Design/AI.md` §9（`CLAUDE.md` はリポジトリに未配置のため）
+- 日次ワークフロー: `doc/Design/AI.md` §9
 - 技術詳細ログ: `doc/daily/log/daily_technical_report_log.md`（2026-04-24 節）

@@ -5,6 +5,55 @@
 
 ---
 
+### 作業記録 2026-04-27（月）Phase 2 UI/通知仕上げ
+
+#### 1) 申請一覧 UI のモック準拠調整
+- `Projects/Index.tsx` の approval フィルターバーを再構成（検索・ステータス・部門・クリア）
+- テーブル下凡例（StatusPill 5種 + 注記）を追加
+- セレクト表示崩れ（文言と矢印の重なり）を `min-w` と `pr` 調整で修正
+- `filter=pending` 時は申請タブのみ表示、開発/予算タブを非表示化
+
+#### 2) サイドバー/ヘッダーの導線調整
+- サイドバー「承認待ち一覧」に `pendingApprovalCount` バッジを表示
+  - 0件時は非表示、99件超は `99+`
+- ヘッダー右上の検索窓を全画面から削除
+- 却下案件の詳細画面ではサイドバーのアクティブを `projects-approval` に切替
+
+#### 3) 申請・承認フローの挙動修正
+- `Projects/Create.tsx` の submit 送信競合を修正
+  - `useForm.transform` で `submit_action=submit` を確実に送信
+- 申請取り戻し機能を追加
+  - ルート: `projects.takeBack`
+  - 条件: 申請者本人の `pending_dept`、または部門管理者申請者の `pending_hq`
+  - 処理: `status -> draft`, `submitted_at -> null`
+
+#### 4) 通知ロジックの見直し
+- 申請時に承認者へ通知（部門管理者/本部管理者）を送信
+- 申請者への「申請受付」通知は `read_at` を即時セット（既読化）
+- 部門承認後に本部管理者へ承認依頼通知を送信
+- 本部却下時に、途中で部門承認した部門管理者へ却下通知を送信
+
+#### 5) 却下コメント表示の改善
+- `ProjectController@show` で最新却下コメントを取得
+- `Projects/Show.tsx` で承認ステップ直下に却下コメント枠を表示
+  - `bg-[#FEE2E2]` / `text-[#991B1B]` の注意表示スタイル
+- 表示条件を拡張し、却下ステータスならロール共通で表示
+
+#### 6) 検証
+- `npx tsc --noEmit` 複数回実行、全て成功
+- `php artisan test --filter=ProjectApprovalFlowTest` を継続実行し、追加ケース含め成功
+  - 申請通知、取り戻し、部門承認→本部通知、本部却下→部門通知を確認
+
+#### 7) コミット/プッシュ（feature ブランチ）
+- `ac455c21` fix: update logout redirect and pending approval tabs
+- `cead3308` feat: show pending approval count in sidebar
+- `0cedfb29` feat: rebuild approval filter bar and add query filters
+- `0a431784` fix: correct submit flow and notification delivery behavior
+- `f2343add` feat: allow applicants to take back pending requests
+- `43362b0c` feat: show reject comments and notify HQ after dept approval
+- `6adfb956` chore: add shared password hint on login test users
+- `af458c65` feat: improve rejected project visibility and rejection notifications
+
 ## 作業記録（時系列、最新が下）
 
 ### 作業記録 2026-04-20（月）Phase 0 完了

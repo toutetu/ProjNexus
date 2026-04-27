@@ -5,6 +5,55 @@
 
 ---
 
+## 2026-04-27（月）— Phase 2 UI/通知の仕上げと運用改善
+
+### 実装概要
+- **申請一覧（approval）UIをモック準拠へ再整理**
+  - フィルターバーを「検索/ステータス/部門/クリア」に再構成
+  - テーブル下凡例（StatusPill 5種）と注記を追加
+  - セレクトの表示崩れ（文言と記号重なり）を調整
+- **サイドバー/ヘッダー導線の改善**
+  - 承認待ち一覧に自分の承認待ち件数バッジを表示（0件非表示）
+  - ヘッダー右上検索窓を全画面から削除
+  - 却下案件詳細時はサイドバーの申請一覧をアクティブ化
+- **申請処理の確実化**
+  - 新規申請の `submit_action` 競合を修正し、申請ボタンで確実に `submit` 送信
+- **通知ルールの拡張**
+  - 申請時: 承認者（部門/本部）へ承認依頼通知
+  - 部門承認時: 本部管理者へ承認依頼通知
+  - 本部却下時: 途中承認した部門管理者へ却下通知
+  - 申請者の受付通知は即時既読化
+- **申請取り戻し機能**
+  - 申請者本人が `pending_dept` を下書きへ戻せる
+  - 部門管理者申請者は `pending_hq`（本部直行）でも取り戻し可
+- **却下コメント表示の改善**
+  - 却下詳細画面で承認ステップ直下に注意表示（薄い赤背景）
+  - ステータスが却下ならロール共通でコメント表示
+- **ログイン画面調整**
+  - テストユーザーボックス下部に `パスワード：password` を表示
+  - 文字サイズ・太さを表ヘッダーに合わせて調整
+
+### 主要変更ファイル
+- `app/Services/ApprovalService.php`
+- `app/Services/NotificationService.php`
+- `app/Http/Controllers/ProjectController.php`
+- `app/Http/Controllers/ApprovalController.php`
+- `resources/js/Pages/Projects/Index.tsx`
+- `resources/js/Pages/Projects/Show.tsx`
+- `resources/js/Pages/Projects/Create.tsx`
+- `resources/js/Components/Layout/Header.tsx`
+- `resources/js/Pages/Auth/Login.tsx`
+- `tests/Feature/ProjectApprovalFlowTest.php`
+
+### 検証
+- `npx tsc --noEmit` 成功
+- `php artisan test --filter=ProjectApprovalFlowTest` 成功（追加シナリオ含む）
+- Lint（変更対象）エラーなし
+
+### 成果
+- 申請〜承認〜却下のロール別導線と通知経路が整理され、手動確認での再現性が向上
+- モックとの差分（特に approval タブ）を大幅に縮小
+
 ## 作業記録（時系列、最新が下）
 
 ### 作業記録 2026-04-23（木）Phase 2 追加実装・日次運用（本チャット分）
