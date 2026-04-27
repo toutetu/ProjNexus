@@ -17,6 +17,39 @@ use Inertia\Response;
 
 class ProjectController extends Controller
 {
+    /**
+     * @return array<string, string>
+     */
+    private function validationMessages(): array
+    {
+        return [
+            'required' => ':attribute は必須です。',
+            'max' => ':attribute は :max 文字以内で入力してください。',
+            'numeric' => ':attribute は数値で入力してください。',
+            'integer' => ':attribute は整数で入力してください。',
+            'min' => ':attribute は :min 以上で入力してください。',
+            'exists' => '選択した :attribute は無効です。',
+            'in' => ':attribute の値が不正です。',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function validationAttributes(): array
+    {
+        return [
+            'title' => '案件名',
+            'department_id' => '担当部門',
+            'purpose' => '目的',
+            'description' => '概要・説明',
+            'estimated_amount' => '概算予算',
+            'estimated_days' => '概算工数',
+            'primary_assignee_id' => '主担当',
+            'submit_action' => '保存方法',
+        ];
+    }
+
     public function create(): Response
     {
         $this->authorize('create', Project::class);
@@ -214,16 +247,20 @@ class ProjectController extends Controller
     {
         $this->authorize('create', Project::class);
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:80'],
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
-            'purpose' => ['nullable', 'string', 'max:2000'],
-            'description' => ['nullable', 'string', 'max:5000'],
-            'estimated_amount' => ['required', 'numeric', 'min:0'],
-            'estimated_days' => ['nullable', 'integer', 'min:0'],
-            'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
-            'submit_action' => ['nullable', 'in:draft,submit'],
-        ]);
+        $validated = $request->validate(
+            [
+                'title' => ['required', 'string', 'max:80'],
+                'department_id' => ['required', 'integer', 'exists:departments,id'],
+                'purpose' => ['nullable', 'string', 'max:2000'],
+                'description' => ['nullable', 'string', 'max:5000'],
+                'estimated_amount' => ['required', 'numeric', 'min:0'],
+                'estimated_days' => ['nullable', 'integer', 'min:0'],
+                'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+                'submit_action' => ['nullable', 'in:draft,submit'],
+            ],
+            $this->validationMessages(),
+            $this->validationAttributes(),
+        );
         $submitAction = $validated['submit_action'] ?? 'draft';
         unset($validated['submit_action']);
 
@@ -250,16 +287,20 @@ class ProjectController extends Controller
     {
         $this->authorize('update', $project);
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:80'],
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
-            'purpose' => ['nullable', 'string', 'max:2000'],
-            'description' => ['nullable', 'string', 'max:5000'],
-            'estimated_amount' => ['required', 'numeric', 'min:0'],
-            'estimated_days' => ['nullable', 'integer', 'min:0'],
-            'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
-            'submit_action' => ['nullable', 'in:draft,submit'],
-        ]);
+        $validated = $request->validate(
+            [
+                'title' => ['required', 'string', 'max:80'],
+                'department_id' => ['required', 'integer', 'exists:departments,id'],
+                'purpose' => ['nullable', 'string', 'max:2000'],
+                'description' => ['nullable', 'string', 'max:5000'],
+                'estimated_amount' => ['required', 'numeric', 'min:0'],
+                'estimated_days' => ['nullable', 'integer', 'min:0'],
+                'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+                'submit_action' => ['nullable', 'in:draft,submit'],
+            ],
+            $this->validationMessages(),
+            $this->validationAttributes(),
+        );
         $submitAction = $validated['submit_action'] ?? 'draft';
         unset($validated['submit_action']);
 

@@ -77,7 +77,16 @@ export default function ProjectsCreate({
 
     const submitWithAction = (action: 'draft' | 'submit') => {
         setData((prev) => ({ ...prev, submit_action: action }));
-        post(route('projects.store'));
+        post(route('projects.store'), {
+            onError: () => {
+                if (action === 'draft') {
+                    window.alert('保存できませんでした！\n入力内容を確認してください。');
+                    return;
+                }
+
+                window.alert('申請できませんでした！\n入力内容を確認してください。');
+            },
+        });
     };
 
     return (
@@ -155,8 +164,14 @@ export default function ProjectsCreate({
                     </div>
 
                     <div className="space-y-6 p-6">
+                        <p className="text-xs text-brand-muted">
+                            <span className="font-semibold text-brand-red">*</span>
+                            印がついている項目は、入力必須項目です。
+                        </p>
                         <div>
-                            <InputLabel htmlFor="title" value="案件名 *" />
+                            <InputLabel htmlFor="title">
+                                案件名 <span className="text-brand-red">*</span>
+                            </InputLabel>
                             <Input
                                 id="title"
                                 value={data.title}
@@ -174,7 +189,9 @@ export default function ProjectsCreate({
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="department_id" value="担当部門 *" />
+                            <InputLabel htmlFor="department_id">
+                                担当部門 <span className="text-brand-red">*</span>
+                            </InputLabel>
                             <select
                                 id="department_id"
                                 value={data.department_id}
@@ -198,7 +215,9 @@ export default function ProjectsCreate({
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="purpose" value="目的 *" />
+                            <InputLabel htmlFor="purpose">
+                                目的 <span className="text-brand-red">*</span>
+                            </InputLabel>
                             <textarea
                                 id="purpose"
                                 value={data.purpose}
@@ -236,7 +255,9 @@ export default function ProjectsCreate({
 
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                             <div>
-                                <InputLabel htmlFor="estimated_amount" value="概算予算 *" />
+                                <InputLabel htmlFor="estimated_amount">
+                                    概算予算 <span className="text-brand-red">*</span>
+                                </InputLabel>
                                 <div className="relative mt-1.5">
                                     <Input
                                         id="estimated_amount"

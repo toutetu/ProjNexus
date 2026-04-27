@@ -163,7 +163,9 @@ export default function ProjectsEdit({ departments, project }: Props) {
 
                     <div className="space-y-6 p-6">
                         <div>
-                            <InputLabel htmlFor="title" value="案件名 *" />
+                            <InputLabel htmlFor="title">
+                                案件名 <span className="text-brand-red">*</span>
+                            </InputLabel>
                             <Input
                                 id="title"
                                 value={data.title}
@@ -181,7 +183,9 @@ export default function ProjectsEdit({ departments, project }: Props) {
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="department_id" value="担当部門 *" />
+                            <InputLabel htmlFor="department_id">
+                                担当部門 <span className="text-brand-red">*</span>
+                            </InputLabel>
                             <select
                                 id="department_id"
                                 value={data.department_id}
@@ -200,7 +204,9 @@ export default function ProjectsEdit({ departments, project }: Props) {
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="purpose" value="目的 *" />
+                            <InputLabel htmlFor="purpose">
+                                目的 <span className="text-brand-red">*</span>
+                            </InputLabel>
                             <textarea
                                 id="purpose"
                                 value={data.purpose}
@@ -228,7 +234,9 @@ export default function ProjectsEdit({ departments, project }: Props) {
 
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                             <div>
-                                <InputLabel htmlFor="estimated_amount" value="概算予算 *" />
+                                <InputLabel htmlFor="estimated_amount">
+                                    概算予算 <span className="text-brand-red">*</span>
+                                </InputLabel>
                                 <div className="relative mt-1.5">
                                     <Input
                                         id="estimated_amount"
