@@ -171,11 +171,18 @@ class ProjectController extends Controller
         $this->authorize('update', $project);
 
         return Inertia::render('Projects/Edit', [
+            'departments' => Department::query()
+                ->select(['id', 'name'])
+                ->orderBy('id')
+                ->get(),
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,
+                'departmentId' => $project->department_id,
                 'purpose' => $project->purpose,
+                'description' => $project->description,
                 'estimatedAmount' => $project->estimated_amount,
+                'estimatedDays' => $project->estimated_days,
             ],
         ]);
     }
@@ -216,18 +223,36 @@ class ProjectController extends Controller
         return redirect()->route('projects.index', ['tab' => 'approval']);
     }
 
-    public function update(Request $request, Project $project): RedirectResponse
+    public function update(Request $request, Project $project, ApprovalService $approvalService): RedirectResponse
     {
         $this->authorize('update', $project);
 
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:80'],
+            'department_id' => ['required', 'integer', 'exists:departments,id'],
             'purpose' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:5000'],
             'estimated_amount' => ['required', 'numeric', 'min:0'],
+            'estimated_days' => ['nullable', 'integer', 'min:0'],
             'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+            'submit_action' => ['nullable', 'in:draft,submit'],
         ]);
+        $submitAction = $validated['submit_action'] ?? 'draft';
+        unset($validated['submit_action']);
 
         $project->update($validated);
+
+        if ($submitAction === 'submit') {
+            try {
+                $approvalService->submit($project->fresh(), $request->user());
+            } catch (AuthorizationException $e) {
+                return redirect()
+                    ->route('projects.index', ['tab' => 'approval'])
+                    ->with('error', $e->getMessage());
+            }
+
+            return redirect()->route('projects.index', ['tab' => 'approval']);
+        }
 
         return redirect()->route('projects.show', $project);
     }
