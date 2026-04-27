@@ -7,6 +7,7 @@ import {
     GitBranch,
     Inbox,
     Plus,
+    Search,
     Wallet,
 } from 'lucide-react';
 
@@ -26,6 +27,9 @@ interface Props {
     tab: ProjectTab;
     filter?: string | null;
     status?: string | null;
+    department?: number | null;
+    q?: string | null;
+    departments?: Array<{ id: number; name: string }>;
     projects?: {
         data: ProjectListItem[];
     };
@@ -175,7 +179,15 @@ const BUDGET_ROWS: BudgetProjectRow[] = [
     },
 ];
 
-export default function ProjectsIndex({ tab, filter, status, projects }: Props) {
+export default function ProjectsIndex({
+    tab,
+    filter,
+    status,
+    department,
+    q,
+    departments = [],
+    projects,
+}: Props) {
     const { flash } = usePage<PageProps>().props;
     const isPendingFilter = filter === 'pending';
 
@@ -211,6 +223,34 @@ export default function ProjectsIndex({ tab, filter, status, projects }: Props) 
                 tab: nextTab,
                 ...(filter ? { filter } : {}),
                 ...(status ? { status } : {}),
+                ...(department ? { department } : {}),
+                ...(q ? { q } : {}),
+            },
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const submitApprovalFilters = ({
+        keyword,
+        nextStatus,
+        nextDepartment,
+    }: {
+        keyword: string;
+        nextStatus?: string;
+        nextDepartment?: string;
+    }) => {
+        const nextQ = keyword.trim();
+        const statusValue = (nextStatus ?? status ?? '').trim();
+        const departmentValue = (nextDepartment ?? String(department ?? '')).trim();
+        router.visit(route('projects.index'), {
+            data: {
+                tab: 'approval',
+                ...(filter ? { filter } : {}),
+                ...(statusValue ? { status: statusValue } : {}),
+                ...(departmentValue ? { department: Number(departmentValue) } : {}),
+                ...(nextQ ? { q: nextQ } : {}),
             },
             preserveScroll: true,
             preserveState: true,
@@ -274,6 +314,109 @@ export default function ProjectsIndex({ tab, filter, status, projects }: Props) 
                 <div className="border-b border-brand-border px-5">
                     <Tabs value={tab} onChange={handleTabChange} items={visibleTabItems} />
                 </div>
+                {tab === 'approval' && (
+                    <div className="border-b border-brand-border px-5 py-3">
+                        <form
+                            className="flex flex-wrap items-center gap-3"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                const form = event.currentTarget;
+                                const formData = new FormData(form);
+                                submitApprovalFilters({
+                                    keyword: String(formData.get('q') ?? ''),
+                                    nextStatus: String(formData.get('status') ?? ''),
+                                    nextDepartment: String(formData.get('department') ?? ''),
+                                });
+                            }}
+                        >
+                            <div className="relative w-full max-w-[20rem]">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                                <input
+                                    name="q"
+                                    defaultValue={q ?? ''}
+                                    placeholder="案件名・申請者で検索"
+                                    className="w-full rounded-md border border-brand-border bg-white py-2 pl-9 pr-3 text-sm text-brand-dark placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                />
+                            </div>
+                            <select
+                                name="status"
+                                defaultValue={status ?? ''}
+                                className="rounded-md border border-brand-border bg-white px-3 py-2 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                onChange={(event) =>
+                                    submitApprovalFilters({
+                                        keyword: String(
+                                            (
+                                                event.currentTarget.form?.elements.namedItem(
+                                                    'q',
+                                                ) as HTMLInputElement | null
+                                            )?.value ?? '',
+                                        ),
+                                        nextStatus: event.currentTarget.value,
+                                        nextDepartment: String(
+                                            (
+                                                event.currentTarget.form?.elements.namedItem(
+                                                    'department',
+                                                ) as HTMLSelectElement | null
+                                            )?.value ?? '',
+                                        ),
+                                    })
+                                }
+                            >
+                                <option value="">ステータス：すべて</option>
+                                <option value="draft">下書き</option>
+                                <option value="pending_dept">部門承認待ち</option>
+                                <option value="pending_hq">本部承認待ち</option>
+                                <option value="rejected">却下</option>
+                            </select>
+                            <select
+                                name="department"
+                                defaultValue={department ? String(department) : ''}
+                                className="rounded-md border border-brand-border bg-white px-3 py-2 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                onChange={(event) =>
+                                    submitApprovalFilters({
+                                        keyword: String(
+                                            (
+                                                event.currentTarget.form?.elements.namedItem(
+                                                    'q',
+                                                ) as HTMLInputElement | null
+                                            )?.value ?? '',
+                                        ),
+                                        nextStatus: String(
+                                            (
+                                                event.currentTarget.form?.elements.namedItem(
+                                                    'status',
+                                                ) as HTMLSelectElement | null
+                                            )?.value ?? '',
+                                        ),
+                                        nextDepartment: event.currentTarget.value,
+                                    })
+                                }
+                            >
+                                <option value="">部門：すべて</option>
+                                {departments.map((dept) => (
+                                    <option key={dept.id} value={dept.id}>
+                                        {dept.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {(q || status || department) && (
+                                <button
+                                    type="button"
+                                    className="ml-auto text-sm text-brand-blue hover:underline"
+                                    onClick={() =>
+                                        submitApprovalFilters({
+                                            keyword: '',
+                                            nextStatus: '',
+                                            nextDepartment: '',
+                                        })
+                                    }
+                                >
+                                    クリア
+                                </button>
+                            )}
+                        </form>
+                    </div>
+                )}
                 <div className="overflow-x-auto">
                     {tab === 'approval' && approvalRows.length === 0 ? (
                         <div className="px-6 py-14">
@@ -446,6 +589,17 @@ export default function ProjectsIndex({ tab, filter, status, projects }: Props) 
                     )}
                 </div>
             </section>
+
+            {tab === 'approval' && (
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-brand-muted">
+                    <StatusPill status="draft" />
+                    <StatusPill status="pending_dept" />
+                    <StatusPill status="pending_hq" />
+                    <StatusPill status="approved" />
+                    <StatusPill status="rejected" />
+                    <span className="ml-auto">※ 承認済み案件は「開発タブ」で確認できます</span>
+                </div>
+            )}
 
         </AuthenticatedLayout>
     );

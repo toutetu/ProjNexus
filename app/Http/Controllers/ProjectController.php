@@ -76,11 +76,18 @@ class ProjectController extends Controller
             'tab' => ['nullable', 'in:approval,dev,budget'],
             'filter' => ['nullable', 'string', 'max:40'],
             'status' => ['nullable', 'in:draft,pending_dept,pending_hq,approved,rejected'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'department' => ['nullable', 'integer', 'exists:departments,id'],
         ]);
 
         $tab = $validated['tab'] ?? 'approval';
         $filter = $validated['filter'] ?? null;
         $status = $validated['status'] ?? null;
+        $departmentId = $validated['department'] ?? null;
+        $q = isset($validated['q']) ? trim((string) $validated['q']) : null;
+        if ($q === '') {
+            $q = null;
+        }
         $user = $request->user();
 
         $this->authorize('viewAny', Project::class);
@@ -109,6 +116,23 @@ class ProjectController extends Controller
             $query->where('status', $status);
         }
 
+        if ($tab === 'approval' && $departmentId !== null) {
+            $query->where('department_id', $departmentId);
+        }
+
+        if ($tab === 'approval' && $q !== null) {
+            $query->where(function ($inner) use ($q): void {
+                $inner
+                    ->where('title', 'like', "%{$q}%")
+                    ->orWhereHas('applicant', function ($applicantQuery) use ($q): void {
+                        $applicantQuery->where('name', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('department', function ($departmentQuery) use ($q): void {
+                        $departmentQuery->where('name', 'like', "%{$q}%");
+                    });
+            });
+        }
+
         $paginator = $query->latest('updated_at')->paginate(15);
 
         $rejectedIds = $paginator
@@ -135,6 +159,13 @@ class ProjectController extends Controller
             'tab' => $tab,
             'filter' => $filter,
             'status' => $status,
+            'department' => $departmentId,
+            'q' => $q,
+            'departments' => Department::query()
+                ->where('type', '!=', Department::TYPE_HEADQUARTERS)
+                ->select(['id', 'name'])
+                ->orderBy('id')
+                ->get(),
             'projects' => $paginator->through(function (Project $project) use ($user, $rejectionLevelByProjectId) {
                 $rejectedAt = null;
                 if ($project->status === ProjectStatus::Rejected) {
