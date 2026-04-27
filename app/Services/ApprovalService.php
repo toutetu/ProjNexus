@@ -133,6 +133,13 @@ class ApprovalService
                 body: "案件「{$project->title}」が部門承認されました。",
                 meta: ['project_id' => $project->id, 'level' => ApprovalLevel::Dept->value],
             );
+            $this->notificationService->notifyUsers(
+                users: $this->submissionApprovers($project, ProjectStatus::PendingHq),
+                type: NotificationType::ProjectSubmitted,
+                title: '承認依頼が届いています',
+                body: "案件「{$project->title}」が部門承認されました。本部承認をお願いします。",
+                meta: ['project_id' => $project->id, 'status' => ProjectStatus::PendingHq->value],
+            );
 
             return $project->fresh();
         });

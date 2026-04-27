@@ -35,6 +35,7 @@ interface ProjectShowData {
     revision: number;
     parentProjectId: number | null;
     rejectedAt?: 'dept' | 'hq' | null;
+    rejectedComment?: string | null;
     applicantSubmitsToHqDirect?: boolean;
 }
 
@@ -45,6 +46,7 @@ interface Props {
     canApproveDept: boolean;
     canApproveHq: boolean;
     canTakeBack: boolean;
+    canViewRejectedComment: boolean;
 }
 
 const formatCurrency = (value: number | null) =>
@@ -60,6 +62,7 @@ export default function ProjectsShow({
     canApproveDept,
     canApproveHq,
     canTakeBack,
+    canViewRejectedComment,
 }: Props) {
     const skipsDeptStep =
         !!project.applicantSubmitsToHqDirect &&
@@ -168,6 +171,16 @@ export default function ProjectsShow({
                                 />
                             </div>
                         </div>
+                        {project.status === 'rejected' &&
+                            canViewRejectedComment &&
+                            project.rejectedComment && (
+                                <div className="rounded-md border border-brand-red/20 bg-[#FEE2E2] px-4 py-3 text-sm text-[#991B1B]">
+                                    <p className="font-semibold">却下コメント</p>
+                                    <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+                                        {project.rejectedComment}
+                                    </p>
+                                </div>
+                            )}
 
                         <div>
                             <InputLabel htmlFor="title" value="案件名" />

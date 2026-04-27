@@ -209,6 +209,7 @@ class ProjectController extends Controller
         ]);
 
         $rejectedAt = null;
+        $rejectedComment = null;
         if ($project->status === ProjectStatus::Rejected) {
             $lastReject = Approval::query()
                 ->where('project_id', $project->id)
@@ -217,6 +218,7 @@ class ProjectController extends Controller
                 ->first();
             $level = $lastReject?->level->value;
             $rejectedAt = $level === 'dept' || $level === 'hq' ? $level : null;
+            $rejectedComment = $lastReject?->comment;
         }
 
         $applicantIsDeptManager = $project->applicant?->hasRole(Role::DeptManager->value) ?? false;
@@ -233,6 +235,7 @@ class ProjectController extends Controller
                     && $user?->hasRole(Role::DeptManager->value)
                 )
             );
+        $canViewRejectedComment = $project->applicant_id === $user?->id;
 
         return Inertia::render('Projects/Show', [
             'projectId' => $project->id,
@@ -240,6 +243,7 @@ class ProjectController extends Controller
             'canApproveDept' => $canApproveDept,
             'canApproveHq' => $canApproveHq,
             'canTakeBack' => $canTakeBack,
+            'canViewRejectedComment' => $canViewRejectedComment,
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,
@@ -257,6 +261,7 @@ class ProjectController extends Controller
                 'revision' => $project->revision,
                 'parentProjectId' => $project->parent_project_id,
                 'rejectedAt' => $rejectedAt,
+                'rejectedComment' => $rejectedComment,
                 'applicantSubmitsToHqDirect' => $applicantIsDeptManager,
             ],
         ]);

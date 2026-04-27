@@ -40,10 +40,19 @@ class ProjectApprovalFlowTest extends TestCase
         return $user;
     }
 
+    private function hqManagerUser(): User
+    {
+        $user = User::factory()->create(['department_id' => null]);
+        $user->assignRole('hq_manager');
+
+        return $user;
+    }
+
     public function test_dept_manager_can_approve_pending_dept_project(): void
     {
         $applicant = $this->applicantUser();
         $manager = $this->deptManagerUser();
+        $hqManager = $this->hqManagerUser();
         $dept = Department::query()->where('name', '開発1部')->firstOrFail();
 
         $project = Project::query()->create([
@@ -64,6 +73,11 @@ class ProjectApprovalFlowTest extends TestCase
             route('projects.index', ['tab' => 'approval', 'filter' => 'pending'], absolute: false),
         );
         $this->assertSame(ProjectStatus::PendingHq->value, $project->fresh()->status->value);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $hqManager->id,
+            'type' => NotificationType::ProjectSubmitted->value,
+            'title' => '承認依頼が届いています',
+        ]);
     }
 
     public function test_applicant_cannot_approve_project(): void
