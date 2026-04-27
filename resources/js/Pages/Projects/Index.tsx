@@ -341,7 +341,7 @@ export default function ProjectsIndex({
                             <select
                                 name="status"
                                 defaultValue={status ?? ''}
-                                className="rounded-md border border-brand-border bg-white px-3 py-2 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                className="min-w-[170px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
                                 onChange={(event) =>
                                     submitApprovalFilters({
                                         keyword: String(
@@ -371,7 +371,7 @@ export default function ProjectsIndex({
                             <select
                                 name="department"
                                 defaultValue={department ? String(department) : ''}
-                                className="rounded-md border border-brand-border bg-white px-3 py-2 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                className="min-w-[150px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
                                 onChange={(event) =>
                                     submitApprovalFilters({
                                         keyword: String(

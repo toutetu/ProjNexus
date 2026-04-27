@@ -19,6 +19,7 @@ class NotificationService
         string $title,
         ?string $body = null,
         ?array $meta = null,
+        bool $markAsRead = false,
     ): void {
         $targets = $users instanceof Collection ? $users : collect($users);
 
@@ -29,6 +30,7 @@ class NotificationService
                 'title' => $title,
                 'body' => $body,
                 'meta' => $meta,
+                'read_at' => $markAsRead ? now() : null,
             ]);
         }
     }

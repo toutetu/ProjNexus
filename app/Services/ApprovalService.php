@@ -10,6 +10,7 @@ use App\Enums\Role;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ApprovalService
@@ -46,6 +47,14 @@ class ApprovalService
                     title: '申請を受け付けました',
                     body: "案件「{$project->title}」を申請しました。",
                     meta: ['project_id' => $project->id, 'status' => $nextStatus->value],
+                    markAsRead: true,
+                );
+                $this->notificationService->notifyUsers(
+                    users: $this->submissionApprovers($project, $nextStatus),
+                    type: NotificationType::ProjectSubmitted,
+                    title: '承認依頼が届いています',
+                    body: "案件「{$project->title}」の承認依頼です。",
+                    meta: ['project_id' => $project->id, 'status' => $nextStatus->value],
                 );
 
                 return $project->fresh();
@@ -75,6 +84,14 @@ class ApprovalService
                 type: NotificationType::ProjectSubmitted,
                 title: '再申請を受け付けました',
                 body: "案件「{$new->title}」を再申請しました（案件ID: {$new->id}）。",
+                meta: ['project_id' => $new->id, 'status' => $nextStatus->value, 'resubmit_of' => $project->id],
+                markAsRead: true,
+            );
+            $this->notificationService->notifyUsers(
+                users: $this->submissionApprovers($new, $nextStatus),
+                type: NotificationType::ProjectSubmitted,
+                title: '承認依頼が届いています',
+                body: "案件「{$new->title}」の承認依頼です。",
                 meta: ['project_id' => $new->id, 'status' => $nextStatus->value, 'resubmit_of' => $project->id],
             );
 
@@ -204,5 +221,19 @@ class ApprovalService
 
             return $project->fresh();
         });
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function submissionApprovers(Project $project, ProjectStatus $nextStatus): Collection
+    {
+        if ($nextStatus === ProjectStatus::PendingHq) {
+            return User::role(Role::HqManager->value)->get();
+        }
+
+        return User::role(Role::DeptManager->value)
+            ->where('department_id', $project->department_id)
+            ->get();
     }
 }

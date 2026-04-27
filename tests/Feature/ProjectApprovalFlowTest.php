@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ProjectStatus;
+use App\Enums\NotificationType;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\User;
@@ -89,5 +90,51 @@ class ProjectApprovalFlowTest extends TestCase
         );
         $response->assertSessionHas('error');
         $this->assertSame(ProjectStatus::PendingDept->value, $project->fresh()->status->value);
+    }
+
+    public function test_submit_notifies_dept_manager_in_same_department(): void
+    {
+        $applicant = $this->applicantUser();
+        $manager = $this->deptManagerUser();
+        $dept = Department::query()->where('name', '開発1部')->firstOrFail();
+
+        $response = $this->actingAs($applicant)->post(
+            route('projects.store', absolute: false),
+            [
+                'title' => '通知配信テスト',
+                'department_id' => $dept->id,
+                'purpose' => '通知確認',
+                'description' => '申請時の通知先を検証',
+                'estimated_amount' => 10000,
+                'estimated_days' => 3,
+                'submit_action' => 'submit',
+            ],
+        );
+
+        $response->assertRedirect(route('projects.index', ['tab' => 'approval'], absolute: false));
+
+        $project = Project::query()->latest('id')->firstOrFail();
+        $this->assertSame(ProjectStatus::PendingDept->value, $project->status->value);
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $manager->id,
+            'type' => NotificationType::ProjectSubmitted->value,
+            'title' => '承認依頼が届いています',
+        ]);
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $applicant->id,
+            'type' => NotificationType::ProjectSubmitted->value,
+            'title' => '申請を受け付けました',
+        ]);
+
+        $applicantNotification = \App\Models\Notification::query()
+            ->where('user_id', $applicant->id)
+            ->where('type', NotificationType::ProjectSubmitted)
+            ->where('title', '申請を受け付けました')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($applicantNotification);
+        $this->assertNotNull($applicantNotification->read_at);
     }
 }

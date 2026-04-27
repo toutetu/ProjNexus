@@ -65,7 +65,7 @@ export default function ProjectsCreate({
     const submitsToHqDirect = roles.includes('dept_manager' as RoleName);
     const [confirmOpen, setConfirmOpen] = useState(false);
 
-    const { data, setData, post, processing, errors } = useForm<CreateProjectForm>({
+    const { data, setData, post, processing, errors, transform } = useForm<CreateProjectForm>({
         title: '',
         department_id: defaultDepartmentId ? String(defaultDepartmentId) : '',
         purpose: '',
@@ -76,7 +76,7 @@ export default function ProjectsCreate({
     });
 
     const submitWithAction = (action: 'draft' | 'submit') => {
-        setData((prev) => ({ ...prev, submit_action: action }));
+        transform((form) => ({ ...form, submit_action: action }));
         post(route('projects.store'), {
             onError: () => {
                 if (action === 'draft') {
@@ -85,6 +85,12 @@ export default function ProjectsCreate({
                 }
 
                 window.alert('申請できませんでした！\n入力内容を確認してください。');
+            },
+            onFinish: () => {
+                transform((form) => ({ ...form, submit_action: 'draft' }));
+                if (action === 'submit') {
+                    setConfirmOpen(false);
+                }
             },
         });
     };
