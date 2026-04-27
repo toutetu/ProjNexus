@@ -15,13 +15,13 @@ export default function AuthenticatedLayout({
     children,
 }: PropsWithChildren<AuthenticatedLayoutProps>) {
     return (
-        <div className="flex min-h-screen bg-brand-bg text-brand-dark">
+        <div className="flex h-screen overflow-hidden bg-brand-bg text-brand-dark">
             <Sidebar activeKey={activeKey} />
 
-            <main className="flex min-w-0 flex-1 flex-col">
+            <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <Header breadcrumb={breadcrumb} />
 
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-scroll p-6">
                     <div className="mx-auto max-w-7xl">{children}</div>
                 </div>
             </main>

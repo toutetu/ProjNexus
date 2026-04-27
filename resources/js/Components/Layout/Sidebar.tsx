@@ -163,7 +163,7 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
 
     return (
         <aside
-            className="flex w-64 shrink-0 flex-col text-white"
+            className="flex h-screen w-64 shrink-0 flex-col overflow-hidden text-white"
             style={{ background: '#212429' }}
         >
             <div className="flex h-14 items-center border-b border-white/10 px-5">
@@ -183,7 +183,7 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                 </Link>
             </div>
 
-            <nav className="flex-1 overflow-y-auto py-3 text-sm">
+            <nav className="flex-1 py-3 text-sm">
                 <SidebarSection label="申請・承認">
                     {canCreate && (
                         <SidebarLink
