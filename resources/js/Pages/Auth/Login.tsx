@@ -136,6 +136,7 @@ export default function Login({
                         </tbody>
                     </table>
                 </div>
+                <p className="mt-3 text-xs font-semibold text-gray-700"> パスワード：password</p>
             </section>
         </GuestLayout>
     );
