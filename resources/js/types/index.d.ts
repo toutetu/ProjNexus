@@ -36,4 +36,5 @@ export type PageProps<
     };
     flash?: FlashMessages;
     unreadNotificationCount?: number;
+    pendingApprovalCount?: number;
 };

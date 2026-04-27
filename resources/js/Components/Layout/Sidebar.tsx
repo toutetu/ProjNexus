@@ -150,7 +150,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeKey = null }: SidebarProps) {
-    const { auth, unreadNotificationCount = 0 } = usePage<PageProps>().props;
+    const { auth, unreadNotificationCount = 0, pendingApprovalCount = 0 } =
+        usePage<PageProps>().props;
     const user = auth.user;
     const roles = user.roles;
     const hasRole = (role: RoleName) => roles.includes(role);
@@ -204,6 +205,13 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                             icon={Inbox}
                             label="承認待ち一覧"
                             active={activeKey === 'pending'}
+                            badge={
+                                pendingApprovalCount > 0
+                                    ? pendingApprovalCount > 99
+                                        ? '99+'
+                                        : pendingApprovalCount
+                                    : undefined
+                            }
                         />
                     )}
                     <SidebarLink
