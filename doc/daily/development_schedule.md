@@ -34,8 +34,8 @@
 |-------|------|------|------|------|
 | Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了 |
 | Phase 1 | 認証・レイアウト・共通UI | 8h | 9h | ✅ 完了 |
-| Phase 2 | 申請・承認フロー（課題1の核） | 20h | 10h | 🟡 進行中 |
-| Phase 3 | 開発管理・予算管理（MVP優先） | 10h | - | 未着手 |
+| Phase 2 | 申請・承認フロー（課題1の核） | 20h | 10h | ✅ 完了 |
+| Phase 3 | 開発管理・予算管理（MVP優先） | 10h | - | 🟡 進行中（実装・自動検証完了） |
 | Phase 4 | +α（最小） | 5h | - | 未着手 |
 | Phase 5 | 資料・最終確認 | 20h | - | 未着手 |
 | 予備バッファ | 遅延吸収・回帰修正 | 5h | - | - |
@@ -47,9 +47,9 @@
 
 ### 現在地
 
-- **現在の主作業:** Phase 2 進行中（通知一覧・未読バッジ・一覧エラー表示まで接続）
-- **直近完了:** S-12 `Notifications/Index.tsx`、ヘッダー／サイドバー未読バッジ、承認一覧の空状態・フラッシュエラー・却下レベル連動、`ProjectApprovalFlowTest` ほか
-- **次の着手:** 3ロール手動確認の記録と残タスク（再申請チェイン、部門管理者が申請者の場合の `pending_hq` 直行 UI 等）
+- **現在の主作業:** Phase 3 進行中（開発タブ案件一覧・タスク管理・予算実績入力のMVP接続）
+- **直近完了:** `Projects/Index.tsx`（dev/budget 実データ化）、`Projects/Show.tsx`（タスク一覧・予算実績導線）、`ProjectTaskController` / `BudgetController` / `TaskPolicy`、`TaskFormDialog` / `BudgetActualDialog`、`php artisan test` / `npm run build` / `tsc --noEmit` 通過
+- **次の着手:** Phase 3 の手動確認（承認後ロック・進捗反映・消費率反映）と docs 仕上げ
 
 ---
 
@@ -188,10 +188,10 @@ Cursor / Claude との協働でも必ず遵守。
 ## Phase 3 チェックリスト（開発管理・予算管理 MVP／12h）
 
 ### DB / Model
-- [ ] `tasks` migration（title, assignee_id, status, progress_rate, start_date, due_date, parent_id(nullable), milestone_id(nullable)）
-- [ ] `task_comments` migration（最小：body, user_id, task_id）
-- [ ] `task_histories` migration（自動記録用、最小カラムで可）
-- [ ] `Task` / `TaskComment` / `TaskHistory` Model
+- [x] `tasks` migration（title, assignee_id, status, progress_rate, start_date, due_date, parent_id(nullable), milestone_id(nullable)）
+- [x] `task_comments` migration（最小：body, user_id, task_id）
+- [x] `task_histories` migration（自動記録用、最小カラムで可）
+- [x] `Task` / `TaskComment` / `TaskHistory` Model（`ProjectWorkItem` による安定化対応を含む）
 
 ### 承認後ロック
 - [ ] `status=approved` 時に案件編集をロック
@@ -199,21 +199,22 @@ Cursor / Claude との協働でも必ず遵守。
 - [ ] タスク作成・進捗入力・予算実績入力を `approved` 後のみ解禁
 
 ### 画面：開発管理
-- [ ] `Projects/Show.tsx` にタスク一覧セクション追加
-- [ ] `TaskFormDialog.tsx`（S-10 タスク作成・編集モーダル）
-- [ ] タスク進捗率 → 案件進捗率の自動算出（表示のみ、DB には持たない）
-- [ ] `Projects/Index.tsx` 開発タブの列セット実装
+- [x] `Projects/Show.tsx` にタスク一覧セクション追加
+- [x] `TaskFormDialog.tsx`（S-10 タスク作成・編集モーダル）
+- [x] タスク進捗率 → 案件進捗率の自動算出（表示のみ、DB には持たない）
+- [x] `Projects/Index.tsx` 開発タブの列セット実装
 
 ### 画面：予算管理
-- [ ] `BudgetActualDialog.tsx`（S-11 予算実績入力モーダル）
-- [ ] `BudgetController`（実績更新）
-- [ ] `Projects/Index.tsx` 予算タブの列セット実装（消費率算出・警告）
+- [x] `BudgetActualDialog.tsx`（S-11 予算実績入力モーダル）
+- [x] `BudgetController`（実績更新）
+- [x] `Projects/Index.tsx` 予算タブの列セット実装（消費率算出・警告）
 - [ ] 消費率 70% 超で `StatusPill` を警告色に
 
 ### 検証
-- [ ] 承認前は編集可能 / 承認後はロックされる
-- [ ] タスク進捗を入力 → 案件進捗率が反映される
-- [ ] 予算実績を入力 → 消費率が一覧に反映される
+- [ ] 承認前は編集可能 / 承認後はロックされる（手動確認）
+- [ ] タスク進捗を入力 → 案件進捗率が反映される（手動確認）
+- [ ] 予算実績を入力 → 消費率が一覧に反映される（手動確認）
+- [x] `php artisan test` / `npm run build` / `npx tsc --noEmit` を通過（2026-04-27）
 
 ---
 

@@ -80,7 +80,7 @@ class Project extends Model
 
     public function tasks(): HasMany
     {
-        return $this->hasMany(\App\Models\Task::class);
+        return $this->hasMany(\App\Models\ProjectWorkItem::class, 'project_id');
     }
 
     public function scopeForTab(Builder $query, string $tab): Builder

@@ -7,11 +7,17 @@ import {
     FolderSearch,
     GitBranch,
     ListChecks,
+    Plus,
+    Wallet,
     XCircle,
 } from 'lucide-react';
 
-import ApprovalStepperMini from '@/Components/Approval/ApprovalStepperMini';
+import ApprovalStepperFull, {
+    type ApprovalTimelineItem,
+} from '@/Components/Approval/ApprovalStepperFull';
 import ApprovalDialog from '@/Components/Modals/ApprovalDialog';
+import BudgetActualDialog from '@/Components/Modals/BudgetActualDialog';
+import ProjectTaskDialog, { type TaskListItem } from '@/Components/Modals/ProjectTaskDialog';
 import InputLabel from '@/Components/InputLabel';
 import StatusPill, { type ProjectStatus } from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
@@ -37,6 +43,8 @@ interface ProjectShowData {
     rejectedAt?: 'dept' | 'hq' | null;
     rejectedComment?: string | null;
     applicantSubmitsToHqDirect?: boolean;
+    approvals: ApprovalTimelineItem[];
+    tasks: TaskListItem[];
 }
 
 interface Props {
@@ -46,6 +54,9 @@ interface Props {
     canApproveDept: boolean;
     canApproveHq: boolean;
     canTakeBack: boolean;
+    canManageTasks: boolean;
+    canUpdateBudget: boolean;
+    taskAssignees: Array<{ id: number; name: string }>;
 }
 
 const formatCurrency = (value: number | null) =>
@@ -54,6 +65,34 @@ const formatCurrency = (value: number | null) =>
 const formatAmountForDisplay = (value: number | null): string =>
     value === null ? '' : Math.trunc(value).toLocaleString('ja-JP');
 
+const consumptionRate = (actual: number | null, budget: number | null): number =>
+    budget && budget > 0 ? Math.round(((actual ?? 0) / budget) * 1000) / 10 : 0;
+
+const taskStatusLabel: Record<TaskListItem['status'], string> = {
+    open: '未着手',
+    in_progress: '進行中',
+    closed: '完了',
+};
+
+const taskStatusClass: Record<TaskListItem['status'], string> = {
+    open: 'bg-gray-100 text-gray-600',
+    in_progress: 'bg-blue-50 text-blue-700',
+    closed: 'bg-green-50 text-green-700',
+};
+
+const taskTypeLabel: Record<TaskListItem['taskType'], string> = {
+    task: 'タスク',
+    feature: '機能追加',
+    improvement: '改善',
+    bug: 'バグ',
+};
+
+const priorityLabel: Record<TaskListItem['priority'], string> = {
+    high: '高',
+    medium: '中',
+    low: '低',
+};
+
 export default function ProjectsShow({
     projectId,
     project,
@@ -61,6 +100,9 @@ export default function ProjectsShow({
     canApproveDept,
     canApproveHq,
     canTakeBack,
+    canManageTasks,
+    canUpdateBudget,
+    taskAssignees,
 }: Props) {
     const activeSidebarKey =
         project.status === 'rejected' ? 'projects-approval' : 'projects-dev';
@@ -76,7 +118,16 @@ export default function ProjectsShow({
         open: false,
         mode: 'approve',
     });
+    const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
     const approvalLevel: 'dept' | 'hq' = canApproveDept ? 'dept' : 'hq';
+    const taskCount = project.tasks.length;
+    const closedTaskCount = project.tasks.filter((task) => task.status === 'closed').length;
+    const projectProgress = taskCount === 0 ? 0 : Math.round((closedTaskCount / taskCount) * 100);
+    const budgetRate = consumptionRate(project.actualAmount, project.budgetAmount);
+    const editingTask =
+        editingTaskId === null ? null : project.tasks.find((task) => task.id === editingTaskId) ?? null;
 
     return (
         <AuthenticatedLayout
@@ -159,18 +210,14 @@ export default function ProjectsShow({
                     </div>
 
                     <div className="space-y-6 p-6">
-                        <div className="rounded-md border border-brand-border bg-brand-bg/60 px-4 py-3">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
-                                承認ステップ
-                            </p>
-                            <div className="mt-2">
-                                <ApprovalStepperMini
-                                    status={project.status}
-                                    rejectedAt={project.rejectedAt ?? undefined}
-                                    skipsDeptStep={skipsDeptStep}
-                                />
-                            </div>
-                        </div>
+                        <ApprovalStepperFull
+                            status={project.status}
+                            approvals={project.approvals}
+                            submittedAt={project.submittedAt}
+                            applicantName={project.applicant}
+                            rejectedAt={project.rejectedAt}
+                            skipsDeptStep={skipsDeptStep}
+                        />
                         {project.status === 'rejected' && project.rejectedComment && (
                                 <div className="rounded-md border border-brand-red/20 bg-[#FEE2E2] px-4 py-3 text-sm text-[#991B1B]">
                                     <p className="font-semibold">却下コメント</p>
@@ -275,6 +322,37 @@ export default function ProjectsShow({
                                     <li>予算: {formatCurrency(project.budgetAmount)}</li>
                                     <li>実績: {formatCurrency(project.actualAmount)}</li>
                                 </ul>
+                                <div className="mt-3">
+                                    <div className="mb-1 flex items-center justify-between text-xs">
+                                        <span className="text-brand-muted">消費率</span>
+                                        <span className="font-mono font-semibold">{budgetRate.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="h-2 overflow-hidden rounded-full bg-[#E9ECEF]">
+                                        <div
+                                            className={
+                                                budgetRate > 100
+                                                    ? 'h-full bg-brand-red'
+                                                    : budgetRate >= 86
+                                                      ? 'h-full bg-[#F59E0B]'
+                                                      : budgetRate >= 60
+                                                        ? 'h-full bg-brand-blue'
+                                                        : 'h-full bg-[#16A34A]'
+                                            }
+                                            style={{ width: `${Math.min(budgetRate, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant={canUpdateBudget ? 'default' : 'secondary'}
+                                    size="sm"
+                                    className="mt-3 w-full gap-1.5"
+                                    disabled={!canUpdateBudget}
+                                    onClick={() => setBudgetDialogOpen(true)}
+                                >
+                                    <Wallet className="h-4 w-4" />
+                                    実績を入力
+                                </Button>
                             </div>
                             <div className="rounded-lg border border-brand-border bg-white p-4">
                                 <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
@@ -282,11 +360,124 @@ export default function ProjectsShow({
                                 </p>
                                 <p className="mt-2 flex items-center gap-1.5 text-sm text-brand-muted">
                                     <ListChecks className="h-4 w-4 text-brand-muted" />
-                                    タスク・予算詳細は次フェーズで接続
+                                    案件進捗: {projectProgress}%（{closedTaskCount}/{taskCount}件完了）
                                 </p>
                             </div>
                         </div>
                     </div>
+                </section>
+
+                <section className="rounded-lg border border-brand-border bg-white shadow-sm">
+                    <div className="flex items-center justify-between border-b border-brand-border px-6 py-4">
+                        <div>
+                            <h2 className="flex items-center gap-2 text-base font-semibold text-brand-dark">
+                                <ListChecks className="h-4 w-4 text-brand-blue" />
+                                タスク一覧
+                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                                    {taskCount}件
+                                </span>
+                            </h2>
+                            <p className="mt-1 text-xs text-brand-muted">
+                                承認済案件のみタスク作成・進捗入力ができます。
+                            </p>
+                        </div>
+                        <Button
+                            type="button"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={!canManageTasks}
+                            onClick={() => {
+                                setEditingTaskId(null);
+                                setTaskDialogOpen(true);
+                            }}
+                        >
+                            <Plus className="h-4 w-4" />
+                            タスク追加
+                        </Button>
+                    </div>
+
+                    {project.tasks.length === 0 ? (
+                        <div className="px-6 py-10 text-center text-sm text-brand-muted">
+                            まだタスクはありません。承認後にタスクを追加できます。
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm">
+                                <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
+                                    <tr>
+                                        <th className="px-5 py-3 text-left font-semibold">タイトル</th>
+                                        <th className="px-3 py-3 text-left font-semibold">種類</th>
+                                        <th className="px-3 py-3 text-left font-semibold">優先度</th>
+                                        <th className="px-3 py-3 text-left font-semibold">ステータス</th>
+                                        <th className="px-3 py-3 text-left font-semibold">担当</th>
+                                        <th className="px-3 py-3 text-left font-semibold">期日</th>
+                                        <th className="px-3 py-3 text-left font-semibold">進捗</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-brand-border">
+                                    {project.tasks.map((task) => (
+                                        <tr
+                                            key={task.id}
+                                            className="cursor-pointer hover:bg-slate-50"
+                                            onClick={() => {
+                                                if (!canManageTasks) return;
+                                                setEditingTaskId(task.id);
+                                                setTaskDialogOpen(true);
+                                            }}
+                                        >
+                                            <td className="px-5 py-3.5 font-medium text-brand-dark">
+                                                {task.title}
+                                                <div className="mt-0.5 font-mono text-[10px] font-normal text-brand-muted">
+                                                    TASK-{String(project.id).padStart(4, '0')}-
+                                                    {String(task.id).padStart(3, '0')}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-3.5">
+                                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-700">
+                                                    {taskTypeLabel[task.taskType]}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3.5">
+                                                <span className="rounded-full bg-[#FEF9C3] px-2 py-0.5 text-[10px] font-semibold text-[#854D0E]">
+                                                    {priorityLabel[task.priority]}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3.5">
+                                                <span
+                                                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${taskStatusClass[task.status]}`}
+                                                >
+                                                    {taskStatusLabel[task.status]}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3.5 text-brand-muted">
+                                                {task.assignee ?? '未割当'}
+                                            </td>
+                                            <td className="px-3 py-3.5 text-brand-muted">
+                                                {task.dueDate ?? '—'}
+                                            </td>
+                                            <td className="px-3 py-3.5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-[#E9ECEF]">
+                                                        <div
+                                                            className={
+                                                                task.progressRate >= 100
+                                                                    ? 'h-full bg-[#16A34A]'
+                                                                    : 'h-full bg-brand-blue'
+                                                            }
+                                                            style={{ width: `${task.progressRate}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="w-10 text-right font-mono text-[10px] font-semibold">
+                                                        {task.progressRate}%
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </section>
 
                 {(canApproveDept || canApproveHq) && (
@@ -336,6 +527,28 @@ export default function ProjectsShow({
                                 setApprovalDialog((prev) => ({ ...prev, open: false })),
                         },
                     );
+                }}
+            />
+            <ProjectTaskDialog
+                open={taskDialogOpen}
+                onClose={() => {
+                    setTaskDialogOpen(false);
+                    setEditingTaskId(null);
+                }}
+                projectId={project.id}
+                projectTitle={project.title}
+                task={editingTask}
+                assignees={taskAssignees}
+            />
+            <BudgetActualDialog
+                open={budgetDialogOpen}
+                onClose={() => setBudgetDialogOpen(false)}
+                project={{
+                    id: project.id,
+                    title: project.title,
+                    primaryAssignee: project.primaryAssignee,
+                    budgetAmount: project.budgetAmount,
+                    actualAmount: project.actualAmount,
                 }}
             />
         </AuthenticatedLayout>

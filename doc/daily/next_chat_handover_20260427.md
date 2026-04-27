@@ -1,7 +1,7 @@
-# 作業依頼：Phase 2 継続（2026-04-24）
+# 作業依頼：Phase 3（2026-04-27）
 
 開発管理アプリ（Laravel 11 + React + Inertia + TypeScript）の  
-**Phase 2 継続作業（申請・承認フロー仕上げ）** を進めてください。
+**Phase 3 ** を進めてください。
 
 ---
 
@@ -25,15 +25,22 @@
 ## 現在地（完了済み）
 
 - 実装ブランチ: `feat/phase3-projects-foundation`
-- 反映コミット: 
+- 反映コミット: （未作成 / 次回 `feat:` と `docs:` で分離予定）
 - 実装済み:
+  - 開発タブ案件一覧（実データ、タスク件数・進捗表示、フィルタ）
+  - タスク CRUD（承認済み案件のみ、権限制御、S-10 相当モーダル）
+  - 予算実績上書き（承認済みかつ主担当のみ、S-11 相当モーダル）
+  - `php artisan test` / `npm run build` / `npx tsc --noEmit` 通過
+  - `Task*` 系ファイルの構文混入対策として `ProjectTaskController` / `ProjectWorkItem` へ参照先を安定化
 
 
 ---
 
 ## 今日やること（優先順）
 
-1. フェーズ３の着手
+1. Phase 3 手動確認（承認後ロック・進捗反映・消費率反映）
+2. 仕様残タスク（消費率70%警告色）の最終反映
+3. docs 更新内容を `docs:` コミットで確定
 ---
 
 ## 作業前に読むファイル
@@ -43,10 +50,16 @@
 - `doc/daily/development_schedule.md` — 現在の進捗・Phase 状態
 - `doc/daily/implementation_schedule.md` §3 — 次回作業予定
 - `doc/daily/log/implementation_schedule_log.md` — 前日の詳細ログ
+- `mockups` — モックと設計方針
 
-### 今日の作業向け（フェーズ２の完了確認）
-- フェーズ２の完了確認
+### 今日の作業向け
+- フェーズ３の計画
+- フェーズ３の実装開始
+
 
 ---
 
 ## 完了条件
+- [x] 自動検証（`php artisan test` / `npm run build` / `npx tsc --noEmit`）
+- [ ] 手動検証ログ反映（development_schedule / daily log）
+- [ ] `feat:` / `docs:` 分離コミット

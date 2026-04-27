@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProjectTaskController;
 use App\Http\Controllers\ProjectController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +36,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/projects/{project}/take-back', [ApprovalController::class, 'takeBack'])->name('projects.takeBack');
     Route::post('/projects/{project}/approve', [ApprovalController::class, 'approve'])->name('projects.approve');
     Route::post('/projects/{project}/reject', [ApprovalController::class, 'reject'])->name('projects.reject');
+    Route::put('/projects/{project}/budget', [BudgetController::class, 'update'])->name('projects.budget.update');
+    Route::post('/projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
+    Route::put('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');
+    Route::delete('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'destroy'])->name('projects.tasks.destroy');
+    Route::post('/projects/{project}/tasks/{task}/comments', [ProjectTaskController::class, 'storeComment'])->name('projects.tasks.comments.store');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');

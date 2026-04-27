@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\ApprovalAction;
 use App\Enums\ProjectStatus;
 use App\Enums\Role;
+use App\Enums\TaskStatus;
 use App\Models\Department;
 use App\Models\Approval;
 use App\Models\Project;
+use App\Models\ProjectWorkItem;
+use App\Models\User;
 use App\Services\ApprovalService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -78,12 +81,18 @@ class ProjectController extends Controller
             'status' => ['nullable', 'in:draft,pending_dept,pending_hq,approved,rejected'],
             'q' => ['nullable', 'string', 'max:100'],
             'department' => ['nullable', 'integer', 'exists:departments,id'],
+            'assignee' => ['nullable', 'integer', 'exists:users,id'],
+            'progress' => ['nullable', 'in:not_started,in_progress,completing,completed'],
+            'consumption' => ['nullable', 'in:safe,normal,warn,over'],
         ]);
 
         $tab = $validated['tab'] ?? 'approval';
         $filter = $validated['filter'] ?? null;
         $status = $validated['status'] ?? null;
         $departmentId = $validated['department'] ?? null;
+        $assigneeId = $validated['assignee'] ?? null;
+        $progress = $validated['progress'] ?? null;
+        $consumption = $validated['consumption'] ?? null;
         $q = isset($validated['q']) ? trim((string) $validated['q']) : null;
         if ($q === '') {
             $q = null;
@@ -108,6 +117,23 @@ class ProjectController extends Controller
                     ->orWhereDoesntHave('childProjects');
             });
 
+        if ($tab === 'dev') {
+            $query
+                ->withCount([
+                    'tasks',
+                    'tasks as closed_tasks_count' => static function ($taskQuery): void {
+                        $taskQuery->where('status', TaskStatus::Closed->value);
+                    },
+                    'tasks as in_progress_tasks_count' => static function ($taskQuery): void {
+                        $taskQuery->where('status', TaskStatus::InProgress->value);
+                    },
+                    'tasks as open_tasks_count' => static function ($taskQuery): void {
+                        $taskQuery->where('status', TaskStatus::Open->value);
+                    },
+                ])
+                ->withMin('tasks', 'due_date');
+        }
+
         if ($tab === 'approval' && $filter === 'pending') {
             $query->pendingFor($user);
         }
@@ -116,14 +142,17 @@ class ProjectController extends Controller
             $query->where('status', $status);
         }
 
-        if ($tab === 'approval' && $departmentId !== null) {
+        if ($departmentId !== null) {
             $query->where('department_id', $departmentId);
         }
 
-        if ($tab === 'approval' && $q !== null) {
+        if ($q !== null) {
             $query->where(function ($inner) use ($q): void {
                 $inner
                     ->where('title', 'like', "%{$q}%")
+                    ->orWhereHas('primaryAssignee', function ($assigneeQuery) use ($q): void {
+                        $assigneeQuery->where('name', 'like', "%{$q}%");
+                    })
                     ->orWhereHas('applicant', function ($applicantQuery) use ($q): void {
                         $applicantQuery->where('name', 'like', "%{$q}%");
                     })
@@ -131,6 +160,45 @@ class ProjectController extends Controller
                         $departmentQuery->where('name', 'like', "%{$q}%");
                     });
             });
+        }
+
+        if ($tab === 'dev' && $assigneeId !== null) {
+            $query->where('primary_assignee_id', $assigneeId);
+        }
+
+        if ($tab === 'dev' && $progress !== null) {
+            match ($progress) {
+                'not_started' => $query->havingRaw('tasks_count = 0 OR closed_tasks_count = 0 AND in_progress_tasks_count = 0'),
+                'in_progress' => $query->havingRaw('tasks_count > 0 AND closed_tasks_count < tasks_count AND (closed_tasks_count > 0 OR in_progress_tasks_count > 0)'),
+                'completing' => $query->havingRaw('tasks_count > 0 AND (closed_tasks_count / tasks_count) >= 0.9 AND closed_tasks_count < tasks_count'),
+                'completed' => $query->havingRaw('tasks_count > 0 AND closed_tasks_count = tasks_count'),
+                default => null,
+            };
+        }
+
+        if ($tab === 'budget' && $consumption !== null) {
+            match ($consumption) {
+                'safe' => $query->whereRaw('COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) < 0.6'),
+                'normal' => $query->whereRaw('COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) >= 0.6 AND COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) < 0.86'),
+                'warn' => $query->whereRaw('COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) >= 0.86 AND COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) <= 1'),
+                'over' => $query->whereRaw('COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) > 1'),
+                default => null,
+            };
+        }
+
+        $budgetSummary = null;
+        if ($tab === 'budget') {
+            $budgetQuery = clone $query;
+            $budgetTotal = (float) $budgetQuery->sum('budget_amount');
+            $actualTotal = (float) (clone $query)->sum('actual_amount');
+            $budgetSummary = [
+                'budgetTotal' => $budgetTotal,
+                'actualTotal' => $actualTotal,
+                'averageConsumptionRate' => $budgetTotal > 0 ? round($actualTotal / $budgetTotal * 100, 1) : 0,
+                'warningCount' => (clone $query)
+                    ->whereRaw('budget_amount > 0 AND COALESCE(actual_amount, 0) / budget_amount >= 0.86')
+                    ->count(),
+            ];
         }
 
         $paginator = $query->latest('updated_at')->paginate(15);
@@ -160,12 +228,21 @@ class ProjectController extends Controller
             'filter' => $filter,
             'status' => $status,
             'department' => $departmentId,
+            'assignee' => $assigneeId,
+            'progress' => $progress,
+            'consumption' => $consumption,
             'q' => $q,
             'departments' => Department::query()
                 ->where('type', '!=', Department::TYPE_HEADQUARTERS)
                 ->select(['id', 'name'])
                 ->orderBy('id')
                 ->get(),
+            'assignees' => User::query()
+                ->select(['id', 'name'])
+                ->whereNotNull('department_id')
+                ->orderBy('name')
+                ->get(),
+            'budgetSummary' => $budgetSummary,
             'projects' => $paginator->through(function (Project $project) use ($user, $rejectionLevelByProjectId) {
                 $rejectedAt = null;
                 if ($project->status === ProjectStatus::Rejected) {
@@ -186,6 +263,11 @@ class ProjectController extends Controller
                     'estimatedAmount' => $project->estimated_amount,
                     'budgetAmount' => $project->budget_amount,
                     'actualAmount' => $project->actual_amount,
+                    'taskCount' => (int) ($project->tasks_count ?? 0),
+                    'closedTaskCount' => (int) ($project->closed_tasks_count ?? 0),
+                    'inProgressTaskCount' => (int) ($project->in_progress_tasks_count ?? 0),
+                    'openTaskCount' => (int) ($project->open_tasks_count ?? 0),
+                    'nearestTaskDueDate' => $project->tasks_min_due_date,
                     'canEdit' => $user->can('update', $project),
                     'rejectedAt' => $rejectedAt,
                     'applicantSubmitsToHqDirect' => $project->applicant?->hasRole(Role::DeptManager->value) ?? false,
@@ -206,6 +288,22 @@ class ProjectController extends Controller
                 $q->select('users.id', 'users.name')->with('roles');
             },
             'primaryAssignee:id,name',
+            'tasks' => static function ($q): void {
+                $q->with([
+                    'assignee:id,name',
+                    'creator:id,name',
+                    'comments' => static function ($commentQuery): void {
+                        $commentQuery->with('user:id,name')->orderBy('created_at');
+                    },
+                    'histories' => static function ($historyQuery): void {
+                        $historyQuery->with('user:id,name')->latest('created_at');
+                    },
+                ])
+                    ->latest('updated_at');
+            },
+            'approvals' => static function ($q): void {
+                $q->with('approver:id,name')->orderByDesc('acted_at');
+            },
         ]);
 
         $rejectedAt = null;
@@ -242,6 +340,15 @@ class ProjectController extends Controller
             'canApproveDept' => $canApproveDept,
             'canApproveHq' => $canApproveHq,
             'canTakeBack' => $canTakeBack,
+            'canManageTasks' => $user?->can('create', [ProjectWorkItem::class, $project]) ?? false,
+            'canUpdateBudget' => $project->status === ProjectStatus::Approved
+                && $project->primary_assignee_id === $user?->id
+                && $project->budget_amount !== null,
+            'taskAssignees' => User::query()
+                ->where('department_id', $project->department_id)
+                ->select(['id', 'name'])
+                ->orderBy('name')
+                ->get(),
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,
@@ -261,6 +368,40 @@ class ProjectController extends Controller
                 'rejectedAt' => $rejectedAt,
                 'rejectedComment' => $rejectedComment,
                 'applicantSubmitsToHqDirect' => $applicantIsDeptManager,
+                'approvals' => $project->approvals->map(fn (Approval $approval) => [
+                    'level' => $approval->level->value,
+                    'action' => $approval->action->value,
+                    'approver' => $approval->approver?->name,
+                    'actedAt' => $approval->acted_at?->toIso8601String(),
+                    'comment' => $approval->comment,
+                ])->values(),
+                'tasks' => $project->tasks->map(fn (ProjectWorkItem $task) => [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'taskType' => $task->task_type->value,
+                    'priority' => $task->priority->value,
+                    'status' => $task->status->value,
+                    'progressRate' => $task->progress_rate,
+                    'assigneeId' => $task->assignee_id,
+                    'assignee' => $task->assignee?->name,
+                    'dueDate' => $task->due_date?->toDateString(),
+                    'updatedAt' => $task->updated_at?->toDateTimeString(),
+                    'comments' => $task->comments->map(fn ($comment) => [
+                        'id' => $comment->id,
+                        'user' => $comment->user?->name ?? '不明ユーザー',
+                        'body' => $comment->body,
+                        'createdAt' => $comment->created_at?->toIso8601String(),
+                    ])->values(),
+                    'histories' => $task->histories->map(fn ($history) => [
+                        'id' => $history->id,
+                        'user' => $history->user?->name ?? '不明ユーザー',
+                        'fieldName' => $history->field_name,
+                        'oldValue' => $history->old_value,
+                        'newValue' => $history->new_value,
+                        'createdAt' => $history->created_at?->toIso8601String(),
+                    ])->values(),
+                ])->values(),
             ],
         ]);
     }

@@ -113,16 +113,19 @@ interface ApprovalStepperMiniProps {
 ### ApprovalStepperFull
 **役割**: S-04 案件詳細ページ上部の、大きい横長ステッパー。
 **配置**: `resources/js/Components/Approval/ApprovalStepperFull.tsx`
-**使用モック**: S-04（次回作成予定）
+**使用モック**: `mockups/s04_project_show.html`（実装済み）
 **Props**:
 ```ts
 interface ApprovalStepperFullProps {
   status: ProjectStatus;
-  approvals: Approval[];  // 承認履歴（誰が・いつ）
+  approvals: ApprovalTimelineItem[];  // 承認履歴（誰が・いつ）
+  submittedAt: string | null;
+  applicantName: string | null;
   rejectedAt?: 'dept' | 'hq';
+  skipsDeptStep?: boolean;
 }
 ```
-**違い（Miniとの）**: 各ステップに担当者名・承認日時を表示、進行中はパルスアニメ、`approved` の時は折り畳んで「✓ 承認済（履歴を見る ▼）」バッジに切り替わる
+**違い（Miniとの）**: 各ステップに担当者名・承認日時を表示、進行中はパルスアニメ、カードヘッダーに「承認フロー / 申請日」を表示
 
 #### S-04 リバート方針（s03a準拠）
 S-04は一度配色が拡散したため、s03a基準に戻す。以下を実装時の固定ルールとする。

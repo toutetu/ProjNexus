@@ -28,8 +28,13 @@ interface Props {
     filter?: string | null;
     status?: string | null;
     department?: number | null;
+    assignee?: number | null;
+    progress?: string | null;
+    consumption?: string | null;
     q?: string | null;
     departments?: Array<{ id: number; name: string }>;
+    assignees?: Array<{ id: number; name: string }>;
+    budgetSummary?: BudgetSummary | null;
     projects?: {
         data: ProjectListItem[];
     };
@@ -40,11 +45,29 @@ interface ProjectListItem {
     title: string;
     department: string | null;
     status: ProjectStatus;
+    applicant?: string | null;
+    primaryAssignee?: string | null;
     submittedAt: string | null;
+    approvedAt?: string | null;
     updatedAt: string;
+    estimatedAmount?: number | string | null;
+    budgetAmount?: number | string | null;
+    actualAmount?: number | string | null;
+    taskCount?: number;
+    closedTaskCount?: number;
+    inProgressTaskCount?: number;
+    openTaskCount?: number;
+    nearestTaskDueDate?: string | null;
     canEdit?: boolean;
     rejectedAt?: 'dept' | 'hq' | null;
     applicantSubmitsToHqDirect?: boolean;
+}
+
+interface BudgetSummary {
+    budgetTotal: number;
+    actualTotal: number;
+    averageConsumptionRate: number;
+    warningCount: number;
 }
 
 const TAB_SUBTITLE: Record<ProjectTab, string> = {
@@ -57,6 +80,42 @@ const TAB_ACTIVE_KEY: Record<ProjectTab, ActiveKey> = {
     approval: 'projects-approval',
     dev: 'projects-dev',
     budget: 'projects-budget',
+};
+
+const toNumber = (value: number | string | null | undefined): number => {
+    if (value === null || value === undefined || value === '') return 0;
+    return Number(value);
+};
+
+const formatCurrency = (value: number | string | null | undefined): string =>
+    `¥${Math.trunc(toNumber(value)).toLocaleString('ja-JP')}`;
+
+const formatDate = (value: string | null | undefined): string => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' });
+};
+
+const projectCode = (id: number): string => `PRJ-${String(id).padStart(4, '0')}`;
+
+const taskProgress = (project: ProjectListItem): number => {
+    const total = project.taskCount ?? 0;
+    if (total === 0) return 0;
+    return Math.round(((project.closedTaskCount ?? 0) / total) * 100);
+};
+
+const consumptionRate = (project: ProjectListItem): number => {
+    const budget = toNumber(project.budgetAmount);
+    if (budget <= 0) return 0;
+    return Math.round((toNumber(project.actualAmount) / budget) * 1000) / 10;
+};
+
+const consumptionClass = (rate: number): string => {
+    if (rate > 100) return 'bg-brand-red text-brand-red';
+    if (rate >= 86) return 'bg-[#F59E0B] text-[#92400E]';
+    if (rate >= 60) return 'bg-brand-blue text-brand-blue';
+    return 'bg-[#16A34A] text-[#166534]';
 };
 
 interface ApprovalProjectRow {
@@ -184,8 +243,13 @@ export default function ProjectsIndex({
     filter,
     status,
     department,
+    assignee,
+    progress,
+    consumption,
     q,
     departments = [],
+    assignees = [],
+    budgetSummary,
     projects,
 }: Props) {
     const { flash } = usePage<PageProps>().props;
@@ -196,6 +260,7 @@ export default function ProjectsIndex({
     const visibleTabItems = isPendingFilter
         ? TAB_ITEMS.filter((item) => item.value === 'approval')
         : TAB_ITEMS;
+    const projectRows = projects?.data ?? [];
     const approvalRows: ApprovalProjectRow[] = projects
         ? projects.data.map((project) => ({
               id: project.id,
@@ -209,12 +274,7 @@ export default function ProjectsIndex({
               applicantSubmitsToHqDirect: project.applicantSubmitsToHqDirect ?? false,
           }))
         : APPROVAL_ROWS;
-    const titleCount =
-        tab === 'approval'
-            ? approvalRows.length
-            : tab === 'dev'
-              ? DEV_ROWS.length
-              : BUDGET_ROWS.length;
+    const titleCount = tab === 'approval' ? approvalRows.length : projectRows.length;
 
     const handleTabChange = (nextTab: ProjectTab) => {
         if (nextTab === tab) return;
@@ -258,6 +318,45 @@ export default function ProjectsIndex({
         });
     };
 
+    const submitProjectFilters = ({
+        nextTab,
+        keyword,
+        nextDepartment,
+        nextAssignee,
+        nextProgress,
+        nextConsumption,
+    }: {
+        nextTab: 'dev' | 'budget';
+        keyword: string;
+        nextDepartment?: string;
+        nextAssignee?: string;
+        nextProgress?: string;
+        nextConsumption?: string;
+    }) => {
+        const nextQ = keyword.trim();
+        const departmentValue = (nextDepartment ?? String(department ?? '')).trim();
+        const assigneeValue = (nextAssignee ?? String(assignee ?? '')).trim();
+        const progressValue = (nextProgress ?? progress ?? '').trim();
+        const consumptionValue = (nextConsumption ?? consumption ?? '').trim();
+        router.visit(route('projects.index'), {
+            data: {
+                tab: nextTab,
+                ...(departmentValue ? { department: Number(departmentValue) } : {}),
+                ...(nextQ ? { q: nextQ } : {}),
+                ...(nextTab === 'dev' && assigneeValue
+                    ? { assignee: Number(assigneeValue) }
+                    : {}),
+                ...(nextTab === 'dev' && progressValue ? { progress: progressValue } : {}),
+                ...(nextTab === 'budget' && consumptionValue
+                    ? { consumption: consumptionValue }
+                    : {}),
+            },
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     const approvalRowHref = (row: ApprovalProjectRow): string =>
         row.status === 'draft'
             ? route('projects.edit', row.id)
@@ -267,7 +366,15 @@ export default function ProjectsIndex({
         <AuthenticatedLayout
             activeKey={activeKey}
             breadcrumb={[
-                { label: '申請・承認', icon: FileCheck2 },
+                {
+                    label:
+                        tab === 'dev'
+                            ? '開発管理'
+                            : tab === 'budget'
+                              ? '予算管理'
+                              : '申請・承認',
+                    icon: tab === 'dev' ? GitBranch : tab === 'budget' ? Wallet : FileCheck2,
+                },
                 { label: '案件一覧', icon: FolderSearch },
             ]}
         >
@@ -417,6 +524,186 @@ export default function ProjectsIndex({
                         </form>
                     </div>
                 )}
+                {tab === 'dev' && (
+                    <div className="border-b border-brand-border px-5 py-3">
+                        <form
+                            className="flex flex-wrap items-center gap-3"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                const formData = new FormData(event.currentTarget);
+                                submitProjectFilters({
+                                    nextTab: 'dev',
+                                    keyword: String(formData.get('q') ?? ''),
+                                    nextDepartment: String(formData.get('department') ?? ''),
+                                    nextAssignee: String(formData.get('assignee') ?? ''),
+                                    nextProgress: String(formData.get('progress') ?? ''),
+                                });
+                            }}
+                        >
+                            <div className="relative w-full max-w-[20rem]">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                                <input
+                                    name="q"
+                                    defaultValue={q ?? ''}
+                                    placeholder="案件名・主担当で検索"
+                                    className="w-full rounded-md border border-brand-border bg-white py-2 pl-9 pr-3 text-sm text-brand-dark placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                />
+                            </div>
+                            <select
+                                name="department"
+                                defaultValue={department ? String(department) : ''}
+                                className="min-w-[150px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                            >
+                                <option value="">部門：すべて</option>
+                                {departments.map((dept) => (
+                                    <option key={dept.id} value={dept.id}>
+                                        {dept.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                name="assignee"
+                                defaultValue={assignee ? String(assignee) : ''}
+                                className="min-w-[160px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                            >
+                                <option value="">主担当：すべて</option>
+                                {assignees.map((user) => (
+                                    <option key={user.id} value={user.id}>
+                                        {user.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                name="progress"
+                                defaultValue={progress ?? ''}
+                                className="min-w-[160px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                            >
+                                <option value="">進捗：すべて</option>
+                                <option value="not_started">未着手</option>
+                                <option value="in_progress">進行中</option>
+                                <option value="completing">完了間近</option>
+                                <option value="completed">完了</option>
+                            </select>
+                            <Button type="submit" variant="secondary" size="sm">
+                                検索
+                            </Button>
+                            {(q || department || assignee || progress) && (
+                                <button
+                                    type="button"
+                                    className="ml-auto text-sm text-brand-blue hover:underline"
+                                    onClick={() =>
+                                        submitProjectFilters({
+                                            nextTab: 'dev',
+                                            keyword: '',
+                                            nextDepartment: '',
+                                            nextAssignee: '',
+                                            nextProgress: '',
+                                        })
+                                    }
+                                >
+                                    クリア
+                                </button>
+                            )}
+                        </form>
+                    </div>
+                )}
+                {tab === 'budget' && (
+                    <>
+                        <div className="grid gap-3 border-b border-brand-border bg-brand-bg/40 px-5 py-4 md:grid-cols-4">
+                            <div className="rounded-lg border border-brand-border bg-white p-3">
+                                <p className="text-xs text-brand-muted">予算合計</p>
+                                <p className="mt-1 font-mono text-lg font-bold">
+                                    {formatCurrency(budgetSummary?.budgetTotal ?? 0)}
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-brand-border bg-white p-3">
+                                <p className="text-xs text-brand-muted">実績合計</p>
+                                <p className="mt-1 font-mono text-lg font-bold text-brand-blue">
+                                    {formatCurrency(budgetSummary?.actualTotal ?? 0)}
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-brand-border bg-white p-3">
+                                <p className="text-xs text-brand-muted">平均消費率</p>
+                                <p className="mt-1 font-mono text-lg font-bold">
+                                    {(budgetSummary?.averageConsumptionRate ?? 0).toFixed(1)}%
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-brand-border bg-white p-3">
+                                <p className="text-xs text-brand-muted">要注意案件</p>
+                                <p className="mt-1 font-mono text-lg font-bold text-[#92400E]">
+                                    {budgetSummary?.warningCount ?? 0}件
+                                </p>
+                            </div>
+                        </div>
+                        <div className="border-b border-brand-border px-5 py-3">
+                            <form
+                                className="flex flex-wrap items-center gap-3"
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    const formData = new FormData(event.currentTarget);
+                                    submitProjectFilters({
+                                        nextTab: 'budget',
+                                        keyword: String(formData.get('q') ?? ''),
+                                        nextDepartment: String(formData.get('department') ?? ''),
+                                        nextConsumption: String(formData.get('consumption') ?? ''),
+                                    });
+                                }}
+                            >
+                                <div className="relative w-full max-w-[20rem]">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                                    <input
+                                        name="q"
+                                        defaultValue={q ?? ''}
+                                        placeholder="案件名で検索"
+                                        className="w-full rounded-md border border-brand-border bg-white py-2 pl-9 pr-3 text-sm text-brand-dark placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                    />
+                                </div>
+                                <select
+                                    name="department"
+                                    defaultValue={department ? String(department) : ''}
+                                    className="min-w-[150px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                >
+                                    <option value="">部門：すべて</option>
+                                    {departments.map((dept) => (
+                                        <option key={dept.id} value={dept.id}>
+                                            {dept.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <select
+                                    name="consumption"
+                                    defaultValue={consumption ?? ''}
+                                    className="min-w-[170px] rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                >
+                                    <option value="">消費率：すべて</option>
+                                    <option value="safe">60%未満</option>
+                                    <option value="normal">60-85%</option>
+                                    <option value="warn">86-100%</option>
+                                    <option value="over">100%超</option>
+                                </select>
+                                <Button type="submit" variant="secondary" size="sm">
+                                    検索
+                                </Button>
+                                {(q || department || consumption) && (
+                                    <button
+                                        type="button"
+                                        className="ml-auto text-sm text-brand-blue hover:underline"
+                                        onClick={() =>
+                                            submitProjectFilters({
+                                                nextTab: 'budget',
+                                                keyword: '',
+                                                nextDepartment: '',
+                                                nextConsumption: '',
+                                            })
+                                        }
+                                    >
+                                        クリア
+                                    </button>
+                                )}
+                            </form>
+                        </div>
+                    </>
+                )}
                 <div className="overflow-x-auto">
                     {tab === 'approval' && approvalRows.length === 0 ? (
                         <div className="px-6 py-14">
@@ -520,31 +807,74 @@ export default function ProjectsIndex({
                                     <th className="px-4 py-3 text-left font-semibold">タスク進捗</th>
                                     <th className="px-4 py-3 text-left font-semibold">期限</th>
                                     <th className="px-4 py-3 text-left font-semibold">最終更新</th>
+                                    <th className="px-4 py-3 text-left font-semibold" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
-                                {DEV_ROWS.map((row) => (
-                                    <tr key={row.id} className="hover:bg-slate-50">
+                                {projectRows.map((row) => {
+                                    const progressRate = taskProgress(row);
+                                    const total = row.taskCount ?? 0;
+
+                                    return (
+                                    <tr
+                                        key={row.id}
+                                        className="cursor-pointer hover:bg-slate-50"
+                                        onClick={() => router.visit(route('projects.show', row.id))}
+                                    >
                                         <td className="px-5 py-3.5 font-medium text-brand-dark">
-                                            {row.title}
+                                            <Link
+                                                href={route('projects.show', row.id)}
+                                                className="hover:text-brand-blue hover:underline"
+                                            >
+                                                {row.title}
+                                            </Link>
+                                            <div className="mt-0.5 flex items-center gap-2 text-xs font-normal text-brand-muted">
+                                                <span className="font-mono">{projectCode(row.id)}</span>
+                                                {progressRate >= 90 && total > 0 && progressRate < 100 && (
+                                                    <span className="rounded-full bg-[#EDE9FE] px-2 py-0.5 text-[10px] font-semibold text-[#5B21B6]">
+                                                        完了間近
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-dark">
                                             {row.department}
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-dark">
-                                            {row.owner}
+                                            {row.primaryAssignee ?? '未設定'}
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-dark">
-                                            {row.progress}%
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-2 min-w-32 flex-1 overflow-hidden rounded-full bg-[#E9ECEF]">
+                                                    <div
+                                                        className={cn(
+                                                            'h-full rounded-full',
+                                                            progressRate >= 95 ? 'bg-[#16A34A]' : 'bg-brand-blue',
+                                                        )}
+                                                        style={{ width: `${progressRate}%` }}
+                                                    />
+                                                </div>
+                                                <span className="w-11 text-right font-mono text-xs font-semibold">
+                                                    {progressRate}%
+                                                </span>
+                                            </div>
+                                            <div className="mt-1 text-[10px] text-brand-muted">
+                                                {total}件中 {row.closedTaskCount ?? 0}件完了 / 進行中{' '}
+                                                {row.inProgressTaskCount ?? 0} / 未着手 {row.openTaskCount ?? 0}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-dark">
-                                            {row.dueDate}
+                                            {formatDate(row.nearestTaskDueDate)}
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-muted">
-                                            {row.updatedAt}
+                                            {formatDate(row.updatedAt)}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-right text-brand-muted">
+                                            <ChevronRight className="ml-auto h-4 w-4" />
                                         </td>
                                     </tr>
-                                ))}
+                                );
+                                })}
                             </tbody>
                         </table>
                     )}
@@ -559,31 +889,67 @@ export default function ProjectsIndex({
                                     <th className="px-4 py-3 text-left font-semibold">実績額</th>
                                     <th className="px-4 py-3 text-left font-semibold">消費率</th>
                                     <th className="px-4 py-3 text-left font-semibold">更新日</th>
+                                    <th className="px-4 py-3 text-left font-semibold" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
-                                {BUDGET_ROWS.map((row) => (
-                                    <tr key={row.id} className="hover:bg-slate-50">
+                                {projectRows.map((row) => {
+                                    const rate = consumptionRate(row);
+                                    const rateClass = consumptionClass(rate);
+                                    const remaining = toNumber(row.budgetAmount) - toNumber(row.actualAmount);
+
+                                    return (
+                                    <tr
+                                        key={row.id}
+                                        className="cursor-pointer hover:bg-slate-50"
+                                        onClick={() => router.visit(route('projects.show', row.id))}
+                                    >
                                         <td className="px-5 py-3.5 font-medium text-brand-dark">
-                                            {row.title}
+                                            <Link
+                                                href={route('projects.show', row.id)}
+                                                className="hover:text-brand-blue hover:underline"
+                                            >
+                                                {row.title}
+                                            </Link>
+                                            <div className="mt-0.5 flex items-center gap-2 text-xs font-normal text-brand-muted">
+                                                <span className="font-mono">{projectCode(row.id)}</span>
+                                                <span>{row.department ?? '—'}</span>
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-dark">
                                             {row.department}
                                         </td>
-                                        <td className="px-4 py-3.5 text-brand-dark">
-                                            {row.budgetAmount}
+                                        <td className="px-4 py-3.5 text-right font-mono text-brand-dark">
+                                            {formatCurrency(row.budgetAmount)}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-right font-mono text-brand-dark">
+                                            {formatCurrency(row.actualAmount)}
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-dark">
-                                            {row.actualAmount}
-                                        </td>
-                                        <td className="px-4 py-3.5 text-brand-dark">
-                                            {row.consumptionRate}
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-2 min-w-32 flex-1 overflow-hidden rounded-full bg-[#E9ECEF]">
+                                                    <div
+                                                        className={cn('h-full rounded-full', rateClass.split(' ')[0])}
+                                                        style={{ width: `${Math.min(rate, 100)}%` }}
+                                                    />
+                                                </div>
+                                                <span className={cn('w-14 text-right font-mono text-xs font-semibold', rateClass.split(' ')[1])}>
+                                                    {rate.toFixed(1)}%
+                                                </span>
+                                            </div>
+                                            <div className={cn('mt-1 text-[10px]', remaining < 0 ? 'text-brand-red' : 'text-brand-muted')}>
+                                                残 {formatCurrency(remaining)}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-muted">
-                                            {row.updatedAt}
+                                            {formatDate(row.updatedAt)}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-right text-brand-muted">
+                                            <ChevronRight className="ml-auto h-4 w-4" />
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     )}
