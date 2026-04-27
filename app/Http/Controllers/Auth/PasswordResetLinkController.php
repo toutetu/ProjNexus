@@ -29,9 +29,18 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
+        $request->validate(
+            [
+                'email' => 'required|email',
+            ],
+            [
+                'required' => ':attribute は必須です。',
+                'email' => ':attribute の形式が正しくありません。',
+            ],
+            [
+                'email' => 'メールアドレス',
+            ],
+        );
 
         // We will send the password reset link to this user. Once we have attempted
         // to send the link, we will examine the response then see the message we
@@ -41,11 +50,11 @@ class PasswordResetLinkController extends Controller
         );
 
         if ($status == Password::RESET_LINK_SENT) {
-            return back()->with('status', __($status));
+            return back()->with('status', 'パスワード再設定用のリンクをメールで送信しました。');
         }
 
         throw ValidationException::withMessages([
-            'email' => [trans($status)],
+            'email' => ['このメールアドレスでは再設定リンクを送信できません。入力内容を確認してください。'],
         ]);
     }
 }

@@ -436,7 +436,11 @@ export default function ProjectsCreate({
                                 </div>
                                 <div className="flex">
                                     <span className="w-24 text-brand-muted">通知</span>
-                                    <span>承認/却下時にメール + アプリ内通知</span>
+                                    <span className="flex flex-wrap items-center gap-1">
+                                        承認/却下時にアプリ内通知（＋メール
+                                        <Challenge2Badge className="text-[8px]" />
+                                        ）
+                                    </span>
                                 </div>
                             </div>
                         </div>
