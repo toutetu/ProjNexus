@@ -1,4 +1,4 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     ArrowLeft,
@@ -62,7 +62,7 @@ export default function ProjectsEdit({ departments, project }: Props) {
     const roles = auth.user.roles ?? [];
     const submitsToHqDirect = roles.includes('dept_manager' as RoleName);
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const { data, setData, put, processing, errors } = useForm<EditProjectForm>({
+    const { data, setData, processing, errors } = useForm<EditProjectForm>({
         title: project.title ?? '',
         department_id: String(project.departmentId ?? ''),
         purpose: project.purpose ?? '',
@@ -79,8 +79,11 @@ export default function ProjectsEdit({ departments, project }: Props) {
     });
 
     const submitWithAction = (action: 'draft' | 'submit') => {
-        setData((prev) => ({ ...prev, submit_action: action }));
-        put(route('projects.update', project.id));
+        router.put(
+            route('projects.update', project.id),
+            { ...data, submit_action: action },
+            { preserveScroll: true },
+        );
     };
 
     return (
