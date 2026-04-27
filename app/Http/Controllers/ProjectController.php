@@ -124,6 +124,27 @@ class ProjectController extends Controller
         $this->authorize('view', $project);
         $canEdit = auth()->user()?->can('update', $project) ?? false;
 
+        $project->load([
+            'department:id,name',
+            'applicant' => static function ($q): void {
+                $q->select('users.id', 'users.name')->with('roles');
+            },
+            'primaryAssignee:id,name',
+        ]);
+
+        $rejectedAt = null;
+        if ($project->status === ProjectStatus::Rejected) {
+            $lastReject = Approval::query()
+                ->where('project_id', $project->id)
+                ->where('action', ApprovalAction::Rejected)
+                ->orderByDesc('acted_at')
+                ->first();
+            $level = $lastReject?->level->value;
+            $rejectedAt = $level === 'dept' || $level === 'hq' ? $level : null;
+        }
+
+        $applicantIsDeptManager = $project->applicant?->hasRole(Role::DeptManager->value) ?? false;
+
         return Inertia::render('Projects/Show', [
             'projectId' => $project->id,
             'canEdit' => $canEdit,
@@ -137,6 +158,10 @@ class ProjectController extends Controller
                 'estimatedAmount' => $project->estimated_amount,
                 'budgetAmount' => $project->budget_amount,
                 'actualAmount' => $project->actual_amount,
+                'revision' => $project->revision,
+                'parentProjectId' => $project->parent_project_id,
+                'rejectedAt' => $rejectedAt,
+                'applicantSubmitsToHqDirect' => $applicantIsDeptManager,
             ],
         ]);
     }

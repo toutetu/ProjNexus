@@ -389,17 +389,28 @@ export default function ProjectsIndex({ tab, filter, projects }: Props) {
                                         <td className="px-4 py-3.5">
                                             <div className="flex flex-wrap items-center gap-1.5">
                                                 <StatusPill status={row.status} />
-                                                {row.applicantSubmitsToHqDirect && (
-                                                    <span className="rounded-full bg-[#E0F2FE] px-2 py-0.5 text-[10px] font-semibold text-[#0369A1]">
-                                                        本部直行
-                                                    </span>
-                                                )}
+                                                {row.applicantSubmitsToHqDirect &&
+                                                    (row.status === 'pending_hq' ||
+                                                        row.status === 'approved' ||
+                                                        (row.status === 'rejected' &&
+                                                            row.rejectedAt === 'hq')) && (
+                                                        <span className="rounded-full bg-[#E0F2FE] px-2 py-0.5 text-[10px] font-semibold text-[#0369A1]">
+                                                            本部直行
+                                                        </span>
+                                                    )}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3.5">
                                             <ApprovalStepperMini
                                                 status={row.status}
                                                 rejectedAt={row.rejectedAt}
+                                                skipsDeptStep={
+                                                    !!row.applicantSubmitsToHqDirect &&
+                                                    (row.status === 'pending_hq' ||
+                                                        row.status === 'approved' ||
+                                                        (row.status === 'rejected' &&
+                                                            row.rejectedAt === 'hq'))
+                                                }
                                             />
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-muted">

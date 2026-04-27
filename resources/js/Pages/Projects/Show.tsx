@@ -1,19 +1,25 @@
 import { Head, Link } from '@inertiajs/react';
-import { CalendarDays, FileCheck2, FolderSearch, ListChecks } from 'lucide-react';
+import { CalendarDays, FileCheck2, FolderSearch, GitBranch, ListChecks } from 'lucide-react';
 
+import ApprovalStepperMini from '@/Components/Approval/ApprovalStepperMini';
+import StatusPill, { type ProjectStatus } from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
 interface ProjectShowData {
     id: number;
     title: string;
-    status: string;
+    status: ProjectStatus;
     department: string | null;
     applicant: string | null;
     primaryAssignee: string | null;
     estimatedAmount: number | null;
     budgetAmount: number | null;
     actualAmount: number | null;
+    revision: number;
+    parentProjectId: number | null;
+    rejectedAt?: 'dept' | 'hq' | null;
+    applicantSubmitsToHqDirect?: boolean;
 }
 
 interface Props {
@@ -26,6 +32,12 @@ const formatCurrency = (value: number | null) =>
     value === null ? '—' : `¥${value.toLocaleString('ja-JP')}`;
 
 export default function ProjectsShow({ projectId, project, canEdit }: Props) {
+    const skipsDeptStep =
+        !!project.applicantSubmitsToHqDirect &&
+        (project.status === 'pending_hq' ||
+            project.status === 'approved' ||
+            (project.status === 'rejected' && project.rejectedAt === 'hq'));
+
     return (
         <AuthenticatedLayout
             activeKey="projects-dev"
@@ -45,15 +57,58 @@ export default function ProjectsShow({ projectId, project, canEdit }: Props) {
                                 <span className="mr-2.5 inline-block h-6 w-1 rounded-sm bg-brand-accent" />
                                 {project.title}
                             </h1>
-                            <p className="mt-2 text-sm text-brand-muted">
-                                案件ID: {projectId} / ステータス: {project.status}
+                            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-brand-muted">
+                                <span>
+                                    案件ID: {projectId}
+                                    {project.revision > 1 && (
+                                        <span className="text-brand-dark">
+                                            {' '}
+                                            / 改訂{project.revision}回目
+                                        </span>
+                                    )}
+                                </span>
+                                <span className="text-brand-muted">·</span>
+                                <StatusPill status={project.status} />
+                                {project.applicantSubmitsToHqDirect &&
+                                    (project.status === 'pending_hq' ||
+                                        project.status === 'approved' ||
+                                        (project.status === 'rejected' &&
+                                            project.rejectedAt === 'hq')) && (
+                                        <span className="rounded-full bg-[#E0F2FE] px-2 py-0.5 text-[10px] font-semibold text-[#0369A1]">
+                                            本部直行
+                                        </span>
+                                    )}
                             </p>
+                            {project.parentProjectId != null && (
+                                <p className="mt-2 flex items-center gap-1.5 text-sm text-brand-muted">
+                                    <GitBranch className="h-4 w-4 shrink-0" />
+                                    再申請チェイン:
+                                    <Link
+                                        href={route('projects.show', project.parentProjectId)}
+                                        className="font-medium text-brand-blue hover:underline"
+                                    >
+                                        元案件 #{project.parentProjectId}
+                                    </Link>
+                                </p>
+                            )}
                         </div>
                         {canEdit && (
                             <Button asChild variant="outline" size="sm">
                                 <Link href={route('projects.edit', project.id)}>編集</Link>
                             </Button>
                         )}
+                    </div>
+                    <div className="mt-6 rounded-md border border-brand-border bg-brand-bg/60 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
+                            承認ステップ
+                        </p>
+                        <div className="mt-2">
+                            <ApprovalStepperMini
+                                status={project.status}
+                                rejectedAt={project.rejectedAt ?? undefined}
+                                skipsDeptStep={skipsDeptStep}
+                            />
+                        </div>
                     </div>
                 </section>
 

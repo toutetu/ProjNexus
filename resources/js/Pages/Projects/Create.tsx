@@ -70,12 +70,8 @@ export default function ProjectsCreate({ departments, draftCount = 0 }: Props) {
     });
 
     const submitWithAction = (action: 'draft' | 'submit') => {
-        post(route('projects.store'), {
-            data: {
-                ...data,
-                submit_action: action,
-            },
-        });
+        setData((prev) => ({ ...prev, submit_action: action }));
+        post(route('projects.store'));
     };
 
     return (
