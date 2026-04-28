@@ -18,7 +18,7 @@
 
 ---
 
-### 基本情報（2026-04-24 更新）
+### 基本情報（2026-04-27 更新）
 
 - **開発期間:** 4/13〜5/15（5週間・100時間以内）
 - **累計実績:** 56h
@@ -35,20 +35,20 @@
 | Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了 |
 | Phase 1 | 認証・レイアウト・共通UI | 8h | 9h | ✅ 完了 |
 | Phase 2 | 申請・承認フロー（課題1の核） | 20h | 10h | ✅ 完了 |
-| Phase 3 | 開発管理・予算管理（MVP優先） | 10h |  6h | 🟡 進行中（実装・自動検証完了） |
+| Phase 3 | 開発管理・予算管理（MVP優先） | 10h |  6h | 🟡 進行中（MVP実装・UI調整・自動検証完了） |
 | Phase 4 | +α（最小） | 5h | - | 未着手 |
 | Phase 5 | 資料・最終確認 | 20h | - | 未着手 |
 | 予備バッファ | 遅延吸収・回帰修正 | 5h | - | - |
 
-> 実装時間は Phase 1〜4 で **43h**、資料・確認に **20h**、バッファ **5h**。  
+> 実装時間は Phase 1〜4 で *75*h**、資料・確認に **20h**、バッファ **5h**。  
 > GW前までに Phase 2 を完了 → GW週で Phase 3 MVP → 最終週で +α＋資料、が基本線。
 
 ---
 
-### 現在地
+### 現在地（2026-04-27 時点）
 
-- **現在の主作業:** Phase 3 進行中（開発タブ案件一覧・タスク管理・予算実績入力のMVP接続）
-- **直近完了:** `Projects/Index.tsx`（dev/budget 実データ化）、`Projects/Show.tsx`（タスク一覧・予算実績導線）、`ProjectTaskController` / `BudgetController` / `TaskPolicy`、`TaskFormDialog` / `BudgetActualDialog`、`php artisan test` / `npm run build` / `tsc --noEmit` 通過
+- **現在の主作業:** Phase 3 進行中（開発/予算タブのモック差分収束と運用導線の最終調整）
+- **直近完了:** `Projects/Index.tsx`（dev/budget 実データ化、フィルタ即時反映、クリア右端固定、ページング追加）、`Projects/Show.tsx`（`ApprovalStepperFull` 反映）、`ProjectTaskController` / `BudgetController`、`ProjectTaskDialog` / `BudgetActualDialog`、案件作成時の主担当自動セット（申請者）
 - **次の着手:** Phase 3 の手動確認（承認後ロック・進捗反映・消費率反映）と docs 仕上げ
 
 ---
@@ -200,7 +200,7 @@ Cursor / Claude との協働でも必ず遵守。
 
 ### 画面：開発管理
 - [x] `Projects/Show.tsx` にタスク一覧セクション追加
-- [x] `TaskFormDialog.tsx`（S-10 タスク作成・編集モーダル）
+- [x] `ProjectTaskDialog.tsx`（S-10 タスク作成・編集モーダル）
 - [x] タスク進捗率 → 案件進捗率の自動算出（表示のみ、DB には持たない）
 - [x] `Projects/Index.tsx` 開発タブの列セット実装
 
@@ -218,9 +218,10 @@ Cursor / Claude との協働でも必ず遵守。
 
 ---
 
+
 ## Phase 4 チェックリスト（+α 最小／2h）
 
-- [ ] 承認ステッパーUI（詳細画面用、大型版）
+- [x] 承認ステッパーUI（詳細画面用、大型版）
 - [ ] レスポンシブ調整（主要 3 画面のみ）
   - [ ] `/projects` 一覧（タブ含む）
   - [ ] 案件詳細
