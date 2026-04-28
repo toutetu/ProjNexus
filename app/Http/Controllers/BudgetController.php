@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ProjectStatus;
+use App\Enums\Role;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,11 +19,12 @@ class BudgetController extends Controller
 
         $validated = $request->validate(
             [
-                'actual_amount' => ['required', 'integer', 'min:0', "max:{$maxAmount}"],
+                'actual_amount' => ['required', 'integer', 'regex:/^\d+$/', 'min:0', "max:{$maxAmount}"],
             ],
             [
                 'required' => ':attribute は必須です。',
                 'integer' => ':attribute は整数で入力してください。',
+                'regex' => ':attribute は小数なしの整数で入力してください。',
                 'min' => ':attribute は :min 以上で入力してください。',
                 'max' => ':attribute は :max 以下で入力してください。',
             ],
@@ -45,7 +47,13 @@ class BudgetController extends Controller
         $user = $request->user();
 
         return $project->status === ProjectStatus::Approved
-            && $project->primary_assignee_id === $user?->id
+            && (
+                $project->primary_assignee_id === $user?->id
+                || (
+                    $user?->hasRole(Role::DeptManager->value)
+                    && $user?->department_id === $project->department_id
+                )
+            )
             && $project->budget_amount !== null;
     }
 }

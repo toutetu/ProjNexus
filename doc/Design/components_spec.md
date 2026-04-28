@@ -250,6 +250,7 @@ interface ProjectTableProps {
 - `61-85%`: 青（normal）
 - `86-100%`: 橙（warning）
 - `100%超`: 赤（danger）
+- ※ `doc/Design/design_system.md` と同期済み（本4帯定義を正とする）
 
 **画面上部要素**:
 - タイトル直下に4枚サマリーカード（予算合計 / 実績合計 / 平均消費率 / 要注意案件数）

@@ -49,10 +49,11 @@
   --status-approved:     #16A34A;  /* グリーン（承認済） */
   --status-rejected:     #E60013;  /* ブランドレッド（却下） */
 
-  /* Budget warning */
-  --warn-safe:    #16A34A;  /* 〜50% */
-  --warn-medium:  #EDB100;  /* 50〜70% */
-  --warn-high:    #E60013;  /* 70%超 */
+  /* Budget consumption bands (components_spec.md と統一) */
+  --budget-safe:    #16A34A;  /* 0〜60% */
+  --budget-normal:  #106EBE;  /* 61〜85% */
+  --budget-warning: #EDB100;  /* 86〜100% */
+  --budget-danger:  #E60013;  /* 100%超 */
 }
 ```
 
@@ -225,7 +226,11 @@ rejected    → レッド✕ + "却下"
 
 - 高さ: h-2
 - 角丸: rounded-full
-- 色分け: 0-50%=グリーン, 50-70%=イエロー, 70%超=レッド（点滅アニメで警告強調）
+- 予算消費率の色分け（`components_spec.md` と統一）:
+  - 0-60%: グリーン（safe）
+  - 61-85%: ブルー（normal）
+  - 86-100%: オレンジ（warning）
+  - 100%超: レッド（danger）
 
 ### 5-10. 空状態（Empty State）
 
@@ -265,7 +270,7 @@ rejected    → レッド✕ + "却下"
 | ページ遷移 | Inertia標準のフェード |
 | モーダル開閉 | fade + scale 200ms |
 | ステッパーUI 進行中 | パルス（無限ループ） |
-| 予算70%超バー | 赤色 + 軽い点滅 |
+| 予算100%超バー | 赤色 + 軽い点滅 |
 | トースト | 右上からスライドイン |
 
 ---

@@ -342,7 +342,13 @@ class ProjectController extends Controller
             'canTakeBack' => $canTakeBack,
             'canManageTasks' => $user?->can('create', [ProjectWorkItem::class, $project]) ?? false,
             'canUpdateBudget' => $project->status === ProjectStatus::Approved
-                && $project->primary_assignee_id === $user?->id
+                && (
+                    $project->primary_assignee_id === $user?->id
+                    || (
+                        $user?->hasRole(Role::DeptManager->value)
+                        && $user?->department_id === $project->department_id
+                    )
+                )
                 && $project->budget_amount !== null,
             'taskAssignees' => User::query()
                 ->where('department_id', $project->department_id)
