@@ -334,7 +334,7 @@ export default function ProjectsEdit({ departments, project }: Props) {
                 <div className="flex items-start gap-2 text-xs text-brand-muted">
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <p className="mt-2 text-sm text-brand-muted">
-                        「更新を保存」は案件内容のみ保存します。「更新して申請」は保存後に承認待ちへ遷移します。
+                        申請後部門承認までは、取り戻して編集できます。部門承認後は編集できません。承認・却下の結果は通知で届きます。却下された場合は「再申請」から内容を引き継いで作成できます。
                     </p>
                 </div>
             </div>

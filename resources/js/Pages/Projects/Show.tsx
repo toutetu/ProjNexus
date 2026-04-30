@@ -90,6 +90,13 @@ const formatAmountForDisplay = (value: number | null): string =>
 const consumptionRate = (actual: number | null, budget: number | null): number =>
     budget && budget > 0 ? Math.round(((actual ?? 0) / budget) * 1000) / 10 : 0;
 
+const progressRateTone = (rate: number): { bar: string; text: string } => {
+    if (rate > 100) return { bar: 'bg-brand-red', text: 'text-brand-red' };
+    if (rate >= 86) return { bar: 'bg-[#F59E0B]', text: 'text-[#92400E]' };
+    if (rate >= 61) return { bar: 'bg-brand-blue', text: 'text-brand-blue' };
+    return { bar: 'bg-[#16A34A]', text: 'text-[#166534]' };
+};
+
 const taskStatusLabel: Record<TaskListItem['status'], string> = {
     open: '未着手',
     in_progress: '進行中',
@@ -282,7 +289,7 @@ export default function ProjectsShow({
         return [submittedEvent, ...approvalEvents, ...changeEvents].sort((a, b) => {
             const aTime = a.occurredAt ? new Date(a.occurredAt).getTime() : 0;
             const bTime = b.occurredAt ? new Date(b.occurredAt).getTime() : 0;
-            return bTime - aTime;
+            return aTime - bTime;
         });
     }, [project.submittedAt, project.applicant, project.approvals, project.tasks]);
 
@@ -651,7 +658,9 @@ export default function ProjectsShow({
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-brand-border">
-                                            {project.tasks.map((task) => (
+                                            {project.tasks.map((task) => {
+                                                const tone = progressRateTone(task.progressRate);
+                                                return (
                                                 <tr
                                                     key={task.id}
                                                     className="cursor-pointer hover:bg-slate-50"
@@ -695,21 +704,20 @@ export default function ProjectsShow({
                                                         <div className="flex items-center gap-2">
                                                             <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-[#E9ECEF]">
                                                                 <div
-                                                                    className={
-                                                                        task.progressRate >= 100
-                                                                            ? 'h-full bg-[#16A34A]'
-                                                                            : 'h-full bg-brand-blue'
-                                                                    }
-                                                                    style={{ width: `${task.progressRate}%` }}
+                                                                    className={`h-full ${tone.bar}`}
+                                                                    style={{ width: `${Math.min(task.progressRate, 100)}%` }}
                                                                 />
                                                             </div>
-                                                            <span className="w-10 text-right font-mono text-[10px] font-semibold">
+                                                            <span
+                                                                className={`w-10 text-right font-mono text-[10px] font-semibold ${tone.text}`}
+                                                            >
                                                                 {task.progressRate}%
                                                             </span>
                                                         </div>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>

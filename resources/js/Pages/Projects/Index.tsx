@@ -1,6 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
-    ChevronRight,
     FileCheck2,
     FileText,
     FolderSearch,
@@ -963,7 +962,6 @@ export default function ProjectsIndex({
                                     <th className="px-4 py-3 text-left font-semibold">申請日</th>
                                     <th className="px-4 py-3 text-left font-semibold">部門</th>
                                     <th className="px-4 py-3 text-left font-semibold">最終更新</th>
-                                    <th className="px-4 py-3 text-left font-semibold" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
@@ -1020,9 +1018,6 @@ export default function ProjectsIndex({
                                         <td className="px-4 py-3.5 text-brand-muted">
                                             {row.updatedAt}
                                         </td>
-                                        <td className="px-4 py-3.5 text-right text-brand-muted">
-                                            <ChevronRight className="ml-auto h-4 w-4" />
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -1039,7 +1034,6 @@ export default function ProjectsIndex({
                                     <th className="px-4 py-3 text-left font-semibold">タスク進捗</th>
                                     <th className="px-4 py-3 text-left font-semibold">期限</th>
                                     <th className="px-4 py-3 text-left font-semibold">最終更新</th>
-                                    <th className="px-4 py-3 text-left font-semibold" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
@@ -1130,9 +1124,6 @@ export default function ProjectsIndex({
                                         <td className="px-4 py-3.5 text-brand-muted">
                                             {formatRelativeUpdatedAt(row.updatedAt)}
                                         </td>
-                                        <td className="px-4 py-3.5 text-right text-brand-muted">
-                                            <ChevronRight className="ml-auto h-4 w-4" />
-                                        </td>
                                     </tr>
                                 );
                                 })}
@@ -1150,7 +1141,6 @@ export default function ProjectsIndex({
                                     <th className="px-4 py-3 text-left font-semibold">実績額</th>
                                     <th className="px-4 py-3 text-left font-semibold">消費率</th>
                                     <th className="px-4 py-3 text-left font-semibold">更新日</th>
-                                    <th className="px-4 py-3 text-left font-semibold" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
@@ -1204,9 +1194,6 @@ export default function ProjectsIndex({
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-muted">
                                             {formatDate(row.updatedAt)}
-                                        </td>
-                                        <td className="px-4 py-3.5 text-right text-brand-muted">
-                                            <ChevronRight className="ml-auto h-4 w-4" />
                                         </td>
                                     </tr>
                                     );
