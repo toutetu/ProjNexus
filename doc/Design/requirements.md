@@ -22,36 +22,37 @@
 
 | # | 機能 | 対応するテーブル/カラム | 実装状態 |
 |---|------|---------------------|---------|
-| A-1 | 新規案件の申請 | projects (status=draft→pending_dept) | 未着手 |
-| A-2 | 自身の申請案件の進捗入力・更新 | tasks (progress_rate, status) | 未着手 |
+| A-1 | 新規案件の申請 | projects (status=draft→pending_dept) | 完了|
+| A-2 | 自身の申請案件の進捗入力・更新 | tasks (progress_rate, status) | 完了 |
 | A-3 | 予算実績の入力 | projects.actual_amount | 未着手 |
-| A-4 | 自身の案件一覧・ステータス確認 | projects WHERE applicant_id = 自分 | 未着手 |
-| A-5 | 関連部門予算消費状況の確認 | projects.budget_amount / actual_amount | 未着手 |
+| A-4 | 自身の案件一覧・ステータス確認 | projects WHERE applicant_id = 自分 | 完了 |
+| A-5 | 関連部門予算消費状況の確認 | projects.budget_amount / actual_amount | 完了 |
 A-5は課題1必須機能ではないが、H-3と共通するので、開発コスト低いと判断して追加
 
 #### 部門管理者（dept_manager）
 
 | # | 機能 | 対応するテーブル/カラム | 実装状態 |
 |---|------|---------------------|---------|
-| D-1 | 申請の一次承認/却下 | approvals (level=dept) | 未着手 |
-| D-2 | 自部門の案件一覧・進捗確認 | projects WHERE department_id = 自部門 | 未着手 |
-| D-3 | 関連部門予算消費状況の確認 | projects.budget_amount / actual_amount | 未着手 |
+| D-1 | 申請の一次承認/却下 | approvals (level=dept) | 完了 |
+| D-2 | 自部門の案件一覧・進捗確認 | projects WHERE department_id = 自部門 | 完了 |
+| D-3 | 関連部門予算消費状況の確認 | projects.budget_amount / actual_amount | 完了 |
 D-3は課題1必須機能ではないが、H-3と共通するので、開発コスト低いと判断して追加
 
 #### 本部管理者（hq_manager）
 
 | # | 機能 | 対応するテーブル/カラム | 実装状態 |
 |---|------|---------------------|---------|
-| H-1 | 最終承認/却下 | approvals (level=hq) | 未着手 |
-| H-2 | 関連部門全案件の一覧・進捗確認 | projects（全件） | 未着手 |
+| H-1 | 最終承認/却下 | approvals (level=hq) | 完了 |
+| H-2 | 関連部門全案件の一覧・進捗確認 | projects（全件） | 完了 |
 | H-3 | 関連部門予算消費状況の確認 | projects.budget_amount / actual_amount | 未着手 |
 
 #### 共通機能
 
 | # | 機能 | 対応するテーブル/カラム | 実装状態 |
 |---|------|---------------------|---------|
-| C-1 | ユーザー認証（ログイン/ログアウト） | users + Breeze | 未着手 |
-| C-2 | アプリ内通知の受信・確認 | notifications | 未着手 |
+| C-1 | ユーザー認証（ログイン/ログアウト） | users + Breeze |　完了 |
+| C-2 | アプリ内通知の受信・確認 | notifications | 完了 |
+| C-3 | タスク通知（担当・期限・完了） | notifications（`task_assigned` / `task_due_soon` / `task_completed`） | 完了 |
 
 ### 承認フロー（課題資料の指示）
 
@@ -75,9 +76,17 @@ projects.status が approved になった時点で以下が解禁される：
 |------|:---:|:---:|
 | 案件情報の編集 | ○ | ✕（確定済み） |
 | タスクの作成・編集 | ✕ | ○ |
+| 初期タスクの自動作成 | ✕ | ○（`実装計画作成` / 3人日 / 担当=申請者） |
 | 予算額の確定 | ✕ | ○（承認時に自動設定） |
 | 予算実績の入力 | ✕ | ○ |
 | 進捗率の更新 | ✕ | ○ |
+
+### タスク通知（課題1の最小実装）
+
+- タスク作成時、担当者へ通知（`task_assigned`）
+- タスク担当変更時、新担当者へ通知（`task_assigned`）
+- タスクが `closed` になった時、案件申請者へ通知（`task_completed`）
+- 期限通知は日次ジョブで実施（当日 / 3日前、`task_due_soon`）
 
 ### 現在管理している項目との対応
 

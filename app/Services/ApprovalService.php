@@ -7,6 +7,9 @@ use App\Enums\ApprovalLevel;
 use App\Enums\NotificationType;
 use App\Enums\ProjectStatus;
 use App\Enums\Role;
+use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
+use App\Enums\TaskType;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -169,6 +172,7 @@ class ApprovalService
                 'approved_at' => now(),
                 'budget_amount' => $project->estimated_amount,
             ]);
+            $this->createInitialTaskOnApproved($project, $approver);
 
             $this->notificationService->notifyUsers(
                 users: [$project->applicant],
@@ -294,5 +298,29 @@ class ApprovalService
         }
 
         return User::query()->whereIn('id', $approverIds)->get();
+    }
+
+    private function createInitialTaskOnApproved(Project $project, User $approver): void
+    {
+        $initialTaskTitle = '実装計画作成';
+
+        $alreadyExists = $project->tasks()
+            ->where('title', $initialTaskTitle)
+            ->exists();
+
+        if ($alreadyExists) {
+            return;
+        }
+
+        $project->tasks()->create([
+            'title' => $initialTaskTitle,
+            'task_type' => TaskType::Task,
+            'priority' => TaskPriority::Medium,
+            'status' => TaskStatus::Open,
+            'progress_rate' => 0,
+            'estimated_days' => 3,
+            'assignee_id' => $project->applicant_id,
+            'created_by' => $approver->id,
+        ]);
     }
 }

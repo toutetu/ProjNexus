@@ -113,16 +113,19 @@ interface ApprovalStepperMiniProps {
 ### ApprovalStepperFull
 **役割**: S-04 案件詳細ページ上部の、大きい横長ステッパー。
 **配置**: `resources/js/Components/Approval/ApprovalStepperFull.tsx`
-**使用モック**: S-04（次回作成予定）
+**使用モック**: `mockups/s04_project_show.html`（実装済み）
 **Props**:
 ```ts
 interface ApprovalStepperFullProps {
   status: ProjectStatus;
-  approvals: Approval[];  // 承認履歴（誰が・いつ）
+  approvals: ApprovalTimelineItem[];  // 承認履歴（誰が・いつ）
+  submittedAt: string | null;
+  applicantName: string | null;
   rejectedAt?: 'dept' | 'hq';
+  skipsDeptStep?: boolean;
 }
 ```
-**違い（Miniとの）**: 各ステップに担当者名・承認日時を表示、進行中はパルスアニメ、`approved` の時は折り畳んで「✓ 承認済（履歴を見る ▼）」バッジに切り替わる
+**違い（Miniとの）**: 各ステップに担当者名・承認日時を表示、進行中はパルスアニメ、カードヘッダーに「承認フロー / 申請日」を表示
 
 #### S-04 リバート方針（s03a準拠）
 S-04は一度配色が拡散したため、s03a基準に戻す。以下を実装時の固定ルールとする。
@@ -222,9 +225,11 @@ interface ProjectTableProps {
 - s03a/s03c と同一PRJ-ID群を使い、画面間で整合を維持する
 
 **進捗バー配色ルール**:
-- 通常: `var(--brand-blue)`
-- 95% 以上: `#16A34A`（緑、完了間近の先行フィードバック）
-- 進捗 90% 以上の行は、タイトル横に `.pill-completing`（紫）バッジを表示
+- `0-60%`: 緑（safe）
+- `61-85%`: 青（normal）
+- `86-100%`: 橙（warning）
+- `100%超`: 赤（danger）
+- ※ `S-03c` の**消費率の色分けルール**と同一閾値・同一色で運用する
 
 **UIアクセント**:
 - h1「案件一覧」の左に小さな黄色縦棒（S-04と統一）
@@ -247,6 +252,7 @@ interface ProjectTableProps {
 - `61-85%`: 青（normal）
 - `86-100%`: 橙（warning）
 - `100%超`: 赤（danger）
+- ※ `doc/Design/design_system.md` と同期済み（本4帯定義を正とする）
 
 **画面上部要素**:
 - タイトル直下に4枚サマリーカード（予算合計 / 実績合計 / 平均消費率 / 要注意案件数）
@@ -558,6 +564,23 @@ interface Challenge2BadgeProps {
 ### Toast（sonner）
 shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。プロジェクト内ラッパー不要。
 
+### NotificationTypeBadge
+通知一覧（S-12）で通知種別を視認しやすくするための種別バッジ。
+**配置**: `resources/js/Pages/Notifications/Index.tsx`（当面はページ内実装）
+**対象種別（課題1）**:
+- `project_submitted`（申請）
+- `project_approved`（承認）
+- `project_rejected`（却下）
+- `project_returned`（取り戻し）
+- `task_assigned`（担当通知）
+- `task_due_soon`（期限間近）
+- `task_completed`（タスク完了）
+**配色ルール**:
+- 承認系: 緑、却下系: 赤、進行通知: 青、期限通知: 橙、補助通知: グレー
+**備考**:
+- タイトル行で「通知種別バッジ + 未読バッジ」を横並び表示する
+- バッジ文言は英語コードを直接表示せず日本語ラベルで表示する
+
 ---
 
 ## Cursor への指示テンプレ
@@ -590,4 +613,4 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 ## 更新ログ
 
 - 2026-04-16: s02/s03a/s05 モックから初版を作成。S-04/S-07/S-08/S-10/S-11/S-12/S-13 は今後のモック作成時に追記。
-- 2026-04-18: 各画面方針書（`mockups/s0x_policy.md`）との整合確認を実施。S-03b の進捗フィルタ区分を `未着手/進行中/完了間近(90%+)/完了` に改訂し、進捗バー配色ルール（95%以上で緑、90%以上で完了間近バッジ）を追記。
+- 2026-04-18: 各画面方針書（`mockups/s0x_policy.md`）との整合確認を実施。S-03b の進捗フィルタ区分を `未着手/進行中/完了間近(90%+)/完了` に改訂し、進捗バー配色ルールを4帯（0-60緑 / 61-85青 / 86-100橙 / 100超赤）へ統一。

@@ -187,13 +187,21 @@ draft → pending_dept → pending_hq → approved
 1. `submit($project)`: draft → pending_dept（申請者が部門管理者なら pending_hq 直行）
 2. `approveDept($project, $approver, $comment)`: pending_dept → pending_hq + approvals レコード作成
 3. `approveHq($project, $approver, $comment)`: pending_hq → approved + budget_amount 確定 + approved_at
+   - 承認直後に初期タスクを自動作成（`実装計画作成` / 見積工数 `3` 人日 / 担当者 = 申請者）
 4. `reject($project, $approver, $level, $comment)`: → rejected + approvals レコード
 5. 各アクション後、関係者に notifications を発行
+
+### タスク通知（課題1の最小実装）
+- `task_assigned`: タスク作成時または担当者変更時に、担当者へ通知
+- `task_completed`: タスクが `closed` になった時に、案件申請者へ通知
+- `task_due_soon`: 期限 3 日前 / 当日のタスクを日次ジョブで担当者へ通知
+- 日次コマンド: `php artisan tasks:notify-due-soon`（スケジューラで毎朝実行）
 
 ### 承認後の開発管理フェーズ移行
 `projects.status = approved` になった時点で：
 - 案件情報の編集をロック
 - タスク作成・進捗入力を解禁
+- 初期タスク `実装計画作成`（見積 `3` 人日、担当者=申請者）を自動追加
 - `budget_amount` を `estimated_amount` から転記
 - 予算実績入力を解禁
 
@@ -230,6 +238,7 @@ draft → pending_dept → pending_hq → approved
 - ステータスバッジ・ステッパー・カードはコンポーネント化して重複を避ける
 - shadcn/ui のコンポーネントは `npx shadcn-ui@latest add` で個別追加
 - モバイル対応は後回しでよいが、Tailwind のレスポンシブクラスは付けておく（後から崩れにくくする）
+- UI 表示文言（ラベル、ボタン、補助テキスト、バッジ、プレースホルダー、エラー文）は日本語を原則とし、英語表示を残さない。やむを得ず英語を使う場合は固有名詞・規格名・ショートカット記法など最小限に限定する
 - 承認/却下アクションは `ApprovalDialog` 経由で実行する（直接POSTボタンのみにはしない）
 - 一覧の操作系（申請/承認/却下/編集）は行単位の処理中ロックと状態表示（スピナー）を入れる
 - 編集可否はフロントの条件分岐だけでなく、サーバーから返す `canEdit` と Policy の両方で制御する

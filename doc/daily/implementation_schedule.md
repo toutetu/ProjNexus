@@ -9,8 +9,8 @@
 
 - Phase 0: 完了
 - Phase 1: 完了
-- Phase 2: 進行中（承認フローの最小導線まで実装済み）
-- Phase 3: 未着手
+- Phase 2: 完了
+- Phase 3: 進行中（通知機能・承認後自動タスク投入まで完了）
 - Phase 4: 未着手
 - Phase 5: 未着手
 
@@ -29,39 +29,41 @@
 
 ---
 
-## 3. 次回作業予定（2026-0427 / Phase 2 Day3）
+## 3. 次回作業予定（2026-05-01 / Phase 3 Day3）
 
 ### 目的
 
-- 3ロールでの申請→承認/却下→通知の手動確認を完了し、結果を日次ログに記録する
-- Phase 2 残タスク（再申請チェイン、部門管理者が申請者の場合の `pending_hq` 直行の UI 反映など）の優先順位を確定し、着手可能なものから実装する
+- Phase 3 の残手動確認（ロール境界、通知重複防止、承認後の初期タスク作成）を完了する
+- 日次ドキュメントと実装ログを同期し、提出前の差分を減らす
 
 ### 実行手順
 
 1. 事前確認（`php artisan serve` / `npm run dev`、ログイン後 `/projects?tab=approval`）
-2. 手動確認チェックリストを 3 アカウントで順に実施し、`development_schedule.md` の検証欄を更新
-3. `/notifications` で未読・既読・案件リンクを確認
-4. 不足があれば `ApprovalService` / 一覧 UI を最小修正
-5. `npx tsc --noEmit` / `npm run build` / `php artisan test`
-6. `doc/daily` 更新・`feat:` と `docs:` を分離コミット・push
+2. 下書き閲覧制御（申請者のみ）を applicant / dept / hq で再確認
+3. タスク通知3種（担当・完了・期限接近）の発火と重複防止を確認
+4. 本部承認時の「実装計画作成」自動作成を確認（重複作成されないこと含む）
+5. 必要時のみ最小修正（Policy / Service / Controller / UI）
+6. `npx tsc --noEmit` / `npm run build` / `php artisan test`
+7. `doc/daily` と設計書の差分最終確認
 
 ### 手動確認チェックリスト（作業中に使用）
 
 
 ### 完了条件
 
-- [x] `ApprovalDialog` から承認/却下できる
-- [x] `Projects/Create.tsx` から保存できる
 - [x] `npx tsc --noEmit` と `npm run build` が通る
-- [x] 通知一覧（S-12）と未読バッジの最小導線が動く
-- [ ] 3ロール手動確認の記録完了
-- [ ] 日次更新を push まで完了
+- [x] `php artisan test` が通る
+- [x] 下書き閲覧制御の手動確認記録完了
+- [x] タスク通知3種の手動確認記録完了
+- [x] 承認後初期タスク作成の手動確認記録完了
+- [x] 日次更新を反映
 
 ---
 
-## 4. Phase 2 残タスク
+## 4. Phase 3 残タスク
 
-- Feature テスト（承認フロー / 権限境界）
+- ロール別の最終手動確認ログ反映
+- 通知運用（定時実行・重複防止）の監視手順追記
 
 ---
 

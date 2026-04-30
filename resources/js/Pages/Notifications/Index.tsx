@@ -38,6 +38,48 @@ interface Props {
     notifications: PaginatedNotifications;
 }
 
+interface NotificationTypeBadgeStyle {
+    label: string;
+    className: string;
+}
+
+const NOTIFICATION_TYPE_BADGE: Record<string, NotificationTypeBadgeStyle> = {
+    project_submitted: {
+        label: '申請',
+        className: 'bg-[#E0F2FE] text-[#0C7DA3]',
+    },
+    project_approved: {
+        label: '承認',
+        className: 'bg-[#DCFCE7] text-[#166534]',
+    },
+    project_rejected: {
+        label: '却下',
+        className: 'bg-[#FEE2E2] text-[#991B1B]',
+    },
+    project_returned: {
+        label: '取り戻し',
+        className: 'bg-[#E9ECEF] text-[#495057]',
+    },
+    task_assigned: {
+        label: '担当通知',
+        className: 'bg-[#E3EEFB] text-[#0A4E8A]',
+    },
+    task_due_soon: {
+        label: '期限間近',
+        className: 'bg-[#FEF3C7] text-[#92400E]',
+    },
+    task_completed: {
+        label: 'タスク完了',
+        className: 'bg-[#DCFCE7] text-[#166534]',
+    },
+};
+
+const notificationTypeBadge = (type: string): NotificationTypeBadgeStyle =>
+    NOTIFICATION_TYPE_BADGE[type] ?? {
+        label: '通知',
+        className: 'bg-[#E9ECEF] text-[#495057]',
+    };
+
 function metaProjectId(meta: Record<string, unknown> | null): number | null {
     if (!meta) {
         return null;
@@ -101,6 +143,7 @@ export default function NotificationsIndex({ notifications }: Props) {
                         {notifications.data.map((item) => {
                             const unread = item.readAt === null;
                             const projectId = metaProjectId(item.meta);
+                            const typeBadge = notificationTypeBadge(item.type);
 
                             return (
                                 <li
@@ -114,6 +157,14 @@ export default function NotificationsIndex({ notifications }: Props) {
                                         <div className="flex flex-wrap items-center gap-2">
                                             <span className="text-sm font-semibold text-brand-dark">
                                                 {item.title}
+                                            </span>
+                                            <span
+                                                className={cn(
+                                                    'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                                                    typeBadge.className,
+                                                )}
+                                            >
+                                                {typeBadge.label}
                                             </span>
                                             {unread && (
                                                 <span className="rounded-full bg-brand-red px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">

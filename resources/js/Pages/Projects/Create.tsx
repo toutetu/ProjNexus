@@ -16,6 +16,7 @@ import {
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
+import StatusPill from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -171,8 +172,9 @@ export default function ProjectsCreate({
 
                     <div className="space-y-6 p-6">
                         <p className="text-xs text-brand-muted">
-                            <span className="font-semibold text-brand-red">*</span>
-                            印がついている項目は、入力必須項目です。
+                            下書き保存は「案件名」のみ必須です。申請時は
+                            <span className="mx-1 font-semibold text-brand-red">*</span>
+                            項目の入力が必要です。
                         </p>
                         <div>
                             <InputLabel htmlFor="title">
@@ -362,16 +364,21 @@ export default function ProjectsCreate({
                     </div>
 
                     <div className="flex items-center justify-between rounded-b-lg border-t border-brand-border bg-brand-bg px-6 py-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => submitWithAction('draft')}
-                            disabled={processing}
-                            className="flex items-center gap-2"
-                        >
-                            <Save className="h-4 w-4" />
-                            下書き保存
-                        </Button>
+                        <div className="flex flex-col gap-1">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => submitWithAction('draft')}
+                                disabled={processing}
+                                className="flex items-center gap-2"
+                            >
+                                <Save className="h-4 w-4" />
+                                下書き保存
+                            </Button>
+                            <p className="text-xs text-brand-muted">
+                                下書き保存: 案件名のみで保存できます
+                            </p>
+                        </div>
                         <div className="flex items-center gap-2">
                             <Button
                                 type="button"
@@ -393,12 +400,15 @@ export default function ProjectsCreate({
                             </Button>
                         </div>
                     </div>
+                    <div className="border-t border-brand-border bg-brand-bg px-6 py-2 text-right text-xs text-brand-muted">
+                        申請する: 必須項目（*）をすべて入力してください
+                    </div>
                 </form>
 
                 <div className="flex items-start gap-2 text-xs text-brand-muted">
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <p className="mt-2 text-sm text-brand-muted">
-                        申請後は編集できません。承認・却下の結果は通知で届きます。却下された場合は「再申請」から内容を引き継いで作成できます。
+                        申請後部門承認までは、取り戻して編集できます。部門承認後は編集できません。承認・却下の結果は通知で届きます。却下された場合は「再申請」から内容を引き継いで作成できます。
                     </p>
                 </div>
             </div>
@@ -420,7 +430,12 @@ export default function ProjectsCreate({
                                 <div>
                                     <h3 className="text-lg font-semibold">申請しますか？</h3>
                                     <p className="mt-1.5 text-sm text-brand-muted">
-                                        申請後は内容を編集できません。承認・却下を待つステータスになります。
+                                        {submitsToHqDirect
+                                            ? '申請後は内容を編集できません。承認・却下を待つステータスになります。'
+                                            : '申請後、部門承認が完了するまでは申請を取り下げできます。'}
+                                    </p>
+                                    <p className="mt-1 text-xs text-brand-muted">
+                                        申請時は「*」項目の入力が必要です。
                                     </p>
                                 </div>
                             </div>
@@ -428,9 +443,16 @@ export default function ProjectsCreate({
                             <div className="mt-5 space-y-1.5 rounded-lg bg-brand-bg p-4 text-sm">
                                 <div className="flex">
                                     <span className="w-24 text-brand-muted">ステータス</span>
-                                    <span>
-                                        {submitsToHqDirect ? '本部承認待ち' : '部門承認待ち'} へ
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <StatusPill
+                                            status={
+                                                submitsToHqDirect
+                                                    ? 'pending_hq'
+                                                    : 'pending_dept'
+                                            }
+                                        />
+                                        <span>へ</span>
+                                    </div>
                                 </div>
                                 <div className="flex">
                                     <span className="w-24 text-brand-muted">次の承認者</span>
