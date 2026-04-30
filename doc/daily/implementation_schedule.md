@@ -10,7 +10,7 @@
 - Phase 0: 完了
 - Phase 1: 完了
 - Phase 2: 完了
-- Phase 3: 進行中（MVP 実装と自動検証まで完了）
+- Phase 3: 進行中（通知機能・承認後自動タスク投入まで完了）
 - Phase 4: 未着手
 - Phase 5: 未着手
 
@@ -29,22 +29,22 @@
 
 ---
 
-## 3. 次回作業予定（2026-04-28 / Phase 3 Day2）
+## 3. 次回作業予定（2026-05-01 / Phase 3 Day3）
 
 ### 目的
 
-- Phase 3 の手動確認（承認後ロック、タスク進捗反映、予算消費率反映）を完了し、結果を日次ログに記録する
-- `StatusPill` の消費率警告閾値（70%）の最終仕様を確定し、必要なら実装修正する
+- Phase 3 の残手動確認（ロール境界、通知重複防止、承認後の初期タスク作成）を完了する
+- 日次ドキュメントと実装ログを同期し、提出前の差分を減らす
 
 ### 実行手順
 
-1. 事前確認（`php artisan serve` / `npm run dev`、ログイン後 `/projects?tab=dev`）
-2. 承認済み案件でタスク追加・編集・削除を確認（承認前は不可も確認）
-3. `Projects/Show` と `Projects/Index?tab=dev` で進捗表示の整合を確認
-4. 予算実績入力を実行し、`Projects/Index?tab=budget` の消費率表示を確認
-5. 不足があれば `ProjectTaskController` / `BudgetController` / UI を最小修正
+1. 事前確認（`php artisan serve` / `npm run dev`、ログイン後 `/projects?tab=approval`）
+2. 下書き閲覧制御（申請者のみ）を applicant / dept / hq で再確認
+3. タスク通知3種（担当・完了・期限接近）の発火と重複防止を確認
+4. 本部承認時の「実装計画作成」自動作成を確認（重複作成されないこと含む）
+5. 必要時のみ最小修正（Policy / Service / Controller / UI）
 6. `npx tsc --noEmit` / `npm run build` / `php artisan test`
-7. `doc/daily` 更新・`feat:` と `docs:` を分離コミット・push
+7. `doc/daily` と設計書の差分最終確認
 
 ### 手動確認チェックリスト（作業中に使用）
 
@@ -53,17 +53,17 @@
 
 - [x] `npx tsc --noEmit` と `npm run build` が通る
 - [x] `php artisan test` が通る
-- [ ] 承認後ロックの手動確認記録完了
-- [ ] タスク進捗反映の手動確認記録完了
-- [ ] 予算消費率反映の手動確認記録完了
-- [ ] 日次更新を push まで完了
+- [x] 下書き閲覧制御の手動確認記録完了
+- [x] タスク通知3種の手動確認記録完了
+- [x] 承認後初期タスク作成の手動確認記録完了
+- [x] 日次更新を反映
 
 ---
 
 ## 4. Phase 3 残タスク
 
-- 消費率 70% 警告色の仕様最終反映
-- 手動確認ログの反映（development_schedule / daily log）
+- ロール別の最終手動確認ログ反映
+- 通知運用（定時実行・重複防止）の監視手順追記
 
 ---
 
