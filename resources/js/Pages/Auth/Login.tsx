@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { BookOpen, ExternalLink } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
 export default function Login({
@@ -138,6 +139,20 @@ export default function Login({
                 </div>
                 <p className="mt-3 text-xs font-semibold text-gray-700"> パスワード：password</p>
             </section>
+
+            <a
+                href={route('manual.show')}
+                className="mt-4 flex items-center justify-between rounded-lg border border-[#EDB100] bg-[#FFF9E6] px-4 py-3 text-sm transition-colors hover:bg-[#FBE99A]"
+            >
+                <span className="flex items-center gap-2 text-[#7A5400]">
+                    <BookOpen className="h-4 w-4" />
+                    <span className="font-semibold">操作手順は利用マニュアルへ</span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-[#7A5400]">
+                    開く
+                    <ExternalLink className="h-3 w-3" />
+                </span>
+            </a>
         </GuestLayout>
     );
 }

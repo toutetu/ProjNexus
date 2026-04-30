@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\ManualController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectTaskController;
 use App\Http\Controllers\ProjectController;
@@ -22,6 +23,11 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return redirect()->route('projects.index', ['tab' => 'approval']);
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/manual', [ManualController::class, 'show'])->name('manual.show');
+Route::get('/manual/assets/{file}', [ManualController::class, 'asset'])
+    ->where('file', '[A-Za-z0-9_\-\.]+\.(png|jpe?g|gif|svg|webp)$')
+    ->name('manual.asset');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
