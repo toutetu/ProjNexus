@@ -236,12 +236,14 @@ erDiagram
 ### notifications.type
 | 値 | 説明 |
 |---|---|
-| dept_approval_needed | 部門承認依頼 |
-| hq_approval_needed | 本部承認依頼 |
-| approved | 承認完了 |
-| rejected | 却下 |
+| project_submitted | 申請提出 |
+| project_approved | 承認完了 |
+| project_rejected | 却下 |
+| project_returned | 申請取り戻し |
+| task_assigned | タスク担当アサイン |
 | task_due_soon | タスク期限間近 |
-| budget_alert | 予算アラート |
+| task_completed | タスク完了 |
+| budget_alert | 予算アラート（課題2） |
 
 ---
 

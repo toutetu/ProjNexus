@@ -564,6 +564,23 @@ interface Challenge2BadgeProps {
 ### Toast（sonner）
 shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。プロジェクト内ラッパー不要。
 
+### NotificationTypeBadge
+通知一覧（S-12）で通知種別を視認しやすくするための種別バッジ。
+**配置**: `resources/js/Pages/Notifications/Index.tsx`（当面はページ内実装）
+**対象種別（課題1）**:
+- `project_submitted`（申請）
+- `project_approved`（承認）
+- `project_rejected`（却下）
+- `project_returned`（取り戻し）
+- `task_assigned`（担当通知）
+- `task_due_soon`（期限間近）
+- `task_completed`（タスク完了）
+**配色ルール**:
+- 承認系: 緑、却下系: 赤、進行通知: 青、期限通知: 橙、補助通知: グレー
+**備考**:
+- タイトル行で「通知種別バッジ + 未読バッジ」を横並び表示する
+- バッジ文言は英語コードを直接表示せず日本語ラベルで表示する
+
 ---
 
 ## Cursor への指示テンプレ

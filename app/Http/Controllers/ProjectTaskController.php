@@ -7,12 +7,17 @@ use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Models\Project;
 use App\Models\ProjectWorkItem;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ProjectTaskController extends Controller
 {
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
+
     public function store(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('create', [ProjectWorkItem::class, $project]);
@@ -23,10 +28,19 @@ class ProjectTaskController extends Controller
             (int) ($validated['progress_rate'] ?? 0),
         );
 
-        $project->tasks()->create([
+        $task = $project->tasks()->create([
             ...$validated,
             'created_by' => $request->user()->id,
         ]);
+
+        if ($task->assignee_id !== null && $task->assignee !== null && $task->assignee_id !== $request->user()->id) {
+            $this->notificationService->notifyTaskAssigned(
+                $project,
+                $task,
+                $task->assignee,
+                '作成時に担当へ設定されました',
+            );
+        }
 
         return redirect()
             ->route('projects.show', $project)
@@ -43,8 +57,39 @@ class ProjectTaskController extends Controller
             $validated['status'],
             (int) ($validated['progress_rate'] ?? 0),
         );
+        $oldAssigneeId = $task->assignee_id;
+        $oldStatus = $task->status;
 
         $task->update($validated);
+        $task->loadMissing('assignee', 'project.applicant');
+
+        if (
+            $task->assignee_id !== null
+            && $task->assignee !== null
+            && $task->assignee_id !== $oldAssigneeId
+            && $task->assignee_id !== $request->user()->id
+        ) {
+            $this->notificationService->notifyTaskAssigned(
+                $project,
+                $task,
+                $task->assignee,
+                '担当者が変更されました',
+            );
+        }
+
+        if (
+            $oldStatus !== TaskStatus::Closed
+            && $task->status === TaskStatus::Closed
+            && $project->applicant !== null
+            && $project->applicant->id !== $request->user()->id
+        ) {
+            $this->notificationService->notifyTaskCompleted(
+                $project,
+                $task,
+                $request->user(),
+                $project->applicant,
+            );
+        }
 
         return redirect()
             ->route('projects.show', $project)
