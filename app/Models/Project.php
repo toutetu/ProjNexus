@@ -94,17 +94,22 @@ class Project extends Model
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         if ($user->hasRole(Role::HqManager->value)) {
-            return $query;
+            $visibleQuery = $query;
+        } elseif ($user->hasRole(Role::DeptManager->value)) {
+            $visibleQuery = $query->where('department_id', $user->department_id);
+        } else {
+            $visibleQuery = $query->where(function (Builder $inner) use ($user) {
+                $inner
+                    ->where('applicant_id', $user->id)
+                    ->orWhere('primary_assignee_id', $user->id);
+            });
         }
 
-        if ($user->hasRole(Role::DeptManager->value)) {
-            return $query->where('department_id', $user->department_id);
-        }
-
-        return $query->where(function (Builder $inner) use ($user) {
+        // 下書きは申請者本人のみ閲覧可能
+        return $visibleQuery->where(function (Builder $inner) use ($user) {
             $inner
-                ->where('applicant_id', $user->id)
-                ->orWhere('primary_assignee_id', $user->id);
+                ->where('status', '!=', ProjectStatus::Draft->value)
+                ->orWhere('applicant_id', $user->id);
         });
     }
 

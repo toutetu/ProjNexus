@@ -101,6 +101,21 @@ class ProjectController extends Controller
 
         $this->authorize('viewAny', Project::class);
 
+        $baseTabCountQuery = static function () use ($user) {
+            return Project::query()
+                ->visibleTo($user)
+                ->where(function ($q) {
+                    $q->where('status', '!=', ProjectStatus::Rejected->value)
+                        ->orWhereDoesntHave('childProjects');
+                });
+        };
+
+        $tabCounts = [
+            'approval' => $baseTabCountQuery()->forTab('approval')->count(),
+            'dev' => $baseTabCountQuery()->forTab('dev')->count(),
+            'budget' => $baseTabCountQuery()->forTab('budget')->count(),
+        ];
+
         $query = Project::query()
             ->with([
                 'department:id,name',
@@ -243,6 +258,7 @@ class ProjectController extends Controller
                 ->orderBy('name')
                 ->get(),
             'budgetSummary' => $budgetSummary,
+            'tabCounts' => $tabCounts,
             'projects' => $paginator->through(function (Project $project) use ($user, $rejectionLevelByProjectId) {
                 $rejectedAt = null;
                 if ($project->status === ProjectStatus::Rejected) {
@@ -437,13 +453,15 @@ class ProjectController extends Controller
     {
         $this->authorize('create', Project::class);
 
+        $submitAction = $request->input('submit_action', 'draft');
+        $isSubmit = $submitAction === 'submit';
         $validated = $request->validate(
             [
                 'title' => ['required', 'string', 'max:80'],
-                'department_id' => ['required', 'integer', 'exists:departments,id'],
-                'purpose' => ['nullable', 'string', 'max:2000'],
+                'department_id' => [$isSubmit ? 'required' : 'nullable', 'integer', 'exists:departments,id'],
+                'purpose' => [$isSubmit ? 'required' : 'nullable', 'string', 'max:2000'],
                 'description' => ['nullable', 'string', 'max:5000'],
-                'estimated_amount' => ['required', 'numeric', 'min:0'],
+                'estimated_amount' => [$isSubmit ? 'required' : 'nullable', 'numeric', 'min:0'],
                 'estimated_days' => ['nullable', 'integer', 'min:0'],
                 'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
                 'submit_action' => ['nullable', 'in:draft,submit'],
@@ -451,7 +469,7 @@ class ProjectController extends Controller
             $this->validationMessages(),
             $this->validationAttributes(),
         );
-        $submitAction = $validated['submit_action'] ?? 'draft';
+        $submitAction = $validated['submit_action'] ?? $submitAction;
         unset($validated['submit_action']);
         $validated['primary_assignee_id'] = $request->user()->id;
 
@@ -478,13 +496,15 @@ class ProjectController extends Controller
     {
         $this->authorize('update', $project);
 
+        $submitAction = $request->input('submit_action', 'draft');
+        $isSubmit = $submitAction === 'submit';
         $validated = $request->validate(
             [
                 'title' => ['required', 'string', 'max:80'],
-                'department_id' => ['required', 'integer', 'exists:departments,id'],
-                'purpose' => ['nullable', 'string', 'max:2000'],
+                'department_id' => [$isSubmit ? 'required' : 'nullable', 'integer', 'exists:departments,id'],
+                'purpose' => [$isSubmit ? 'required' : 'nullable', 'string', 'max:2000'],
                 'description' => ['nullable', 'string', 'max:5000'],
-                'estimated_amount' => ['required', 'numeric', 'min:0'],
+                'estimated_amount' => [$isSubmit ? 'required' : 'nullable', 'numeric', 'min:0'],
                 'estimated_days' => ['nullable', 'integer', 'min:0'],
                 'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
                 'submit_action' => ['nullable', 'in:draft,submit'],
@@ -492,7 +512,7 @@ class ProjectController extends Controller
             $this->validationMessages(),
             $this->validationAttributes(),
         );
-        $submitAction = $validated['submit_action'] ?? 'draft';
+        $submitAction = $validated['submit_action'] ?? $submitAction;
         unset($validated['submit_action']);
 
         $project->update($validated);

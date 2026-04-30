@@ -201,8 +201,6 @@ export default function ProjectsShow({
     canUpdateBudget,
     taskAssignees,
 }: Props) {
-    const activeSidebarKey =
-        project.status === 'rejected' ? 'projects-approval' : 'projects-dev';
     const skipsDeptStep =
         !!project.applicantSubmitsToHqDirect &&
         (project.status === 'pending_hq' ||
@@ -230,6 +228,16 @@ export default function ProjectsShow({
             ? 'apply'
             : parseDetailTab(new URLSearchParams(window.location.search).get('detailTab'));
     const [activeTab, setActiveTab] = useState<DetailTab>(initialTab);
+    const activeSidebarKey = activeTab === 'tasks' ? 'projects-dev' : 'projects-approval';
+    const sectionLabel =
+        activeTab === 'tasks' ? '開発管理' : activeTab === 'budget' ? '予算管理' : '申請・承認';
+    const sectionIcon = activeTab === 'tasks' ? GitBranch : activeTab === 'budget' ? Wallet : FileCheck2;
+    const sectionListHref =
+        activeTab === 'tasks'
+            ? '/projects?tab=dev'
+            : activeTab === 'budget'
+              ? '/projects?tab=budget'
+              : '/projects?tab=approval';
     const isRejectedProject =
         project.status === 'rejected' || !!project.rejectedAt || !!project.rejectedComment;
     const pageTitle = project.status === 'approved' ? '案件詳細' : '承認画面';
@@ -300,8 +308,8 @@ export default function ProjectsShow({
         <AuthenticatedLayout
             activeKey={activeSidebarKey}
             breadcrumb={[
-                { label: '申請・承認', icon: FileCheck2 },
-                { label: '案件一覧', href: '/projects?tab=approval', icon: FolderSearch },
+                { label: sectionLabel, icon: sectionIcon },
+                { label: '案件一覧', href: sectionListHref, icon: FolderSearch },
                 { label: pageTitle },
             ]}
         >

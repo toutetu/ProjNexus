@@ -16,6 +16,11 @@ class ProjectPolicy
 
     public function view(User $user, Project $project): bool
     {
+        // 下書きは申請者本人のみ閲覧可能
+        if ($project->status === ProjectStatus::Draft && $project->applicant_id !== $user->id) {
+            return false;
+        }
+
         if ($user->hasRole(Role::HqManager->value)) {
             return true;
         }

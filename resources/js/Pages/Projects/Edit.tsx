@@ -13,6 +13,7 @@ import {
 
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import StatusPill from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -162,6 +163,11 @@ export default function ProjectsEdit({ departments, project }: Props) {
                     </div>
 
                     <div className="space-y-6 p-6">
+                        <p className="text-xs text-brand-muted">
+                            下書き保存は「案件名」のみ必須です。申請時は
+                            <span className="mx-1 font-semibold text-brand-red">*</span>
+                            項目の入力が必要です。
+                        </p>
                         <div>
                             <InputLabel htmlFor="title">
                                 案件名 <span className="text-brand-red">*</span>
@@ -284,16 +290,21 @@ export default function ProjectsEdit({ departments, project }: Props) {
                     </div>
 
                     <div className="flex items-center justify-between rounded-b-lg border-t border-brand-border bg-brand-bg px-6 py-4">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => submitWithAction('draft')}
-                            disabled={processing}
-                            className="flex items-center gap-2"
-                        >
-                            <Save className="h-4 w-4" />
-                            更新を保存
-                        </Button>
+                        <div className="flex flex-col gap-1">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => submitWithAction('draft')}
+                                disabled={processing}
+                                className="flex items-center gap-2"
+                            >
+                                <Save className="h-4 w-4" />
+                                更新を保存
+                            </Button>
+                            <p className="text-xs text-brand-muted">
+                                更新を保存: 案件名のみで保存できます
+                            </p>
+                        </div>
                         <div className="flex items-center gap-2">
                             <Button
                                 type="button"
@@ -314,6 +325,9 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                 更新して申請
                             </Button>
                         </div>
+                    </div>
+                    <div className="border-t border-brand-border bg-brand-bg px-6 py-2 text-right text-xs text-brand-muted">
+                        更新して申請: 必須項目（*）をすべて入力してください
                     </div>
                 </form>
 
@@ -344,12 +358,18 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                     <p className="mt-1.5 text-sm text-brand-muted">
                                         保存後に承認待ちへ遷移します。申請後は編集できません。
                                     </p>
+                                    <p className="mt-1 text-xs text-brand-muted">
+                                        申請時は「*」項目の入力が必要です。
+                                    </p>
                                 </div>
                             </div>
                             <div className="mt-5 rounded-lg bg-brand-bg p-4 text-sm">
-                                次ステータス:
-                                {' '}
-                                {submitsToHqDirect ? '本部承認待ち' : '部門承認待ち'}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-brand-muted">次ステータス:</span>
+                                    <StatusPill
+                                        status={submitsToHqDirect ? 'pending_hq' : 'pending_dept'}
+                                    />
+                                </div>
                             </div>
                         </div>
                         <div className="flex items-center justify-end gap-2 rounded-b-xl bg-brand-bg px-6 py-4">

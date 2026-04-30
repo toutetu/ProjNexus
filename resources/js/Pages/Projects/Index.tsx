@@ -35,6 +35,7 @@ interface Props {
     departments?: Array<{ id: number; name: string }>;
     assignees?: Array<{ id: number; name: string }>;
     budgetSummary?: BudgetSummary | null;
+    tabCounts?: Record<ProjectTab, number>;
     projects?: {
         data: ProjectListItem[];
         current_page: number;
@@ -241,10 +242,10 @@ interface BudgetProjectRow {
     updatedAt: string;
 }
 
-const TAB_ITEMS: TabItem<ProjectTab>[] = [
-    { value: 'approval', label: '申請', icon: FileText, count: 8 },
-    { value: 'dev', label: '開発', icon: GitBranch, count: 10 },
-    { value: 'budget', label: '予算', icon: Wallet, count: 10 },
+const DEFAULT_TAB_ITEMS: TabItem<ProjectTab>[] = [
+    { value: 'approval', label: '申請', icon: FileText, count: 0 },
+    { value: 'dev', label: '開発', icon: GitBranch, count: 0 },
+    { value: 'budget', label: '予算', icon: Wallet, count: 0 },
 ];
 
 const APPROVAL_ROWS: ApprovalProjectRow[] = [
@@ -341,6 +342,7 @@ export default function ProjectsIndex({
     departments = [],
     assignees = [],
     budgetSummary,
+    tabCounts,
     projects,
 }: Props) {
     const { flash } = usePage<PageProps>().props;
@@ -348,9 +350,6 @@ export default function ProjectsIndex({
 
     const activeKey: ActiveKey =
         isPendingFilter ? 'pending' : TAB_ACTIVE_KEY[tab];
-    const visibleTabItems = isPendingFilter
-        ? TAB_ITEMS.filter((item) => item.value === 'approval')
-        : TAB_ITEMS;
     const projectRows = projects?.data ?? [];
     const currentPage = projects?.current_page ?? 1;
     const lastPage = projects?.last_page ?? 1;
@@ -370,7 +369,13 @@ export default function ProjectsIndex({
               applicantSubmitsToHqDirect: project.applicantSubmitsToHqDirect ?? false,
           }))
         : APPROVAL_ROWS;
+    const tabItems: TabItem<ProjectTab>[] = DEFAULT_TAB_ITEMS.map((item) => ({
+        ...item,
+        count: tabCounts?.[item.value] ?? 0,
+    }));
     const titleCount = tab === 'approval' ? approvalRows.length : projectRows.length;
+    const showDetailHref = (id: number, detailTab: 'apply' | 'tasks' | 'budget'): string =>
+        `${route('projects.show', id)}?detailTab=${detailTab}`;
 
     const handleTabChange = (nextTab: ProjectTab) => {
         if (nextTab === tab) return;
@@ -505,9 +510,9 @@ export default function ProjectsIndex({
     };
 
     const approvalRowHref = (row: ApprovalProjectRow): string =>
-        row.status === 'draft'
+        row.status === 'draft' && row.canEdit
             ? route('projects.edit', row.id)
-            : route('projects.show', row.id);
+            : showDetailHref(row.id, 'apply');
 
     return (
         <AuthenticatedLayout
@@ -572,7 +577,11 @@ export default function ProjectsIndex({
                         <Tabs
                             value={tab}
                             onChange={handleTabChange}
-                            items={visibleTabItems}
+                            items={
+                                isPendingFilter
+                                    ? tabItems.filter((item) => item.value === 'approval')
+                                    : tabItems
+                            }
                             className="min-w-0 flex-1"
                         />
                         <p className="hidden shrink-0 text-xs text-brand-muted md:block">
@@ -1042,11 +1051,11 @@ export default function ProjectsIndex({
                                     <tr
                                         key={row.id}
                                         className="cursor-pointer hover:bg-slate-50"
-                                        onClick={() => router.visit(route('projects.show', row.id))}
+                                        onClick={() => router.visit(showDetailHref(row.id, 'tasks'))}
                                     >
                                         <td className="px-5 py-3.5 font-medium text-brand-dark">
                                             <Link
-                                                href={route('projects.show', row.id)}
+                                                href={showDetailHref(row.id, 'tasks')}
                                                 className="hover:text-brand-blue hover:underline"
                                             >
                                                 {row.title}
@@ -1154,11 +1163,11 @@ export default function ProjectsIndex({
                                     <tr
                                         key={row.id}
                                         className="cursor-pointer hover:bg-slate-50"
-                                        onClick={() => router.visit(route('projects.show', row.id))}
+                                        onClick={() => router.visit(showDetailHref(row.id, 'budget'))}
                                     >
                                         <td className="px-5 py-3.5 font-medium text-brand-dark">
                                             <Link
-                                                href={route('projects.show', row.id)}
+                                                href={showDetailHref(row.id, 'budget')}
                                                 className="hover:text-brand-blue hover:underline"
                                             >
                                                 {row.title}
