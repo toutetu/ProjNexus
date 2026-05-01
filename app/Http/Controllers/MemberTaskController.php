@@ -34,7 +34,7 @@ class MemberTaskController extends Controller
             : 'members';
 
         $view = $request->query('view', $defaultView);
-        if (! in_array($view, ['board', 'members'], true)) {
+        if (! in_array($view, ['board', 'members', 'list'], true)) {
             $view = $defaultView;
         }
 
@@ -114,6 +114,7 @@ class MemberTaskController extends Controller
             'taskTotalCount' => $tasks->count(),
             'needsDepartmentSelection' => $needsDeptPick,
             'filters' => [
+                'keyword' => (string) $request->query('keyword', ''),
                 'assignee_id' => $request->query('assignee_id') !== null && $request->query('assignee_id') !== ''
                     ? (int) $request->query('assignee_id')
                     : null,
@@ -178,7 +179,7 @@ class MemberTaskController extends Controller
             $user->hasRole(Role::Applicant->value)
             && ! $user->hasRole(Role::DeptManager->value)
             && ! $user->hasRole(Role::HqManager->value)
-            && $view === 'board'
+            && in_array($view, ['board', 'list'], true)
         ) {
             $uid = $user->id;
             $q->where(static function (Builder $w) use ($uid): void {
@@ -199,6 +200,25 @@ class MemberTaskController extends Controller
         $priorityFilter = $request->query('priority', 'all');
         if (in_array($priorityFilter, TaskPriority::values(), true)) {
             $q->where('priority', $priorityFilter);
+        }
+
+        $keyword = trim((string) $request->query('keyword', ''));
+        if ($keyword !== '') {
+            $q->where(static function (Builder $w) use ($keyword): void {
+                $like = '%'.$keyword.'%';
+                $w->where('title', 'like', $like)
+                    ->orWhere('description', 'like', $like)
+                    ->orWhere('id', 'like', $like)
+                    ->orWhereHas('assignee', static function (Builder $u) use ($like): void {
+                        $u->where('name', 'like', $like);
+                    })
+                    ->orWhereHas('reviewer', static function (Builder $u) use ($like): void {
+                        $u->where('name', 'like', $like);
+                    })
+                    ->orWhereHas('project', static function (Builder $p) use ($like): void {
+                        $p->where('title', 'like', $like);
+                    });
+            });
         }
 
         $dueFilter = $request->query('due', 'all');

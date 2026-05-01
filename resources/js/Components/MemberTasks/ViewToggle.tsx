@@ -1,8 +1,8 @@
-import { LayoutDashboard, Users } from 'lucide-react';
+import { LayoutDashboard, Rows3, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-type ViewMode = 'board' | 'members';
+type ViewMode = 'board' | 'list' | 'members';
 
 interface ViewToggleProps {
     value: ViewMode;
@@ -39,6 +39,19 @@ export default function ViewToggle({ value, onChange }: ViewToggleProps) {
                 >
                     <Users className="h-4 w-4" />
                     メンバー別
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onChange('list')}
+                    className={cn(
+                        'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition',
+                        value === 'list'
+                            ? 'bg-brand-dark text-white'
+                            : 'text-brand-muted hover:text-brand-dark',
+                    )}
+                >
+                    <Rows3 className="h-4 w-4" />
+                    一覧
                 </button>
             </div>
         </div>

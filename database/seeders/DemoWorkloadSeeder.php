@@ -259,8 +259,18 @@ class DemoWorkloadSeeder extends Seeder
             $updatedShift = $spec['updated_shift'] ?? null;
             unset($spec['updated_shift']);
 
+            $baseEstimate = round(4 + (($spec['project_id'] + strlen((string) $spec['title'])) % 8) * 1.75, 2);
+            $actualDays = match ($spec['status']) {
+                TaskStatus::Closed => round($baseEstimate * 0.92, 2),
+                TaskStatus::Resolved => round($baseEstimate * 0.55, 2),
+                TaskStatus::InProgress => round($baseEstimate * 0.38, 2),
+                default => 0,
+            };
+
             $task = ProjectWorkItem::query()->create([
                 ...$spec,
+                'estimated_days' => $baseEstimate,
+                'actual_days' => $actualDays,
                 'reviewer_id' => $natsume->id,
                 'created_by' => $natsume->id,
             ]);

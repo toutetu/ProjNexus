@@ -46,6 +46,8 @@ export interface TaskListItem {
     priority: TaskPriority;
     status: TaskStatus;
     progressRate: number;
+    estimatedDays?: number | null;
+    actualDays?: number | null;
     assigneeId: number | null;
     assignee: string | null;
     reviewerId?: number | null;
@@ -181,6 +183,8 @@ const historyFieldLabel = (fieldName: string): string => {
         reviewer_id: '確認者',
         due_date: '期日',
         description: '説明',
+        estimated_days: '計画工数',
+        actual_days: '実績工数',
     };
 
     return map[fieldName] ?? fieldName;
@@ -204,6 +208,8 @@ export default function ProjectTaskDialog({
     const [dueDate, setDueDate] = useState('');
     const [reviewerId, setReviewerId] = useState('');
     const [description, setDescription] = useState('');
+    const [estimatedDaysInput, setEstimatedDaysInput] = useState('');
+    const [actualDaysInput, setActualDaysInput] = useState('');
     const [commentBody, setCommentBody] = useState('');
     const [processing, setProcessing] = useState(false);
     const [postingComment, setPostingComment] = useState(false);
@@ -222,6 +228,14 @@ export default function ProjectTaskDialog({
         setReviewerId(task?.reviewerId ? String(task.reviewerId) : '');
         setDueDate(task?.dueDate ?? '');
         setDescription(task?.description ?? '');
+        setEstimatedDaysInput(
+            task?.estimatedDays !== undefined && task.estimatedDays !== null
+                ? String(task.estimatedDays)
+                : '',
+        );
+        setActualDaysInput(
+            task?.actualDays !== undefined && task.actualDays !== null ? String(task.actualDays) : '',
+        );
         setCommentBody('');
         setProcessing(false);
         setPostingComment(false);
@@ -264,6 +278,19 @@ export default function ProjectTaskDialog({
 
         setProcessing(true);
 
+        const estimatedLabor = ((): number | null => {
+            const t = estimatedDaysInput.trim();
+            if (t === '') return null;
+            const n = Number.parseFloat(t.replace(',', '.'));
+            return Number.isNaN(n) ? null : n;
+        })();
+        const actualLabor = ((): number => {
+            const t = actualDaysInput.trim();
+            if (t === '') return 0;
+            const n = Number.parseFloat(t.replace(',', '.'));
+            return Number.isNaN(n) ? 0 : n;
+        })();
+
         const payload = {
             title,
             task_type: taskType,
@@ -274,6 +301,8 @@ export default function ProjectTaskDialog({
             reviewer_id: reviewerId === '' ? null : Number(reviewerId),
             due_date: dueDate === '' ? null : dueDate,
             description: description.trim() === '' ? null : description,
+            estimated_days: estimatedLabor,
+            actual_days: actualLabor,
         };
 
         const options = {
@@ -496,6 +525,43 @@ export default function ProjectTaskDialog({
                                     {dueInfo.label}
                                 </p>
                             )}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                        <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-brand-dark">
+                                計画工数（人日）
+                            </label>
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={estimatedDaysInput}
+                                disabled={!allowEdit}
+                                onChange={(event) => setEstimatedDaysInput(event.target.value)}
+                                placeholder="例: 3 または 2.5"
+                                className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
+                            />
+                            <p className="mt-1 text-[10px] text-brand-muted">
+                                タスク単位の見込み工数です。空欄は未設定として集計から除外されます。
+                            </p>
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-brand-dark">
+                                実績工数（人日）
+                            </label>
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={actualDaysInput}
+                                disabled={!allowEdit}
+                                onChange={(event) => setActualDaysInput(event.target.value)}
+                                placeholder="例: 0"
+                                className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
+                            />
+                            <p className="mt-1 text-[10px] text-brand-muted">
+                                実際に投入した工数の目安です。
+                            </p>
                         </div>
                     </div>
 

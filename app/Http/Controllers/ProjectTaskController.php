@@ -32,6 +32,8 @@ class ProjectTaskController extends Controller
             $validated['status'],
             (int) ($validated['progress_rate'] ?? 0),
         );
+        $validated['estimated_days'] = $this->normalizedNullableDecimal($validated['estimated_days'] ?? null);
+        $validated['actual_days'] = $this->normalizedDecimal($validated['actual_days'] ?? 0);
 
         $task = $project->tasks()->create([
             ...$validated,
@@ -72,6 +74,8 @@ class ProjectTaskController extends Controller
             $validated['status'],
             (int) ($validated['progress_rate'] ?? 0),
         );
+        $validated['estimated_days'] = $this->normalizedNullableDecimal($validated['estimated_days'] ?? null);
+        $validated['actual_days'] = $this->normalizedDecimal($validated['actual_days'] ?? 0);
         $oldAssigneeId = $task->assignee_id;
         $oldStatus = $task->status;
 
@@ -273,6 +277,8 @@ class ProjectTaskController extends Controller
                 'reviewer_id' => $reviewerRule,
                 'due_date' => ['nullable', 'date'],
                 'description' => ['nullable', 'string', 'max:5000'],
+                'estimated_days' => ['nullable', 'numeric', 'min:0', 'max:99999'],
+                'actual_days' => ['nullable', 'numeric', 'min:0', 'max:99999'],
             ],
             [
                 'required' => ':attribute は必須です。',
@@ -292,6 +298,8 @@ class ProjectTaskController extends Controller
                 'reviewer_id' => '確認者',
                 'due_date' => '期日',
                 'description' => '説明',
+                'estimated_days' => '計画工数',
+                'actual_days' => '実績工数',
             ],
         );
 
@@ -327,5 +335,23 @@ class ProjectTaskController extends Controller
             TaskStatus::Closed->value => 100,
             default => $progressRate,
         };
+    }
+
+    private function normalizedNullableDecimal(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return round((float) $value, 2);
+    }
+
+    private function normalizedDecimal(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return round((float) $value, 2);
     }
 }

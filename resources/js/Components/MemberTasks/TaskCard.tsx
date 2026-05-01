@@ -19,11 +19,12 @@ const TYPE_ICON: Record<MemberTaskItem['taskType'], LucideIcon> = {
     improvement: Wrench,
 };
 
+/** モック s14b（種類チップ）と同一ガイド */
 const TYPE_CLASS: Record<MemberTaskItem['taskType'], string> = {
-    task: 'bg-indigo-100 text-indigo-900',
-    bug: 'bg-red-100 text-red-900',
-    feature: 'bg-emerald-100 text-emerald-900',
-    improvement: 'bg-amber-100 text-amber-900',
+    task: 'bg-[#E0E7FF] text-[#3730A3]',
+    bug: 'bg-[#FEE2E2] text-[#991B1B]',
+    feature: 'bg-[#D1FAE5] text-[#065F46]',
+    improvement: 'bg-[#FEF3C7] text-[#92400E]',
 };
 
 const PRI_CLASS: Record<MemberTaskItem['priority'], string> = {

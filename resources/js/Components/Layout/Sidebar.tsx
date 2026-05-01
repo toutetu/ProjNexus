@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Bell,
+    BookOpen,
     Coins,
     FileCheck2,
     FolderSearch,
@@ -46,6 +47,24 @@ interface SidebarLinkProps {
     dimLabel?: string;
     method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
     as?: 'a' | 'button';
+}
+
+interface SidebarChildLabelProps {
+    label: string;
+    active?: boolean;
+}
+
+function SidebarChildLabel({ label, active = false }: SidebarChildLabelProps) {
+    return (
+        <div
+            className={cn(
+                'pl-12 pr-5 py-1.5 text-xs transition-colors',
+                active ? 'text-white' : 'text-white/45',
+            )}
+        >
+            {label}
+        </div>
+    );
 }
 
 function SidebarLink({
@@ -142,6 +161,7 @@ type ActiveKey =
     | 'tasks'
     | 'budget-input'
     | 'notifications'
+    | 'manual'
     | 'profile'
     | null;
 
@@ -150,8 +170,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeKey = null }: SidebarProps) {
-    const { auth, unreadNotificationCount = 0, pendingApprovalCount = 0 } =
-        usePage<PageProps>().props;
+    const page = usePage<PageProps>();
+    const { auth, unreadNotificationCount = 0, pendingApprovalCount = 0 } = page.props;
     const user = auth.user;
     const roles = user.roles;
     const hasRole = (role: RoleName) => roles.includes(role);
@@ -166,6 +186,20 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
     const primaryRole = roles[0];
     const roleLabel = primaryRole ? ROLE_LABEL[primaryRole] : 'ゲスト';
     const deptLabel = user.department?.name ?? '未所属';
+    const pageUrl = page.url ?? '';
+    const [path, query = ''] = pageUrl.split('?');
+    const isProjectDetailPage = /^\/projects\/\d+$/.test(path ?? '');
+    const detailTab = new URLSearchParams(query).get('detailTab');
+    const detailSection = !isProjectDetailPage
+        ? null
+        : detailTab === 'tasks'
+          ? 'dev'
+          : detailTab === 'budget'
+            ? 'budget'
+            : 'approval';
+    const approvalActive = activeKey === 'projects-approval' || detailSection === 'approval';
+    const devActive = activeKey === 'projects-dev' || detailSection === 'dev';
+    const budgetActive = activeKey === 'projects-budget' || detailSection === 'budget';
 
     return (
         <aside
@@ -218,8 +252,9 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         href="/projects?tab=approval"
                         icon={FolderSearch}
                         label="案件一覧"
-                        active={activeKey === 'projects-approval'}
+                        active={approvalActive}
                     />
+                    <SidebarChildLabel label="|_案件詳細" active={detailSection === 'approval'} />
                 </SidebarSection>
 
                 <SidebarSection label="開発管理">
@@ -227,8 +262,9 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         href="/projects?tab=dev"
                         icon={Folders}
                         label="案件一覧"
-                        active={activeKey === 'projects-dev'}
+                        active={devActive}
                     />
+                    <SidebarChildLabel label="|_案件詳細" active={detailSection === 'dev'} />
                     <SidebarLink
                         href={route('member-tasks.index')}
                         icon={ListChecks}
@@ -242,8 +278,9 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         href="/projects?tab=budget"
                         icon={Wallet}
                         label="案件一覧"
-                        active={activeKey === 'projects-budget'}
+                        active={budgetActive}
                     />
+                    <SidebarChildLabel label="|_案件詳細" active={detailSection === 'budget'} />
                     {isApplicant && (
                         <SidebarLink
                             href="#"
@@ -267,6 +304,12 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                                     : unreadNotificationCount
                                 : undefined
                         }
+                    />
+                    <SidebarLink
+                        href={route('manual.show')}
+                        icon={BookOpen}
+                        label="マニュアル"
+                        active={activeKey === 'manual'}
                     />
                     <SidebarLink
                         href={route('profile.edit')}

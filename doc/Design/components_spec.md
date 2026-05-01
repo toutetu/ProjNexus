@@ -163,6 +163,64 @@ interface ApprovalFlowGuideProps {
 
 ---
 
+## 2.5 Infotip（補足説明ツールチップ）
+
+**役割**: 見出し・カードタイトルなどの**右上付近**に情報アイコン（ⓘ 相当、`lucide-react` の `Info`）を置き、**マウスホバー**または**キーボードフォーカス**時だけ説明文を表示する。長い脚注を常時表示せず画面を圧迫しない用途に使う。
+
+**配置（共通部品）**: `resources/js/Components/ui/infotip.tsx`（**実装済み**）
+
+**利用例**: `resources/js/Pages/Projects/Show.tsx` の「工数サマリー」カード見出し行（`<Infotip ariaLabel="…">…</Infotip>`）
+
+### Props
+
+```ts
+import type { ReactNode } from 'react';
+
+interface InfotipProps {
+  /** ツールチップ内の説明文（短文推奨。複数文は可） */
+  children: ReactNode;
+  /** トリガーボタンの aria-label（例: 「工数サマリーの説明」）。実装では props 名は camelCase の `ariaLabel` */
+  ariaLabel: string;
+  /** ツールチップの水平寄せ（トリガー基準）。既定: 右寄せ `right` */
+  align?: 'left' | 'right';
+  /** ラッパーへの追加クラス（`-mr-0.5` など位置微調整） */
+  className?: string;
+}
+```
+
+### 挙動・マークアップ
+
+| 項目 | 方針 |
+|------|------|
+| 依存 | **Radix Tooltip は未導入のため使わない**。追加パッケージなしで実装する |
+| 表示制御 | 親に `group`、トリガー＋ツールチップをラップし、`group-hover:` と `group-focus-within:` で `opacity` / `visibility` を切り替える |
+| トリガー | `type="button"` のアイコンボタン。`rounded-full`、`focus-visible:ring-2`（`brand-blue`） |
+| ツールチップ | `role="tooltip"`、`pointer-events-none`（ホバーが下の要素に伝わるようにする） |
+| 位置 | `absolute`、`top-full`、`mt-1.5` 程度でトリガーの直下。`right-0` でカード右上アイコンと揃える |
+| 幅 | `w-[min(18rem,calc(100vw-2rem))]` などでビューポートからはみ出さない |
+
+### 視覚仕様（デザイントークン）
+
+- 背景: `bg-white`
+- 枠線: `border border-brand-border`
+- 文字: `text-xs`、`text-brand-dark`、`leading-snug`
+- 余白: `px-2.5 py-2`
+- 影: `shadow-md`
+- アイコン色（既定）: `text-brand-muted`、ホバー時 `text-brand-dark`
+
+### アクセシビリティ
+
+- トリガーには必ず **`aria-label`**（日本語で内容が推測できる文言）
+- キーボードのみ利用時も **フォーカス中はツールチップを表示**すること（`focus-within`）
+- タッチ端末ではホバーが無いため、必要に応じて将来 **タップで開閉**や別導線を検討（現仕様はホバー／フォーカス主体）
+
+### 利用ガイド
+
+- **ここを使う**: 用語説明・集計定義・「なぜこの数字か」の一文など、読み飛ばしても業務は進む補足
+- **ここではなく Modal / インライン本文**: 手順が長いヘルプ、法的文言、入力必須の注意事項
+
+---
+
 ## 3. タブ・テーブル・ページネーション
 
 ### Tabs
@@ -593,7 +651,7 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 >
 > **作業順序**:
 > 1. まず `doc/Design/components_spec.md` を読んで、使用する共通部品をリストアップ
-> 2. 未実装の共通部品（`ApprovalFlowGuide`, `AmountInput`, `FieldLabel` など）があれば先に `Components/` 配下に作成
+> 2. 未実装の共通部品（`ApprovalFlowGuide`, `AmountInput`, `FieldLabel`, `Infotip` など）があれば先に `Components/` 配下に作成
 > 3. Create.tsx は共通部品を組み立てるだけの薄い実装にする
 > 4. Tailwind クラスの直書きは最小限に。繰り返すパターンは部品化する
 > 5. 実装後、`doc/Design/components_spec.md` の「使用モック」欄にこのページを追記

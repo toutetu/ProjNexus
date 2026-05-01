@@ -412,6 +412,8 @@ class ProjectController extends Controller
                     'reviewerId' => $task->reviewer_id,
                     'reviewer' => $task->reviewer?->name,
                     'dueDate' => $task->due_date?->toDateString(),
+                    'estimatedDays' => $task->estimated_days !== null ? (float) $task->estimated_days : null,
+                    'actualDays' => (float) $task->actual_days,
                     'updatedAt' => $task->updated_at?->toDateTimeString(),
                     'canUpdate' => $user?->can('update', $task) ?? false,
                     'comments' => $task->comments->map(fn ($comment) => [
