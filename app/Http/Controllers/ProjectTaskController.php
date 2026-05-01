@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Models\Project;
 use App\Models\ProjectWorkItem;
+use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\TaskHistoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProjectTaskController extends Controller
 {
@@ -24,7 +27,7 @@ class ProjectTaskController extends Controller
     {
         $this->authorize('create', [ProjectWorkItem::class, $project]);
 
-        $validated = $this->validatedTaskData($request, $project);
+        $validated = $this->validatedTaskData($request, $project, null);
         $validated['progress_rate'] = $this->normalizedProgressRate(
             $validated['status'],
             (int) ($validated['progress_rate'] ?? 0),
@@ -36,7 +39,7 @@ class ProjectTaskController extends Controller
         ]);
 
         $task->refresh();
-        $task->loadMissing('assignee');
+        $task->loadMissing('assignee', 'reviewer');
         $this->taskHistoryService->recordCreation($task, $request->user());
 
         if ($task->assignee_id !== null && $task->assignee !== null && $task->assignee_id !== $request->user()->id) {
@@ -48,6 +51,8 @@ class ProjectTaskController extends Controller
             );
         }
 
+        $this->dispatchResolvedNotifications($project, $task, null, $task->status, $request->user());
+
         return redirect()
             ->route('projects.show', $project)
             ->with('success', 'タスクを追加しました。');
@@ -58,7 +63,11 @@ class ProjectTaskController extends Controller
         abort_unless($task->project_id === $project->id, 404);
         $this->authorize('update', $task);
 
-        $validated = $this->validatedTaskData($request, $project);
+        $validated = $this->validatedTaskData($request, $project, $task);
+
+        $newStatus = TaskStatus::from($validated['status']);
+        $this->assertStatusTransition($request->user(), $task, $newStatus);
+
         $validated['progress_rate'] = $this->normalizedProgressRate(
             $validated['status'],
             (int) ($validated['progress_rate'] ?? 0),
@@ -67,11 +76,11 @@ class ProjectTaskController extends Controller
         $oldStatus = $task->status;
 
         $task->refresh();
-        $task->loadMissing('assignee');
+        $task->loadMissing('assignee', 'reviewer');
         $beforeDisplay = $this->taskHistoryService->displaySnapshot($task);
 
         $task->update($validated);
-        $task->loadMissing('assignee', 'project.applicant');
+        $task->loadMissing('assignee', 'reviewer', 'project.applicant');
 
         $this->taskHistoryService->recordChanges($task, $beforeDisplay, $request->user());
 
@@ -102,6 +111,8 @@ class ProjectTaskController extends Controller
                 $project->applicant,
             );
         }
+
+        $this->dispatchResolvedNotifications($project, $task, $oldStatus, $task->status, $request->user());
 
         return redirect()
             ->route('projects.show', $project)
@@ -151,23 +162,115 @@ class ProjectTaskController extends Controller
             ->with('success', 'コメントを投稿しました。');
     }
 
+    private function assertStatusTransition(User $user, ProjectWorkItem $task, TaskStatus $newStatus): void
+    {
+        $oldStatus = $task->status;
+        if ($oldStatus === $newStatus) {
+            return;
+        }
+
+        $isManager = $user->hasRole(Role::DeptManager->value) || $user->hasRole(Role::HqManager->value);
+
+        if ($isManager) {
+            return;
+        }
+
+        if ($oldStatus === TaskStatus::Closed && $newStatus !== TaskStatus::Closed) {
+            abort(403, '完了タスクの再開は管理者のみです。');
+        }
+
+        if ($newStatus === TaskStatus::Closed && $oldStatus !== TaskStatus::Resolved) {
+            abort(403, '確認OKへは確認待ちからのみ遷移できます。');
+        }
+
+        if ($oldStatus === TaskStatus::InProgress && $newStatus === TaskStatus::Resolved) {
+            abort_unless($task->assignee_id === $user->id, 403, '完了報告は担当者のみが実行できます。');
+
+            return;
+        }
+
+        if ($oldStatus === TaskStatus::Resolved && $newStatus === TaskStatus::Closed) {
+            abort_unless($task->reviewer_id === $user->id, 403, '確認OKは確認者のみが実行できます。');
+
+            return;
+        }
+
+        if ($oldStatus === TaskStatus::Resolved) {
+            abort(403, '確認待ちからの変更は許可されていません。');
+        }
+
+        $project = $task->project;
+        $participant = $task->assignee_id === $user->id
+            || $task->reviewer_id === $user->id
+            || ($project !== null && $project->primary_assignee_id === $user->id);
+
+        abort_unless($participant, 403);
+    }
+
+    private function dispatchResolvedNotifications(
+        Project $project,
+        ProjectWorkItem $task,
+        ?TaskStatus $oldStatus,
+        TaskStatus $newStatus,
+        User $actor,
+    ): void {
+        if (
+            $oldStatus !== TaskStatus::Resolved
+            && $newStatus === TaskStatus::Resolved
+            && $task->reviewer_id !== null
+            && $task->reviewer !== null
+            && $task->reviewer->id !== $actor->id
+        ) {
+            $this->notificationService->notifyTaskResolved($project, $task, $task->reviewer, $actor);
+        }
+
+        if ($oldStatus === TaskStatus::Resolved && $newStatus === TaskStatus::Closed) {
+            $recipients = [];
+            if ($task->assignee !== null && $task->assignee->id !== $actor->id) {
+                $recipients[] = $task->assignee;
+            }
+            $task->loadMissing('project.applicant');
+            $applicant = $task->project?->applicant;
+            if ($applicant !== null && $applicant->id !== $actor->id) {
+                $recipients[] = $applicant;
+            }
+
+            $this->notificationService->notifyTaskReviewed($project, $task, $actor, $recipients);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
-    private function validatedTaskData(Request $request, Project $project): array
+    private function validatedTaskData(Request $request, Project $project, ?ProjectWorkItem $existing): array
     {
+        $reviewerRule = [
+            'nullable',
+            'integer',
+            Rule::exists('users', 'id')->where('department_id', $project->department_id),
+        ];
+
+        if ($existing === null) {
+            $reviewerRule = [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->where('department_id', $project->department_id),
+            ];
+        }
+
         $validated = $request->validate(
             [
                 'title' => ['required', 'string', 'max:120'],
                 'task_type' => ['required', Rule::in(TaskType::values())],
                 'priority' => ['required', Rule::in(TaskPriority::values())],
-                'status' => ['required', Rule::in(TaskStatus::phase3Values())],
+                'status' => ['required', Rule::in(TaskStatus::phase4Values())],
                 'progress_rate' => ['nullable', 'integer', 'min:0', 'max:100'],
                 'assignee_id' => [
                     'nullable',
                     'integer',
                     Rule::exists('users', 'id')->where('department_id', $project->department_id),
                 ],
+                'reviewer_id' => $reviewerRule,
                 'due_date' => ['nullable', 'date'],
                 'description' => ['nullable', 'string', 'max:5000'],
             ],
@@ -186,6 +289,7 @@ class ProjectTaskController extends Controller
                 'status' => 'ステータス',
                 'progress_rate' => '進捗率',
                 'assignee_id' => '担当者',
+                'reviewer_id' => '確認者',
                 'due_date' => '期日',
                 'description' => '説明',
             ],
@@ -193,6 +297,24 @@ class ProjectTaskController extends Controller
 
         if (($validated['assignee_id'] ?? null) === '') {
             $validated['assignee_id'] = null;
+        }
+
+        if (($validated['reviewer_id'] ?? null) === '') {
+            $validated['reviewer_id'] = null;
+        }
+
+        if (
+            $existing !== null
+            && ($validated['reviewer_id'] ?? null) === null
+            && $existing->reviewer_id !== null
+        ) {
+            $validated['reviewer_id'] = $existing->reviewer_id;
+        }
+
+        if ($validated['status'] === TaskStatus::Resolved->value && ($validated['reviewer_id'] ?? null) === null) {
+            throw ValidationException::withMessages([
+                'reviewer_id' => '確認待ちにするには確認者を指定してください。',
+            ]);
         }
 
         return $validated;

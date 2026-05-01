@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('project_id')->constrained('projects')->cascadeOnDelete();
             $table->foreignId('parent_id')->nullable()->constrained('tasks')->nullOnDelete();
             $table->foreignId('assignee_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('reviewer_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->unsignedBigInteger('milestone_id')->nullable();
             $table->string('title');
@@ -33,6 +34,7 @@ return new class extends Migration
 
             $table->index(['project_id', 'status']);
             $table->index(['assignee_id', 'status']);
+            $table->index(['reviewer_id', 'status']);
         });
 
         Schema::create('task_comments', function (Blueprint $table) {

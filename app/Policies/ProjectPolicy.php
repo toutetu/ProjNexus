@@ -29,8 +29,14 @@ class ProjectPolicy
             return $project->department_id === $user->department_id;
         }
 
-        return $project->applicant_id === $user->id
-            || $project->primary_assignee_id === $user->id;
+        if ($project->applicant_id === $user->id || $project->primary_assignee_id === $user->id) {
+            return true;
+        }
+
+        return $user->hasRole(Role::Applicant->value)
+            && $project->status === ProjectStatus::Approved
+            && $user->department_id !== null
+            && $project->department_id === $user->department_id;
     }
 
     public function create(User $user): bool

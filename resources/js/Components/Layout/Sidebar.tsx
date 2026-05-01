@@ -230,11 +230,10 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         active={activeKey === 'projects-dev'}
                     />
                     <SidebarLink
-                        href="#"
+                        href={route('member-tasks.index')}
                         icon={ListChecks}
                         label="タスク一覧"
-                        disabled
-                        dimLabel="課題2"
+                        active={activeKey === 'tasks'}
                     />
                 </SidebarSection>
 

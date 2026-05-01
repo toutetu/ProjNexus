@@ -28,4 +28,12 @@ enum TaskStatus: string
             self::Closed->value,
         ];
     }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function phase4Values(): array
+    {
+        return array_map(fn (self $status) => $status->value, self::cases());
+    }
 }

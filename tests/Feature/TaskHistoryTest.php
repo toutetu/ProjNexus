@@ -60,6 +60,7 @@ class TaskHistoryTest extends TestCase
             'status' => 'open',
             'progress_rate' => 0,
             'assignee_id' => null,
+            'reviewer_id' => $user->id,
             'due_date' => null,
             'description' => null,
         ]);
@@ -68,7 +69,7 @@ class TaskHistoryTest extends TestCase
 
         $task = ProjectWorkItem::query()->where('project_id', $project->id)->firstOrFail();
 
-        foreach (['status', 'progress_rate', 'assignee_id', 'due_date', 'priority'] as $field) {
+        foreach (['status', 'progress_rate', 'assignee_id', 'reviewer_id', 'due_date', 'priority'] as $field) {
             $this->assertDatabaseHas('task_histories', [
                 'task_id' => $task->id,
                 'user_id' => $user->id,
@@ -76,7 +77,7 @@ class TaskHistoryTest extends TestCase
             ]);
         }
 
-        $this->assertSame(5, ProjectTaskHistory::query()->where('task_id', $task->id)->count());
+        $this->assertSame(6, ProjectTaskHistory::query()->where('task_id', $task->id)->count());
     }
 
     public function test_task_update_writes_history_when_tracked_fields_change(): void
@@ -91,6 +92,7 @@ class TaskHistoryTest extends TestCase
             'status' => TaskStatus::Open,
             'progress_rate' => 0,
             'assignee_id' => null,
+            'reviewer_id' => $user->id,
             'created_by' => $user->id,
         ]);
 
@@ -105,6 +107,7 @@ class TaskHistoryTest extends TestCase
                 'status' => 'in_progress',
                 'progress_rate' => 30,
                 'assignee_id' => null,
+                'reviewer_id' => $user->id,
                 'due_date' => null,
                 'description' => null,
             ],

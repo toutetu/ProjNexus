@@ -4,6 +4,7 @@ import {
     CalendarDays,
     CheckCircle2,
     ChevronDown,
+    ChevronsUpDown,
     ChevronUp,
     Clock3,
     Edit3,
@@ -34,6 +35,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 interface ProjectShowData {
     id: number;
     title: string;
+    projectCode: string | null;
     status: ProjectStatus;
     department: string | null;
     applicant: string | null;
@@ -102,12 +104,14 @@ const progressRateTone = (rate: number): { bar: string; text: string } => {
 const taskStatusLabel: Record<TaskListItem['status'], string> = {
     open: '未着手',
     in_progress: '進行中',
+    resolved: '確認待ち',
     closed: '完了',
 };
 
 const taskStatusClass: Record<TaskListItem['status'], string> = {
     open: 'bg-gray-100 text-gray-600',
     in_progress: 'bg-blue-50 text-blue-700',
+    resolved: 'bg-violet-50 text-violet-800',
     closed: 'bg-green-50 text-green-700',
 };
 
@@ -128,6 +132,121 @@ const approvalActionLabel: Record<ApprovalTimelineItem['action'], string> = {
     approved: '承認',
     rejected: '却下',
 };
+
+type TaskSortKey =
+    | 'title'
+    | 'taskType'
+    | 'priority'
+    | 'status'
+    | 'assignee'
+    | 'reviewer'
+    | 'dueDate'
+    | 'progressRate';
+
+type TaskSortDir = 'asc' | 'desc';
+
+const prioritySortRank: Record<TaskListItem['priority'], number> = {
+    low: 1,
+    medium: 2,
+    high: 3,
+};
+
+const statusSortRank: Record<TaskListItem['status'], number> = {
+    open: 1,
+    in_progress: 2,
+    resolved: 3,
+    closed: 4,
+};
+
+function compareTasksForSort(
+    a: TaskListItem,
+    b: TaskListItem,
+    key: TaskSortKey,
+    dir: TaskSortDir,
+): number {
+    const mul = dir === 'asc' ? 1 : -1;
+
+    switch (key) {
+        case 'title':
+            return a.title.localeCompare(b.title, 'ja') * mul;
+        case 'taskType':
+            return (
+                taskTypeLabel[a.taskType].localeCompare(taskTypeLabel[b.taskType], 'ja') * mul
+            );
+        case 'priority':
+            return (prioritySortRank[a.priority] - prioritySortRank[b.priority]) * mul;
+        case 'status':
+            return (statusSortRank[a.status] - statusSortRank[b.status]) * mul;
+        case 'assignee': {
+            const va = a.assignee?.trim() ?? '';
+            const vb = b.assignee?.trim() ?? '';
+            if (!va && !vb) return 0;
+            if (!va) return 1;
+            if (!vb) return -1;
+            return va.localeCompare(vb, 'ja') * mul;
+        }
+        case 'reviewer': {
+            const va = a.reviewer?.trim() ?? '';
+            const vb = b.reviewer?.trim() ?? '';
+            if (!va && !vb) return 0;
+            if (!va) return 1;
+            if (!vb) return -1;
+            return va.localeCompare(vb, 'ja') * mul;
+        }
+        case 'dueDate': {
+            const ta = a.dueDate ? Date.parse(a.dueDate) : null;
+            const tb = b.dueDate ? Date.parse(b.dueDate) : null;
+            if (ta === null && tb === null) return 0;
+            if (ta === null) return 1;
+            if (tb === null) return -1;
+            return (ta - tb) * mul;
+        }
+        case 'progressRate':
+            return (a.progressRate - b.progressRate) * mul;
+        default:
+            return 0;
+    }
+}
+
+function TaskSortHeader({
+    label,
+    sortKey,
+    activeKey,
+    dir,
+    onSort,
+    className,
+}: {
+    label: string;
+    sortKey: TaskSortKey;
+    activeKey: TaskSortKey | null;
+    dir: TaskSortDir;
+    onSort: (key: TaskSortKey) => void;
+    className: string;
+}) {
+    const active = activeKey === sortKey;
+    return (
+        <th scope="col" className={`py-3 text-left align-bottom font-semibold ${className}`}>
+            <button
+                type="button"
+                className="-mx-1 inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-slate-600 hover:bg-slate-100 hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                onClick={() => onSort(sortKey)}
+                aria-label={`${label}で並び替え（クリックで昇順・降順の切替）`}
+                aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+            >
+                <span className="truncate">{label}</span>
+                {active ? (
+                    dir === 'asc' ? (
+                        <ChevronUp className="h-3.5 w-3.5 shrink-0 text-slate-800" aria-hidden />
+                    ) : (
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-800" aria-hidden />
+                    )
+                ) : (
+                    <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+                )}
+            </button>
+        </th>
+    );
+}
 
 const parseDetailTab = (raw: string | null): DetailTab => {
     if (raw === 'apply' || raw === 'history' || raw === 'tasks' || raw === 'budget') return raw;
@@ -155,6 +274,7 @@ const historyFieldLabel = (fieldName: string): string => {
         status: 'ステータス',
         progress_rate: '進捗率',
         assignee_id: '担当者',
+        reviewer_id: '確認者',
         due_date: '期日',
         description: '説明',
     };
@@ -227,6 +347,25 @@ export default function ProjectsShow({
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
     const [expandedHistoryTaskIds, setExpandedHistoryTaskIds] = useState<Set<number>>(() => new Set());
+    const [taskSort, setTaskSort] = useState<{ key: TaskSortKey | null; dir: TaskSortDir }>({
+        key: null,
+        dir: 'asc',
+    });
+    const sortedTasks = useMemo(() => {
+        if (taskSort.key === null) {
+            return project.tasks;
+        }
+        return [...project.tasks].sort((a, b) =>
+            compareTasksForSort(a, b, taskSort.key!, taskSort.dir),
+        );
+    }, [project.tasks, taskSort]);
+    const toggleTaskSort = (nextKey: TaskSortKey) => {
+        setTaskSort((prev) =>
+            prev.key !== nextKey
+                ? { key: nextKey, dir: 'asc' }
+                : { key: nextKey, dir: prev.dir === 'asc' ? 'desc' : 'asc' },
+        );
+    };
     const approvalLevel: 'dept' | 'hq' = canApproveDept ? 'dept' : 'hq';
     const taskCount = project.tasks.length;
     const closedTaskCount = project.tasks.filter((task) => task.status === 'closed').length;
@@ -251,7 +390,10 @@ export default function ProjectsShow({
               : '/projects?tab=approval';
     const isRejectedProject =
         project.status === 'rejected' || !!project.rejectedAt || !!project.rejectedComment;
-    const pageTitle = project.status === 'approved' ? '案件詳細' : '承認画面';
+    const pageTitle =
+        project.status === 'approved' ? `${project.title}（案件名）` : '承認画面';
+    const displayProjectCode =
+        project.projectCode ?? `PRJ-${String(project.id).padStart(4, '0')}`;
     const pageDescription =
         project.status === 'approved'
             ? '案件の詳細・履歴・タスク・予算を確認できます'
@@ -330,7 +472,15 @@ export default function ProjectsShow({
                 <section className="flex items-start justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight text-brand-dark">{pageTitle}</h1>
-                        <p className="mt-1 text-sm text-brand-muted">
+                        <div className="mt-2 flex flex-col gap-1 text-sm">
+                            <p className="text-brand-dark">
+                                <span className="text-brand-muted">案件ID</span>{' '}
+                                <span className="font-mono font-medium tabular-nums">
+                                    {displayProjectCode}
+                                </span>
+                            </p>
+                        </div>
+                        <p className="mt-2 text-sm text-brand-muted">
                             {pageDescription}
                         </p>
                     </div>
@@ -430,7 +580,8 @@ export default function ProjectsShow({
                         </h2>
                         <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-brand-muted">
                             <span>
-                                案件ID: {projectId}
+                                案件ID:{' '}
+                                <span className="font-mono text-brand-dark">{displayProjectCode}</span>
                                 {project.revision > 1 && (
                                     <span className="text-brand-dark"> / 改訂{project.revision}回目</span>
                                 )}
@@ -655,30 +806,82 @@ export default function ProjectsShow({
                                                 <th className="w-10 px-2 py-3 text-center font-semibold" aria-label="変更履歴">
                                                     {' '}
                                                 </th>
-                                                <th className="px-5 py-3 text-left font-semibold">タイトル</th>
-                                                <th className="px-3 py-3 text-left font-semibold">種類</th>
-                                                <th className="px-3 py-3 text-left font-semibold">優先度</th>
-                                                <th className="px-3 py-3 text-left font-semibold">ステータス</th>
-                                                <th className="px-3 py-3 text-left font-semibold">担当</th>
-                                                <th className="px-3 py-3 text-left font-semibold">期日</th>
-                                                <th className="px-3 py-3 text-left font-semibold">進捗</th>
+                                                <TaskSortHeader
+                                                    label="タイトル"
+                                                    sortKey="title"
+                                                    activeKey={taskSort.key}
+                                                    dir={taskSort.dir}
+                                                    onSort={toggleTaskSort}
+                                                    className="px-5"
+                                                />
+                                                <TaskSortHeader
+                                                    label="種類"
+                                                    sortKey="taskType"
+                                                    activeKey={taskSort.key}
+                                                    dir={taskSort.dir}
+                                                    onSort={toggleTaskSort}
+                                                    className="px-3"
+                                                />
+                                                <TaskSortHeader
+                                                    label="優先度"
+                                                    sortKey="priority"
+                                                    activeKey={taskSort.key}
+                                                    dir={taskSort.dir}
+                                                    onSort={toggleTaskSort}
+                                                    className="px-3"
+                                                />
+                                                <TaskSortHeader
+                                                    label="ステータス"
+                                                    sortKey="status"
+                                                    activeKey={taskSort.key}
+                                                    dir={taskSort.dir}
+                                                    onSort={toggleTaskSort}
+                                                    className="px-3"
+                                                />
+                                                <TaskSortHeader
+                                                    label="担当"
+                                                    sortKey="assignee"
+                                                    activeKey={taskSort.key}
+                                                    dir={taskSort.dir}
+                                                    onSort={toggleTaskSort}
+                                                    className="px-3"
+                                                />
+                                                <TaskSortHeader
+                                                    label="確認者"
+                                                    sortKey="reviewer"
+                                                    activeKey={taskSort.key}
+                                                    dir={taskSort.dir}
+                                                    onSort={toggleTaskSort}
+                                                    className="px-3"
+                                                />
+                                                <TaskSortHeader
+                                                    label="期日"
+                                                    sortKey="dueDate"
+                                                    activeKey={taskSort.key}
+                                                    dir={taskSort.dir}
+                                                    onSort={toggleTaskSort}
+                                                    className="px-3"
+                                                />
+                                                <TaskSortHeader
+                                                    label="進捗"
+                                                    sortKey="progressRate"
+                                                    activeKey={taskSort.key}
+                                                    dir={taskSort.dir}
+                                                    onSort={toggleTaskSort}
+                                                    className="px-3"
+                                                />
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-brand-border">
-                                            {project.tasks.map((task) => {
+                                            {sortedTasks.map((task) => {
                                                 const tone = progressRateTone(task.progressRate);
                                                 const histories = task.histories ?? [];
                                                 const historyOpen = expandedHistoryTaskIds.has(task.id);
                                                 return (
                                                     <Fragment key={task.id}>
                                                         <tr
-                                                            className={
-                                                                canManageTasks
-                                                                    ? 'cursor-pointer hover:bg-slate-50'
-                                                                    : 'hover:bg-slate-50'
-                                                            }
+                                                            className="cursor-pointer hover:bg-slate-50"
                                                             onClick={() => {
-                                                                if (!canManageTasks) return;
                                                                 setEditingTaskId(task.id);
                                                                 setTaskDialogOpen(true);
                                                             }}
@@ -739,6 +942,9 @@ export default function ProjectsShow({
                                                                 {task.assignee ?? '未割当'}
                                                             </td>
                                                             <td className="px-3 py-3.5 text-brand-muted">
+                                                                {task.reviewer ?? '—'}
+                                                            </td>
+                                                            <td className="px-3 py-3.5 text-brand-muted">
                                                                 {task.dueDate ?? '—'}
                                                             </td>
                                                             <td className="px-3 py-3.5">
@@ -764,7 +970,7 @@ export default function ProjectsShow({
                                                                 key={`${task.id}-history`}
                                                                 className="bg-brand-bg/60"
                                                             >
-                                                                <td colSpan={8} className="px-5 py-4">
+                                                                <td colSpan={9} className="px-5 py-4">
                                                                     <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
                                                                         変更履歴
                                                                     </p>
@@ -952,6 +1158,9 @@ export default function ProjectsShow({
                 projectTitle={project.title}
                 task={editingTask}
                 assignees={taskAssignees}
+                readOnly={
+                    editingTask === null ? !canManageTasks : !editingTask.canUpdate
+                }
             />
             <BudgetActualDialog
                 open={budgetDialogOpen}

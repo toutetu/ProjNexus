@@ -11,6 +11,8 @@ enum NotificationType: string
     case TaskAssigned = 'task_assigned';
     case TaskCompleted = 'task_completed';
     case TaskDueSoon = 'task_due_soon';
+    case TaskResolved = 'task_resolved';
+    case TaskReviewed = 'task_reviewed';
 
     /**
      * @return array<int, string>

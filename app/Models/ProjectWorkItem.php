@@ -20,6 +20,7 @@ class ProjectWorkItem extends Model
         'project_id',
         'parent_id',
         'assignee_id',
+        'reviewer_id',
         'created_by',
         'milestone_id',
         'title',
@@ -57,6 +58,11 @@ class ProjectWorkItem extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewer_id');
     }
 
     public function creator(): BelongsTo

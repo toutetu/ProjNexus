@@ -6,15 +6,15 @@ use App\Enums\ApprovalAction;
 use App\Enums\ProjectStatus;
 use App\Enums\Role;
 use App\Enums\TaskStatus;
-use App\Models\Department;
 use App\Models\Approval;
+use App\Models\Department;
 use App\Models\Project;
 use App\Models\ProjectWorkItem;
 use App\Models\User;
 use App\Services\ApprovalService;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -307,6 +307,7 @@ class ProjectController extends Controller
             'tasks' => static function ($q): void {
                 $q->with([
                     'assignee:id,name',
+                    'reviewer:id,name',
                     'creator:id,name',
                     'comments' => static function ($commentQuery): void {
                         $commentQuery->with('user:id,name')->orderBy('created_at');
@@ -374,6 +375,7 @@ class ProjectController extends Controller
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,
+                'projectCode' => $project->project_code,
                 'status' => $project->status->value,
                 'department' => $project->department?->name,
                 'applicant' => $project->applicant?->name,
@@ -407,8 +409,11 @@ class ProjectController extends Controller
                     'progressRate' => $task->progress_rate,
                     'assigneeId' => $task->assignee_id,
                     'assignee' => $task->assignee?->name,
+                    'reviewerId' => $task->reviewer_id,
+                    'reviewer' => $task->reviewer?->name,
                     'dueDate' => $task->due_date?->toDateString(),
                     'updatedAt' => $task->updated_at?->toDateTimeString(),
+                    'canUpdate' => $user?->can('update', $task) ?? false,
                     'comments' => $task->comments->map(fn ($comment) => [
                         'id' => $comment->id,
                         'user' => $comment->user?->name ?? '不明ユーザー',

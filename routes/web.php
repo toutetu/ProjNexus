@@ -1,12 +1,13 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ManualController;
+use App\Http\Controllers\MemberTaskController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ProjectTaskController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectTaskController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -47,6 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');
     Route::delete('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'destroy'])->name('projects.tasks.destroy');
     Route::post('/projects/{project}/tasks/{task}/comments', [ProjectTaskController::class, 'storeComment'])->name('projects.tasks.comments.store');
+
+    Route::get('/member-tasks', [MemberTaskController::class, 'index'])->name('member-tasks.index');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');

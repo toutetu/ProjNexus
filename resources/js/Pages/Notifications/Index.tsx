@@ -72,6 +72,14 @@ const NOTIFICATION_TYPE_BADGE: Record<string, NotificationTypeBadgeStyle> = {
         label: 'タスク完了',
         className: 'bg-[#DCFCE7] text-[#166534]',
     },
+    task_resolved: {
+        label: '確認依頼',
+        className: 'bg-[#EDE9FE] text-[#5B21B6]',
+    },
+    task_reviewed: {
+        label: '確認OK',
+        className: 'bg-[#E0E7FF] text-[#3730A3]',
+    },
 };
 
 const notificationTypeBadge = (type: string): NotificationTypeBadgeStyle =>
