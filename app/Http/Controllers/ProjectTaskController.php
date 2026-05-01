@@ -8,15 +8,17 @@ use App\Enums\TaskType;
 use App\Models\Project;
 use App\Models\ProjectWorkItem;
 use App\Services\NotificationService;
+use App\Services\TaskHistoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ProjectTaskController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
-    {
-    }
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly TaskHistoryService $taskHistoryService,
+    ) {}
 
     public function store(Request $request, Project $project): RedirectResponse
     {
@@ -32,6 +34,10 @@ class ProjectTaskController extends Controller
             ...$validated,
             'created_by' => $request->user()->id,
         ]);
+
+        $task->refresh();
+        $task->loadMissing('assignee');
+        $this->taskHistoryService->recordCreation($task, $request->user());
 
         if ($task->assignee_id !== null && $task->assignee !== null && $task->assignee_id !== $request->user()->id) {
             $this->notificationService->notifyTaskAssigned(
@@ -60,8 +66,14 @@ class ProjectTaskController extends Controller
         $oldAssigneeId = $task->assignee_id;
         $oldStatus = $task->status;
 
+        $task->refresh();
+        $task->loadMissing('assignee');
+        $beforeDisplay = $this->taskHistoryService->displaySnapshot($task);
+
         $task->update($validated);
         $task->loadMissing('assignee', 'project.applicant');
+
+        $this->taskHistoryService->recordChanges($task, $beforeDisplay, $request->user());
 
         if (
             $task->assignee_id !== null

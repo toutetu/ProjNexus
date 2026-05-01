@@ -5,6 +5,28 @@
 
 ---
 
+### 作業記録 2026-05-01（金）タスク変更履歴（task_histories）
+
+#### 1) バックエンド
+- `app/Services/TaskHistoryService.php` を新規作成
+  - 追跡フィールド: `status`, `progress_rate`, `assignee_id`, `due_date`, `priority`（`title` / `description` / `task_type` は除外）
+  - `old_value` / `new_value` は UI と揃えた表示用文字列（担当は氏名、未割当、日付は `Y-m-d`、進捗は `n%`）
+- `ProjectTaskController`: `store` 後に `recordCreation`、`update` は事前 `displaySnapshot` → 更新後 `recordChanges`
+- `ApprovalService`: 本部承認時の初期タスク `実装計画作成` 作成後に `recordCreation`（DI で `TaskHistoryService`）
+
+#### 2) フロント
+- `resources/js/Pages/Projects/Show.tsx`: タスク一覧に展開列（Chevron）、子行で変更履歴リスト
+- `historyValueLabel`: `progress_rate` が既に `%` 付きの場合の二重付与を防止、`status` に `resolved`（確認待ち）を追加
+
+#### 3) テスト・環境
+- `tests/Feature/TaskHistoryTest.php`: 作成時5行・更新時差分（status / progress_rate）
+- ローカル: `composer install` / `npm install` / `npm run build` / `php artisan migrate:fresh --seed`
+
+#### 4) 設計ドキュメント
+- `doc/Design/AI.md`, `requirements.md`, `design-philosophy.md`, `screen_flow.md`, `er_diagram.md`, `components_spec.md` を実装に同期（モデル名・C-4・履歴の閲覧導線など）
+
+---
+
 ### 作業記録 2026-04-27（月）Phase 2 UI/通知仕上げ
 
 #### 1) 申請一覧 UI のモック準拠調整

@@ -354,7 +354,7 @@ interface ApprovalDialogProps {
 
 ### TaskFormDialog（S-10）
 **役割**: タスク作成・編集モーダル。
-**配置**: `resources/js/Components/Modals/TaskFormDialog.tsx`
+**配置（PoC 実装）**: `resources/js/Components/Modals/ProjectTaskDialog.tsx`（本節の Props・挙動は同モーダルの意図を示す）
 **使用モック**: S-10（次回以降）
 **表示コンテキスト**:
 - 背景に S-04 の「タスクタブ」を dimmed + blur で表示し、モーダル文脈を保つ
@@ -402,7 +402,7 @@ interface TaskFormDialogProps {
 - 進捗: slider + 数値（`ステータス = 進行中` の時だけ表示。`resolved / closed` は自動で 100%）
 - 説明: textarea（3行）
 - コメント: 既存コメント + 投稿欄（モーダル下部）
-- 変更履歴: 折りたたみ表示（初期は閉じる）
+- 変更履歴: 折りたたみ表示（初期は閉じる）。データは `task_histories`（`ProjectTaskHistory`）を Inertia で受け取り、サーバー側では `TaskHistoryService` がタスク作成・更新時に自動記録する。案件詳細のタスク一覧では行展開でも同一履歴を参照可能
 
 **フッターアクション**:
 - 左: 削除（編集モードのみ、赤アウトライン）
@@ -614,3 +614,4 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 
 - 2026-04-16: s02/s03a/s05 モックから初版を作成。S-04/S-07/S-08/S-10/S-11/S-12/S-13 は今後のモック作成時に追記。
 - 2026-04-18: 各画面方針書（`mockups/s0x_policy.md`）との整合確認を実施。S-03b の進捗フィルタ区分を `未着手/進行中/完了間近(90%+)/完了` に改訂し、進捗バー配色ルールを4帯（0-60緑 / 61-85青 / 86-100橙 / 100超赤）へ統一。
+- 2026-05-01: タスク変更履歴の自動記録（`TaskHistoryService`・`task_histories`）と S-04 のタスク一覧行展開を反映。S-10 モーダルの実装ファイル名を `ProjectTaskDialog.tsx` に明記。

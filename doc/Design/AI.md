@@ -70,7 +70,7 @@
 - **`app/Services/`**: `ApprovalService`（承認フロー遷移）、`TaskHistoryService`（変更履歴自動記録）、`NotificationService` を処理単位で配置
 - **`app/Policies/`**: 案件・タスクの可視範囲。Controller のクエリ分岐と合わせて二重防御
 - **`app/Enums/`**: PHP 8.1+ Native Enum（status / role / level / type など）
-- **`app/Models/`**: `User` は Spatie の `HasRoles` trait を使用。主要モデルは Department / User / Project / Approval / Task / TaskComment / TaskHistory / Notification
+- **`app/Models/`**: `User` は Spatie の `HasRoles` trait を使用。主要モデルは Department / User / Project / Approval / `ProjectWorkItem`（`tasks` テーブル）/ `ProjectTaskComment` / `ProjectTaskHistory`（`task_histories`）/ Notification
 - **`database/seeders/`**: `DepartmentSeeder`（本部+3部門）、`RolePermissionSeeder`（3ロール）、`UserSeeder`（7アカウント）
 - **`resources/js/Pages/`**: Inertia ページ単位。URL と 1:1 対応（例: `Projects/Index.tsx`、`Projects/Show.tsx`）
 - **`resources/js/Components/ui/`**: shadcn/ui（個別に `npx shadcn-ui@latest add` で追加）
@@ -99,7 +99,7 @@
 | approvals | 承認履歴（監査証跡） |
 | tasks | タスク（Backlog 風・ステータスは 4 値 Enum で DB 定義、課題1 は 3 値運用） |
 | task_comments | タスクコメント |
-| task_histories | タスク変更履歴（自動記録） |
+| task_histories | タスク変更履歴（`TaskHistoryService` により自動記録。追跡は status 等5項目・表示用文字列） |
 | notifications | 通知 |
 
 ### 将来追加するテーブル（課題2 以降）

@@ -18,25 +18,25 @@
 
 ---
 
-### 基本情報（2026-04-27 更新）
+### 基本情報（2026-05-01 更新）
 
 - **開発期間:** 4/13〜5/15（5週間・100時間以内）
-- **累計実績:** 56h
-- **残り時間:** 44h
+- **累計実績:** 65h
+- **残り時間:** 35h
 - **稼働方針:** 平日中心（平均 1日5h目安、火曜は通院で3h）
 - **リスク期間:** GW（4/29, 5/3〜5/6）は稼働1h/日程度に低下
 
 ---
 
-### Phase別の時間配分（残り51h）
+### Phase別の時間配分（残り35h・2026-05-01 時点）
 
 | Phase | 内容 | 見積 | 実績 | 状態 |
 |-------|------|------|------|------|
 | Phase 0 | 設計・環境構築 | 35h | 31h | ✅ 完了 |
 | Phase 1 | 認証・レイアウト・共通UI | 8h | 9h | ✅ 完了 |
 | Phase 2 | 申請・承認フロー（課題1の核） | 20h | 10h | ✅ 完了 |
-| Phase 3 | 開発管理・予算管理（MVP優先） | 10h |  6h | 🟡 進行中（MVP実装・UI調整・自動検証完了） |
-| Phase 4 | +α（最小） | 5h | - | 未着手 |
+| Phase 3 | 開発管理・予算管理（MVP優先） | 10h |  9h | ✅ 完了（履歴自動記録・通知・初期タスク等を含む） |
+| Phase 4 | +α（最小） | 5h | - | 🟡 着手（タスク履歴ブランチ等。ステッパーは先行実装済） |
 | Phase 5 | 資料・最終確認 | 20h | - | 未着手 |
 | 予備バッファ | 遅延吸収・回帰修正 | 5h | - | - |
 
@@ -45,11 +45,12 @@
 
 ---
 
-### 現在地（2026-04-30 時点）
+### 現在地（2026-05-01 時点）
 
-- **現在の主作業:** Phase 3 仕上げ（通知・承認後自動タスク・運用導線の最終反映）
-- **直近完了:** 下書き権限制御（下書きは申請者のみ閲覧可）、下書き時バリデーション緩和（タイトルのみ必須）、タブ件数表示、一覧→詳細のタブ連動、タスク進捗バー4段階配色、履歴表示順の調整、タスク通知（担当/完了/期限接近）、本部承認時の初期タスク自動作成
-- **次の着手:** Phase 3 残確認（手動導線の最終点検）と日次ドキュメント整備
+- **現在の主作業:** Phase 4 / 5（+α・資料・提出準備）。タスク変更履歴は実装・設計書同期・日報追記まで完了
+- **直近完了（2026-05-01）:** `TaskHistoryService` による `task_histories` 自動記録、案件詳細タスク一覧の変更履歴展開、`TaskHistoryTest`、`doc/Design` 更新、ローカルセットアップ確認、`daily_report.md` 追記
+- **直近完了（〜2026-04-30）:** 下書き権限制御、下書きバリデーション緩和、タブ件数・一覧→詳細タブ連動、タスク進捗バー配色、履歴表示順、タスク通知、本部承認時の初期タスク自動作成
+- **次の着手:** Phase 4 残（レスポンシブ等）・`doc/manual` 区切り更新・Phase 5 提出物
 
 ---
 
@@ -191,7 +192,8 @@ Cursor / Claude との協働でも必ず遵守。
 - [x] `tasks` migration（title, assignee_id, status, progress_rate, start_date, due_date, parent_id(nullable), milestone_id(nullable)）
 - [x] `task_comments` migration（最小：body, user_id, task_id）
 - [x] `task_histories` migration（自動記録用、最小カラムで可）
-- [x] `Task` / `TaskComment` / `TaskHistory` Model（`ProjectWorkItem` による安定化対応を含む）
+- [x] `ProjectWorkItem` / `ProjectTaskComment` / `ProjectTaskHistory` Model（`tasks` / `task_histories`）
+- [x] `TaskHistoryService` による `task_histories` 自動記録＋`Projects/Show.tsx` タスク行展開表示（2026-05-01）
 
 ### 承認後ロック
 - [ ] `status=approved` 時に案件編集をロック
@@ -216,6 +218,12 @@ Cursor / Claude との協働でも必ず遵守。
 - [ ] 予算実績を入力 → 消費率が一覧に反映される（手動確認）
 - [x] `php artisan test` / `npm run build` / `npx tsc --noEmit` を通過（2026-04-27）
 - [x] 期限接近タスク通知コマンドを追加し、日次スケジュール実行を設定（`tasks:notify-due-soon` / 09:00）
+
+### 2026-05-01 追加完了項目
+- [x] `TaskHistoryService`・`task_histories` 自動記録（5項目・表示用文字列）
+- [x] `ProjectTaskController` / `ApprovalService` からの記録呼び出し
+- [x] `TaskHistoryTest`（Feature）
+- [x] `doc/Design` のタスク履歴関連を実装に同期
 
 ### 2026-04-30 追加完了項目
 - [x] 下書き案件は申請者のみ閲覧可能（一覧/直接URLともに制御）

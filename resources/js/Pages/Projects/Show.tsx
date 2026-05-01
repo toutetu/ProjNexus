@@ -1,8 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import {
     CalendarDays,
     CheckCircle2,
+    ChevronDown,
+    ChevronUp,
     Clock3,
     Edit3,
     FileCheck2,
@@ -166,6 +168,7 @@ const historyValueLabel = (fieldName: string, value: string | null): string => {
         const map: Record<string, string> = {
             open: '未着手',
             in_progress: '進行中',
+            resolved: '確認待ち',
             closed: '完了',
         };
         return map[value] ?? value;
@@ -191,7 +194,7 @@ const historyValueLabel = (fieldName: string, value: string | null): string => {
     }
 
     if (fieldName === 'progress_rate') {
-        return `${value}%`;
+        return value.endsWith('%') ? value : `${value}%`;
     }
 
     return value;
@@ -223,6 +226,7 @@ export default function ProjectsShow({
     const [taskDialogOpen, setTaskDialogOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
+    const [expandedHistoryTaskIds, setExpandedHistoryTaskIds] = useState<Set<number>>(() => new Set());
     const approvalLevel: 'dept' | 'hq' = canApproveDept ? 'dept' : 'hq';
     const taskCount = project.tasks.length;
     const closedTaskCount = project.tasks.filter((task) => task.status === 'closed').length;
@@ -648,6 +652,9 @@ export default function ProjectsShow({
                                     <table className="min-w-full text-sm">
                                         <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
                                             <tr>
+                                                <th className="w-10 px-2 py-3 text-center font-semibold" aria-label="変更履歴">
+                                                    {' '}
+                                                </th>
                                                 <th className="px-5 py-3 text-left font-semibold">タイトル</th>
                                                 <th className="px-3 py-3 text-left font-semibold">種類</th>
                                                 <th className="px-3 py-3 text-left font-semibold">優先度</th>
@@ -660,62 +667,157 @@ export default function ProjectsShow({
                                         <tbody className="divide-y divide-brand-border">
                                             {project.tasks.map((task) => {
                                                 const tone = progressRateTone(task.progressRate);
+                                                const histories = task.histories ?? [];
+                                                const historyOpen = expandedHistoryTaskIds.has(task.id);
                                                 return (
-                                                <tr
-                                                    key={task.id}
-                                                    className="cursor-pointer hover:bg-slate-50"
-                                                    onClick={() => {
-                                                        if (!canManageTasks) return;
-                                                        setEditingTaskId(task.id);
-                                                        setTaskDialogOpen(true);
-                                                    }}
-                                                >
-                                                    <td className="px-5 py-3.5 font-medium text-brand-dark">
-                                                        {task.title}
-                                                        <div className="mt-0.5 font-mono text-[10px] font-normal text-brand-muted">
-                                                            TASK-{String(project.id).padStart(4, '0')}-
-                                                            {String(task.id).padStart(3, '0')}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-3.5">
-                                                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-700">
-                                                            {taskTypeLabel[task.taskType]}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-3 py-3.5">
-                                                        <span className="rounded-full bg-[#FEF9C3] px-2 py-0.5 text-[10px] font-semibold text-[#854D0E]">
-                                                            {priorityLabel[task.priority]}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-3 py-3.5">
-                                                        <span
-                                                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${taskStatusClass[task.status]}`}
+                                                    <Fragment key={task.id}>
+                                                        <tr
+                                                            className={
+                                                                canManageTasks
+                                                                    ? 'cursor-pointer hover:bg-slate-50'
+                                                                    : 'hover:bg-slate-50'
+                                                            }
+                                                            onClick={() => {
+                                                                if (!canManageTasks) return;
+                                                                setEditingTaskId(task.id);
+                                                                setTaskDialogOpen(true);
+                                                            }}
                                                         >
-                                                            {taskStatusLabel[task.status]}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-3 py-3.5 text-brand-muted">
-                                                        {task.assignee ?? '未割当'}
-                                                    </td>
-                                                    <td className="px-3 py-3.5 text-brand-muted">
-                                                        {task.dueDate ?? '—'}
-                                                    </td>
-                                                    <td className="px-3 py-3.5">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-[#E9ECEF]">
-                                                                <div
-                                                                    className={`h-full ${tone.bar}`}
-                                                                    style={{ width: `${Math.min(task.progressRate, 100)}%` }}
-                                                                />
-                                                            </div>
-                                                            <span
-                                                                className={`w-10 text-right font-mono text-[10px] font-semibold ${tone.text}`}
+                                                            <td className="px-2 py-3 text-center align-middle">
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex rounded-md p-1 text-brand-muted hover:bg-brand-bg hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                                                                    aria-expanded={historyOpen}
+                                                                    aria-label={
+                                                                        historyOpen ? '変更履歴を閉じる' : '変更履歴を開く'
+                                                                    }
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setExpandedHistoryTaskIds((prev) => {
+                                                                            const next = new Set(prev);
+                                                                            if (next.has(task.id)) {
+                                                                                next.delete(task.id);
+                                                                            } else {
+                                                                                next.add(task.id);
+                                                                            }
+                                                                            return next;
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    {historyOpen ? (
+                                                                        <ChevronUp className="h-4 w-4" />
+                                                                    ) : (
+                                                                        <ChevronDown className="h-4 w-4" />
+                                                                    )}
+                                                                </button>
+                                                            </td>
+                                                            <td className="px-5 py-3.5 font-medium text-brand-dark">
+                                                                {task.title}
+                                                                <div className="mt-0.5 font-mono text-[10px] font-normal text-brand-muted">
+                                                                    TASK-{String(project.id).padStart(4, '0')}-
+                                                                    {String(task.id).padStart(3, '0')}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-3.5">
+                                                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-700">
+                                                                    {taskTypeLabel[task.taskType]}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-3 py-3.5">
+                                                                <span className="rounded-full bg-[#FEF9C3] px-2 py-0.5 text-[10px] font-semibold text-[#854D0E]">
+                                                                    {priorityLabel[task.priority]}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-3 py-3.5">
+                                                                <span
+                                                                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${taskStatusClass[task.status]}`}
+                                                                >
+                                                                    {taskStatusLabel[task.status]}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-3 py-3.5 text-brand-muted">
+                                                                {task.assignee ?? '未割当'}
+                                                            </td>
+                                                            <td className="px-3 py-3.5 text-brand-muted">
+                                                                {task.dueDate ?? '—'}
+                                                            </td>
+                                                            <td className="px-3 py-3.5">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-[#E9ECEF]">
+                                                                        <div
+                                                                            className={`h-full ${tone.bar}`}
+                                                                            style={{
+                                                                                width: `${Math.min(task.progressRate, 100)}%`,
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                    <span
+                                                                        className={`w-10 text-right font-mono text-[10px] font-semibold ${tone.text}`}
+                                                                    >
+                                                                        {task.progressRate}%
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        {historyOpen && (
+                                                            <tr
+                                                                key={`${task.id}-history`}
+                                                                className="bg-brand-bg/60"
                                                             >
-                                                                {task.progressRate}%
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                </tr>
+                                                                <td colSpan={8} className="px-5 py-4">
+                                                                    <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
+                                                                        変更履歴
+                                                                    </p>
+                                                                    {histories.length === 0 ? (
+                                                                        <p className="mt-2 text-sm text-brand-muted">
+                                                                            まだ変更履歴はありません。
+                                                                        </p>
+                                                                    ) : (
+                                                                        <ul className="mt-2 space-y-2">
+                                                                            {histories.map((history) => (
+                                                                                <li
+                                                                                    key={history.id}
+                                                                                    className="rounded-md border border-brand-border bg-white px-3 py-2 text-sm text-brand-dark"
+                                                                                >
+                                                                                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                                                                        <span className="font-medium text-brand-dark">
+                                                                                            {history.user}
+                                                                                        </span>
+                                                                                        <span className="text-xs text-brand-muted">
+                                                                                            {formatDateTime(
+                                                                                                history.createdAt,
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <p className="mt-1 text-brand-muted">
+                                                                                        <span className="font-medium text-brand-dark">
+                                                                                            {historyFieldLabel(
+                                                                                                history.fieldName,
+                                                                                            )}
+                                                                                        </span>
+                                                                                        {'：'}
+                                                                                        <span className="line-through">
+                                                                                            {historyValueLabel(
+                                                                                                history.fieldName,
+                                                                                                history.oldValue,
+                                                                                            )}
+                                                                                        </span>
+                                                                                        <span className="mx-1">→</span>
+                                                                                        <span className="font-semibold text-brand-dark">
+                                                                                            {historyValueLabel(
+                                                                                                history.fieldName,
+                                                                                                history.newValue,
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </p>
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </Fragment>
                                                 );
                                             })}
                                         </tbody>

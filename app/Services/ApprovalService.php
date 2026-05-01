@@ -18,9 +18,10 @@ use Illuminate\Support\Facades\DB;
 
 class ApprovalService
 {
-    public function __construct(private readonly NotificationService $notificationService)
-    {
-    }
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly TaskHistoryService $taskHistoryService,
+    ) {}
 
     public function submit(Project $project, User $actor): Project
     {
@@ -312,7 +313,7 @@ class ApprovalService
             return;
         }
 
-        $project->tasks()->create([
+        $task = $project->tasks()->create([
             'title' => $initialTaskTitle,
             'task_type' => TaskType::Task,
             'priority' => TaskPriority::Medium,
@@ -322,5 +323,9 @@ class ApprovalService
             'assignee_id' => $project->applicant_id,
             'created_by' => $approver->id,
         ]);
+
+        $task->refresh();
+        $task->loadMissing('assignee');
+        $this->taskHistoryService->recordCreation($task, $approver);
     }
 }

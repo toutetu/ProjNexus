@@ -3,7 +3,35 @@
 `doc/daily/implementation_schedule.md` から技術的な日次の詳細作業記録を分離したログです。  
 最新の予定・進行管理は `implementation_schedule.md` を参照してください。
 
+## 2026-05-01（金）— タスク変更履歴（task_histories）自動記録・UI・設計書同期
 
+### 実装概要
+- **`TaskHistoryService`（新規）**
+  - `recordCreation`：タスク作成時に追跡5項目（`status`, `progress_rate`, `assignee_id`, `due_date`, `priority`）をそれぞれ1行記録。`old_value` は null、`new_value` は画面表示と同一の文字列（例: 未着手、45%、担当者名、`Y-m-d`、高/中/低）
+  - `recordChanges`：更新前スナップショットと更新後を比較し、差分のみ INSERT
+  - `displaySnapshot`：コントローラが更新前状態を取得するため公開
+- **呼び出し元**
+  - `ProjectTaskController` の `store` / `update`
+  - `ApprovalService` の本部承認後初期タスク（`実装計画作成`）作成直後
+- **フロント（`Projects/Show.tsx`）**
+  - タスク一覧テーブルに展開列を追加し、行展開で `task_histories` を一覧表示
+  - 履歴タブのタイムライン用 `historyValueLabel` を、表示用文字列保存に合わせて調整（`progress_rate` の二重 `%` 回避、`resolved` ラベル）
+- **テスト**: `tests/Feature/TaskHistoryTest.php`（作成5件・更新差分の2ケース）
+- **ローカル検証**: `composer install` / `npm install` / `npm run build` / `migrate:fresh --seed`、ブラウザ確認
+
+### 主要変更ファイル
+- `app/Services/TaskHistoryService.php`（新規）
+- `app/Http/Controllers/ProjectTaskController.php`
+- `app/Services/ApprovalService.php`
+- `resources/js/Pages/Projects/Show.tsx`
+- `tests/Feature/TaskHistoryTest.php`（新規）
+- `doc/Design/*.md`（AI / requirements / design-philosophy / screen_flow / er_diagram / components_spec）
+
+### 検証
+- `php artisan test` 全件通過（当時点）
+- `read_lints` 対象ファイルで問題なし
+
+---
 
 ## 2026-04-30（木）— 権限制御調整・通知拡張・承認後初期タスク自動化
 

@@ -10,9 +10,9 @@
 - Phase 0: 完了
 - Phase 1: 完了
 - Phase 2: 完了
-- Phase 3: 進行中（通知機能・承認後自動タスク投入まで完了）
-- Phase 4: 未着手
-- Phase 5: 未着手
+- Phase 3: 完了（タスク変更履歴の自動記録・行展開表示・`TaskHistoryTest` まで反映済み・2026-05-01）
+- Phase 4: 着手可能（+α：レスポンシブ等。承認ステッパー大型版は実装済み）
+- Phase 5: 未着手（資料・提出）
 
 ---
 
@@ -29,22 +29,21 @@
 
 ---
 
-## 3. 次回作業予定（2026-05-01 / Phase 3 Day3）
+## 3. 次回作業予定（2026-05-02 以降 / Phase 4〜5）
 
 ### 目的
 
-- Phase 3 の残手動確認（ロール境界、通知重複防止、承認後の初期タスク作成）を完了する
-- 日次ドキュメントと実装ログを同期し、提出前の差分を減らす
+- Phase 4 の残（レスポンシブ最低限など）と Phase 5（`doc/manual` 区切り更新、`Information.md`、プレゼン、デプロイ確認）
+- ブランチのマージ・`main` 同期を計画的に実施
 
-### 実行手順
+### 実行手順（例）
 
-1. 事前確認（`php artisan serve` / `npm run dev`、ログイン後 `/projects?tab=approval`）
-2. 下書き閲覧制御（申請者のみ）を applicant / dept / hq で再確認
-3. タスク通知3種（担当・完了・期限接近）の発火と重複防止を確認
-4. 本部承認時の「実装計画作成」自動作成を確認（重複作成されないこと含む）
-5. 必要時のみ最小修正（Policy / Service / Controller / UI）
-6. `npx tsc --noEmit` / `npm run build` / `php artisan test`
-7. `doc/daily` と設計書の差分最終確認
+1. `php artisan test` / `npm run build` で回帰確認
+2. Phase 4 チェックリスト（`development_schedule.md`）の未チェック項目を上から消化
+3. 利用マニュアルは機能単位で追記・スクショ差し替え（まとめてでも可）
+4. 提出前に `requirements.md` 提出物チェックリストと突合
+5. `npx tsc --noEmit` / `npm run build` / `php artisan test`
+6. `doc/daily` と設計書の差分最終確認
 
 ### 手動確認チェックリスト（作業中に使用）
 
@@ -60,10 +59,10 @@
 
 ---
 
-## 4. Phase 3 残タスク
+## 4. Phase 3 以降のフォロー（任意）
 
-- ロール別の最終手動確認ログ反映
-- 通知運用（定時実行・重複防止）の監視手順追記
+- ロール別の最終手動確認ログを必要に応じて追記
+- 通知運用（定時実行・重複防止）の監視手順を運用メモに残す場合は `doc/daily` または `Information.md` へ
 
 ---
 

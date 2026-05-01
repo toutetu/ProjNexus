@@ -152,6 +152,16 @@ erDiagram
   tasks ||--o{ task_histories : "変更履歴"
 ```
 
+### task_histories（実装対応）
+
+| 項目 | 内容 |
+|------|------|
+| Eloquent | `App\Models\ProjectTaskHistory`（テーブル名 `task_histories`） |
+| サービス | `App\Services\TaskHistoryService` |
+| 記録タイミング | タスクの作成・更新（`ProjectTaskController`）、本部承認直後の初期タスク作成（`ApprovalService`） |
+| 追跡フィールド | `status`, `progress_rate`, `assignee_id`, `due_date`, `priority`（`title` / `description` / `task_type` は対象外） |
+| `old_value` / `new_value` | 画面表示と揃えた文字列（例: 未着手、担当者氏名、`Y-m-d` 形式の期日、`45%`）。作成時は項目ごとに `old_value` を null、`new_value` に現在値 |
+
 ---
 
 ## ステータス・区分値一覧
