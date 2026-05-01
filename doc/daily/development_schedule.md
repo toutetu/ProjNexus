@@ -236,14 +236,45 @@ Cursor / Claude との協働でも必ず遵守。
 ---
 
 
-## Phase 4 チェックリスト（+α 最小／2h）
+## Phase 4 チェックリスト（+α 拡張・実装決定／時間調整中）
 
+> 2026-05-01 のスコープ拡大判断：残時間 40h を活用し、課題1 補強と課題2 +α を本気実装する方針に変更。
+
+### 既定の +α
 - [x] 承認ステッパーUI（詳細画面用、大型版）
 - [ ] レスポンシブ調整（主要 3 画面のみ）
   - [ ] `/projects` 一覧（タブ含む）
   - [ ] 案件詳細
   - [ ] 申請フォーム
 - [ ] モーダル類のタブレット対応最低限確認
+
+### 課題1 補強（追加実装決定・2026-05-01）
+- [ ] **`TaskHistoryService` 自動記録実装**（5項目：`status` / `progress_rate` / `assignee_id` / `due_date` / `priority`）
+- [ ] `ProjectTaskController::store / update` から Service 呼び出し
+- [ ] 案件詳細画面のタスクカードに「変更履歴」セクション追加（`Show.tsx` の既存 props 活用）
+- [ ] Feature テスト：主要フィールド変更で履歴が記録されること（1〜2 ケース）
+
+### 課題2 として実装決定（2026-05-01）
+- [ ] **S-14 タスク一覧**（カンバン + メンバー別 ビュートグル・採用：`mockups/s14b_member_tasks_toggle.html`）
+  - [ ] migration: `tasks.reviewer_id` 追加（nullable FK→users）
+  - [ ] `MemberTaskController` + ロール別クエリ + view 切替
+  - [ ] `MemberTasks/Index.tsx` + `KanbanBoard.tsx` + `MemberMatrix.tsx` + `TaskCard.tsx` + `ViewToggle.tsx`
+  - [ ] `routes/web.php` に `/member-tasks` 追加
+  - [ ] サイドバー「タスク一覧」dim 解除
+- [ ] **タスク 4値運用**（実装者→確認者の品質ゲート）
+  - [ ] `ProjectTaskDialog` に確認者選択・`resolved` 遷移ボタン追加
+  - [ ] `ProjectTaskController` に `resolved` バリデーション
+  - [ ] `NotificationService::notifyTaskResolved` / `notifyTaskReviewed` 追加
+  - [ ] `NotificationType` Enum に `TaskResolved` / `TaskReviewed` 追加
+  - [ ] `TaskStatus::phase4Values()` ヘルパ追加
+  - [ ] `ApprovalService` 自動初期タスクに `reviewer_id` 初期値（部門管理者）設定
+  - [ ] `ProjectWorkItemPolicy` の遷移権限分岐（`assignee` only / `reviewer` only）
+- [ ] 遅延の見える化（一覧の期限超過バッジ・3日以内早期警告）
+- [ ] 消費率 70% 警告色（Phase 3 積み残し）
+
+### 設計のみ（プレゼン素材）
+- [ ] `budget_actuals` 追加方式の ER 図と移行手順
+- [ ] ダッシュボード（S-02）モック練り直し
 
 ---
 

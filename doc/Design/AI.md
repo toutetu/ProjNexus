@@ -22,19 +22,20 @@
 
 ### 実装する（課題1・必須）
 - ★ 申請・承認フロー（申請 → 部門承認 → 本部承認）
-- ★ 承認済案件のタスク管理（**Backlog 風・3値運用**：未着手 / 進行中 / 完了）
+- ★ 承認済案件のタスク管理（**Backlog 風・4値運用**：未着手 / 進行中 / 確認待ち / 完了）
 - ★ 案件単位の予算・実績管理（**上書き方式**：`projects.actual_amount` を直接更新）
 - ★ ロール別データアクセス制御
 - ★ アプリ内通知
 - ★ 承認ステッパー UI（課題2 だが低コスト高効果のため実装）
 
+### 実装する（課題2・+α として実装決定）
+- ★ **タスク完了の確認工程**（実装者が `resolved` で完了報告 → 確認者が `closed` で承認の2段階・`reviewer_id` カラム追加）
+- ★ **S-14 タスク一覧**（部門メンバータスク + 個人タスク。カンバン/メンバー別の2ビュー切替・ロール別初期表示）
 
 ### 実装しない（課題2・後回し）
 - ☆ ダッシュボード（画面 S-02、プレゼン用設計のみ）
 - ☆ タスク詳細画面（画面 S-09、編集は S-10 モーダルで代替）
-- ☆ **タスク完了の確認工程**（申請者が `resolved` で完了報告 → 確認者が `closed` で承認の 2 段階。DB の 4 値 Enum は課題1 から用意済み）
 - ☆ **予算実績の追加方式**（`budget_actuals` テーブルで支出内訳を履歴管理。監査証跡とカテゴリ別集計が可能に）
-- ☆ 部門管理者向けメンバータスク一覧
 - ☆ 予算アラート通知（86% / 100% の閾値超過で関係者に通知）
 - ☆ 外部ツール連携
 
@@ -84,6 +85,7 @@
 ### URL 設計メモ
 - 案件一覧は `/projects?tab=approval|dev|budget` でタブ切替（単一コンポーネント + tab props で列セット切替）
 - 承認待ち一覧は独立画面を持たず `/projects?tab=approval&filter=pending` のプリセット
+- タスク一覧（S-14）は `/member-tasks?view=board|members` でビュートグル切替（単一コンポーネント + view props で表示切替）。ロール別に初期 view が変わる（applicant=board / dept_manager・hq_manager=members）
 
 ---
 
@@ -116,12 +118,13 @@
 - **予算（課題1）**: `estimated_amount`（申請時）→ 承認時に `budget_amount` に転記 → `actual_amount` を **上書き更新**（最小要件）
 - **予算（課題2）**: `budget_actuals` への INSERT に切替。`projects.actual_amount` は `SUM()` のキャッシュへ移行
 - **消費率**: DB に持たず `actual_amount / budget_amount * 100` で算出
-- **タスクステータス（Backlog 風・DB で 4 値 Enum）**:
+- **タスクステータス（Backlog 風・4値運用 / 課題1 で完全実装）**:
   - `open`（未着手）/ `in_progress`（進行中）/ `resolved`（確認待ち）/ `closed`（完了）
-  - **課題1**: 3 値運用（`open / in_progress / closed`）。`resolved` は使わない。申請者が自分で完了
-  - **課題2**: 4 値運用。申請者が `in_progress → resolved`（完了報告）→ 確認者が `resolved → closed`（確認 OK）
-  - 4 値で DB 設計しておくことで、課題2 昇格時に migration 不要（UI 制御と `reviewer_id` カラム追加のみ）
-- **nullable FK**: `tasks.parent_id`、`tasks.milestone_id` は将来拡張用に先行配置
+  - **遷移ルール**: 実装者（`assignee_id`）が `in_progress → resolved`（完了報告）→ 確認者（`reviewer_id`）が `resolved → closed`（確認OK）
+  - `reviewer_id` カラムを **課題1 で追加**（nullable FK→users）。本部承認時の自動タスクは申請者所属部門の管理者を初期値、ユーザー作成タスクは S-10 モーダルで明示選択
+  - 通知タイプ `task_resolved`（確認依頼）/ `task_reviewed`（確認OK）を `NotificationType` に追加
+  - Policy: `in_progress → resolved` は担当者のみ、`resolved → closed` は確認者のみ
+- **nullable FK**: `tasks.parent_id`、`tasks.milestone_id` は将来拡張用に先行配置。`tasks.reviewer_id` は課題1 で追加・運用
 
 ---
 
@@ -132,11 +135,11 @@
 | セクション | 画面 |
 |---|---|
 | 申請・承認 | 新規申請 / 承認待ち一覧 / 案件一覧（申請タブ） |
-| 開発管理 | 案件一覧（開発タブ） / 案件詳細 / タスク一覧（課題2・dim 表示） / タスク管理はモーダル |
+| 開発管理 | 案件一覧（開発タブ） / 案件詳細 / **タスク一覧（S-14・カンバン/メンバー別の2ビュー切替）** / タスク管理はモーダル |
 | 予算管理 | 案件一覧（予算タブ） / 予算実績入力モーダル |
 | 共通（下部） | 通知 / プロフィール |
 
-> サイドバーの「タスク一覧」は **課題2** の部門メンバータスク一覧。課題1期間中は **dim 表示＋「課題2」ラベル** を付けて非活性で配置し、メニュー構造の意図だけ伝える（実装はしない）。
+> サイドバーの「タスク一覧」は **S-14 部門メンバータスク + 個人タスク**。`/member-tasks?view=board|members` の URL クエリで「カンバン」「メンバー別」を切替。ロール別に初期ビューが変わる（applicant=board / dept_manager・hq_manager=members）。全ロール閲覧可、編集権限は既存 Policy で制御。
 
 ### 案件一覧はタブで列切替
 
@@ -299,6 +302,7 @@ draft → pending_dept → pending_hq → approved
 | S-05 | 新規申請 | `mockups/s05_project_create.html` | `mockups/s05_policy.md` |
 | S-10 | タスク作成・編集モーダル | `mockups/s10_task_form_modal.html` | `mockups/s10_policy.md` |
 | S-11 | 予算実績入力モーダル | `mockups/s11_budget_actual_modal.html` | `mockups/s11_policy.md` |
+| S-14 | タスク一覧（カンバン+メンバー別） | `mockups/s14b_member_tasks_toggle.html`（採用） | `mockups/s14_policy.md` |
 
 > S-06（案件編集）・S-07（承認待ち一覧）・S-08（承認ダイアログ）・S-12（通知）は独立したモックなし。S-03a / S-05 モックおよび各ポリシー内の記述を参照。
 

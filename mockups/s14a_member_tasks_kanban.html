@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>タスク一覧（案A：シンプルカンバン） — 開発管理アプリ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --brand-red:#E60013;
+    --brand-dark:#212429;
+    --brand-bg:#F8F9FA;
+    --brand-muted:#6C757D;
+    --brand-border:#DEE2E6;
+    --brand-blue:#106EBE;
+    --brand-cyan:#01CFFF;
+    --brand-purple:#6D28D9;
+    --brand-accent:#EDB100;
+    --brand-warn:#F59E0B;
+  }
+  html,body{font-family:"Noto Sans JP","Roboto",sans-serif;color:var(--brand-dark);background:var(--brand-bg);}
+  .mono{font-family:"JetBrains Mono","Roboto Mono",monospace;}
+  .title-accent{display:inline-block;width:4px;height:24px;background:var(--brand-accent);border-radius:2px;margin-right:10px;vertical-align:middle;}
+  .focus-ring:focus{outline:none;box-shadow:0 0 0 3px rgba(16,110,190,.35);}
+
+  /* sidebar */
+  .nav-active{background:rgba(255,255,255,.06);}
+  .nav-active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand-red);}
+
+  /* kbd */
+  .kbd{font-family:"JetBrains Mono",monospace;font-size:11px;background:#E9ECEF;color:#495057;padding:2px 6px;border-radius:4px;border:1px solid #CED4DA;}
+
+  /* avatar */
+  .avatar{width:22px;height:22px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;flex-shrink:0;}
+  .avatar-sm{width:18px;height:18px;font-size:9px;}
+
+  /* priority badge */
+  .pri{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;line-height:1.4;}
+  .pri-high{background:#FEE2E2;color:#991B1B;}
+  .pri-mid{background:#FEF3C7;color:#92400E;}
+  .pri-low{background:#E5E7EB;color:#374151;}
+
+  /* type chip */
+  .type-chip{display:inline-flex;align-items:center;gap:3px;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:500;}
+  .type-task{background:#E0E7FF;color:#3730A3;}
+  .type-bug{background:#FEE2E2;color:#991B1B;}
+  .type-feat{background:#D1FAE5;color:#065F46;}
+  .type-impr{background:#FEF3C7;color:#92400E;}
+
+  /* deadline */
+  .dl-overdue{color:var(--brand-red);font-weight:600;}
+  .dl-soon{color:#C2410C;font-weight:600;}
+
+  /* kanban column */
+  .kanban-col{background:#F1F3F5;border-radius:10px;padding:10px;display:flex;flex-direction:column;min-height:60vh;}
+  .kanban-col-header{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 10px;}
+  .kanban-col-title{font-size:13px;font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:6px;}
+  .col-count{font-size:11px;background:#fff;color:var(--brand-muted);padding:1px 8px;border-radius:9999px;border:1px solid var(--brand-border);font-weight:600;}
+
+  /* task card */
+  .task-card{background:#fff;border:1px solid var(--brand-border);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;transition:all .12s ease;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .task-card:hover{border-color:var(--brand-blue);box-shadow:0 4px 10px rgba(16,110,190,.10);}
+  .task-card.is-overdue{border-color:var(--brand-red);box-shadow:0 0 0 1px rgba(230,0,19,.15);}
+  .task-card.is-soon{border-color:var(--brand-warn);box-shadow:0 0 0 1px rgba(245,158,11,.15);}
+  .task-card.is-done{opacity:.85;}
+  .task-card.is-done .task-title{text-decoration:line-through;color:var(--brand-muted);}
+
+  /* progress mini bar */
+  .progress-mini{height:3px;border-radius:9999px;background:#E9ECEF;overflow:hidden;margin-top:6px;}
+  .progress-mini > div{height:100%;background:var(--brand-blue);border-radius:9999px;}
+
+  /* prj tag */
+  .prj-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--brand-muted);}
+
+  /* select & input */
+  select,.input-text{font-size:13px;}
+
+  /* legend */
+  .legend-dot{display:inline-block;width:10px;height:10px;border-radius:3px;border:1px solid var(--brand-border);}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ Layout ============ -->
+<div class="flex min-h-screen">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="w-64 shrink-0 text-white flex flex-col" style="background:#212429;">
+    <div class="h-14 px-5 flex items-center border-b border-white/10">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-md flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">J</div>
+        <div class="font-bold tracking-wide text-[15px]">開発管理アプリ</div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 text-sm">
+
+      <div class="px-5 mt-2 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">申請・承認</div>
+      <a href="#" class="relative flex items-center justify-between px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <span class="flex items-center gap-3"><i data-lucide="inbox" class="w-4 h-4"></i> 承認待ち一覧</span>
+        <span class="text-[10px] bg-[#E60013] text-white font-bold px-1.5 py-0.5 rounded-full">2</span>
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="folder-search" class="w-4 h-4"></i> 案件一覧
+      </a>
+
+      <div class="px-5 mt-5 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">開発管理</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="folders" class="w-4 h-4"></i> 案件一覧
+      </a>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white nav-active">
+        <i data-lucide="list-checks" class="w-4 h-4"></i> タスク一覧
+      </a>
+
+      <div class="px-5 mt-5 mb-1 text-[10px] uppercase tracking-widest text-white/40 font-semibold">予算管理</div>
+      <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+        <i data-lucide="wallet" class="w-4 h-4"></i> 案件一覧
+      </a>
+
+      <div class="mt-5 pt-4 border-t border-white/10">
+        <a href="#" class="relative flex items-center justify-between px-5 py-2.5 text-white/85 hover:bg-white/5">
+          <span class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4"></i> 通知</span>
+          <span class="text-[10px] bg-[#01CFFF] text-[#062A40] font-bold px-1.5 py-0.5 rounded-full">3</span>
+        </a>
+        <a href="#" class="relative flex items-center gap-3 px-5 py-2.5 text-white/85 hover:bg-white/5">
+          <i data-lucide="user" class="w-4 h-4"></i> プロフィール
+        </a>
+      </div>
+    </nav>
+
+    <div class="p-3 border-t border-white/10 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%);">夏</div>
+      <div class="min-w-0">
+        <div class="text-[13px] font-medium truncate">夏目 拓也</div>
+        <div class="text-[11px] text-white/50 truncate">部門管理者 / 開発1部</div>
+      </div>
+      <button class="ml-auto text-white/50 hover:text-white"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+    </div>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <main class="flex-1 flex flex-col min-w-0">
+    <!-- Header -->
+    <header class="h-14 bg-white border-b px-6 flex items-center justify-between sticky top-0 z-10">
+      <nav class="flex items-center gap-2 text-sm text-[color:var(--brand-muted)]">
+        <span class="flex items-center gap-1"><i data-lucide="git-branch" class="w-4 h-4"></i>開発管理</span>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        <span class="text-[color:var(--brand-dark)] font-medium">タスク一覧</span>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button class="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border hover:bg-gray-50 focus-ring" style="border-color:var(--brand-border);">
+          <i data-lucide="search" class="w-4 h-4 text-[color:var(--brand-muted)]"></i>
+          <span class="text-[color:var(--brand-muted)]">検索...</span>
+          <span class="kbd">⌘K</span>
+        </button>
+        <button class="relative p-2 rounded-md hover:bg-gray-100 focus-ring">
+          <i data-lucide="bell" class="w-5 h-5 text-[color:var(--brand-dark)]"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E60013]"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-[1400px] mx-auto">
+
+        <!-- Page header -->
+        <div class="flex items-start justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight flex items-center"><span class="title-accent"></span>タスク一覧</h1>
+            <p class="text-sm text-[color:var(--brand-muted)] mt-1">
+              開発1部 <span class="mx-1.5">·</span> メンバー4名 <span class="mx-1.5">·</span> 全14件（未着手 5 / 進行中 6 / 完了 3）
+            </p>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-[color:var(--brand-muted)]">
+            <i data-lucide="info" class="w-3.5 h-3.5"></i>
+            完了は直近30日分のみ表示
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg border p-4 flex items-center gap-3 flex-wrap mb-5" style="border-color:var(--brand-border);">
+
+          <!-- 部門（dept_managerは自部門固定でdisabled、hq_managerはselect可） -->
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-[color:var(--brand-muted)]">部門</span>
+            <select class="input-text px-3 py-2 rounded-md border focus-ring bg-gray-50 text-[color:var(--brand-muted)] cursor-not-allowed" style="border-color:var(--brand-border);" disabled>
+              <option>開発1部（自部門）</option>
+            </select>
+          </div>
+
+          <!-- 担当者 -->
+          <select class="input-text px-3 py-2 rounded-md border focus-ring bg-white" style="border-color:var(--brand-border);">
+            <option>担当者：すべて</option>
+            <option>高橋 朋子</option>
+            <option>佐藤 美咲</option>
+            <option>夏目 拓也</option>
+            <option>井上 翔</option>
+          </select>
+
+          <!-- 案件 -->
+          <select class="input-text px-3 py-2 rounded-md border focus-ring bg-white" style="border-color:var(--brand-border);">
+            <option>案件：すべて</option>
+            <option>PRJ-2026-0042 / 次世代EAMシステム開発</option>
+            <option>PRJ-2026-0045 / 保全ダッシュボードPoC</option>
+            <option>PRJ-2026-0048 / 認証基盤刷新</option>
+          </select>
+
+          <!-- 優先度 -->
+          <select class="input-text px-3 py-2 rounded-md border focus-ring bg-white" style="border-color:var(--brand-border);">
+            <option>優先度：すべて</option>
+            <option>高</option>
+            <option>中</option>
+            <option>低</option>
+          </select>
+
+          <!-- 期日 -->
+          <select class="input-text px-3 py-2 rounded-md border focus-ring bg-white" style="border-color:var(--brand-border);">
+            <option>期日：すべて</option>
+            <option>期限超過</option>
+            <option>3日以内（早期警告）</option>
+            <option>今週中</option>
+            <option>今月中</option>
+            <option>期日未設定</option>
+          </select>
+
+          <button class="text-sm text-[color:var(--brand-blue)] hover:underline ml-auto">クリア</button>
+        </div>
+
+        <!-- Kanban Board -->
+        <div class="grid grid-cols-3 gap-4">
+
+          <!-- ===== 列1: 未着手 (open) ===== -->
+          <div class="kanban-col">
+            <div class="kanban-col-header">
+              <div class="kanban-col-title">
+                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                未着手
+              </div>
+              <span class="col-count">5</span>
+            </div>
+
+            <!-- カード: 期限超過 -->
+            <div class="task-card is-overdue">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0042</span>
+                <span class="type-chip type-bug"><i data-lucide="bug" class="w-2.5 h-2.5"></i>bug</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">ログイン後のリダイレクト不具合の修正</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">高橋 朋子</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-high">高</span>
+                  <span class="text-[11px] dl-overdue mono">04/28</span>
+                </div>
+              </div>
+              <div class="text-[10px] mt-1.5 text-[color:var(--brand-red)] flex items-center gap-1">
+                <i data-lucide="alert-circle" class="w-3 h-3"></i>期限超過 3日
+              </div>
+            </div>
+
+            <!-- カード: 3日以内 -->
+            <div class="task-card is-soon">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0045</span>
+                <span class="type-chip type-task"><i data-lucide="check-square" class="w-2.5 h-2.5"></i>task</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">予算実績入力の動作確認シナリオ作成</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#10B981,#0EA5E9);">佐</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">佐藤 美咲</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-mid">中</span>
+                  <span class="text-[11px] dl-soon mono">05/04</span>
+                </div>
+              </div>
+              <div class="text-[10px] mt-1.5 text-[#92400E] flex items-center gap-1">
+                <i data-lucide="alert-triangle" class="w-3 h-3"></i>あと3日
+              </div>
+            </div>
+
+            <!-- カード: 通常 -->
+            <div class="task-card">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0042</span>
+                <span class="type-chip type-feat"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>feature</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">タスク変更履歴の自動記録（API設計）</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#F59E0B,#DC2626);">井</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">井上 翔</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-mid">中</span>
+                  <span class="text-[11px] text-[color:var(--brand-muted)] mono">05/14</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- カード: 通常 -->
+            <div class="task-card">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0048</span>
+                <span class="type-chip type-impr"><i data-lucide="trending-up" class="w-2.5 h-2.5"></i>improvement</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">ER図のレビューコメント反映</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">高橋 朋子</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-low">低</span>
+                  <span class="text-[11px] text-[color:var(--brand-muted)] mono">05/22</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- カード: 期日未設定 -->
+            <div class="task-card">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0042</span>
+                <span class="type-chip type-task"><i data-lucide="check-square" class="w-2.5 h-2.5"></i>task</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">運用マニュアル草案作成</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);">夏</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">夏目 拓也</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-low">低</span>
+                  <span class="text-[11px] text-[color:var(--brand-muted)]">期日なし</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== 列2: 進行中 (in_progress) ===== -->
+          <div class="kanban-col">
+            <div class="kanban-col-header">
+              <div class="kanban-col-title">
+                <span class="w-2 h-2 rounded-full bg-[color:var(--brand-blue)]"></span>
+                進行中
+              </div>
+              <span class="col-count">6</span>
+            </div>
+
+            <!-- カード: 期限超過 -->
+            <div class="task-card is-overdue">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0042</span>
+                <span class="type-chip type-feat"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>feature</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">承認ステッパーUIの大型版実装</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">高橋 朋子</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-high">高</span>
+                  <span class="text-[11px] dl-overdue mono">04/29</span>
+                </div>
+              </div>
+              <div class="progress-mini"><div style="width:70%;"></div></div>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[10px] text-[color:var(--brand-red)] flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i>期限超過 2日</span>
+                <span class="text-[10px] text-[color:var(--brand-muted)] mono">70%</span>
+              </div>
+            </div>
+
+            <!-- カード: 3日以内 -->
+            <div class="task-card is-soon">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0045</span>
+                <span class="type-chip type-task"><i data-lucide="check-square" class="w-2.5 h-2.5"></i>task</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">タスク通知（期限接近）の本番動作確認</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#10B981,#0EA5E9);">佐</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">佐藤 美咲</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-mid">中</span>
+                  <span class="text-[11px] dl-soon mono">05/03</span>
+                </div>
+              </div>
+              <div class="progress-mini"><div style="width:40%;"></div></div>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[10px] text-[#92400E] flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i>あと2日</span>
+                <span class="text-[10px] text-[color:var(--brand-muted)] mono">40%</span>
+              </div>
+            </div>
+
+            <!-- カード -->
+            <div class="task-card">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0042</span>
+                <span class="type-chip type-task"><i data-lucide="check-square" class="w-2.5 h-2.5"></i>task</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">実装計画作成</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">高橋 朋子</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-mid">中</span>
+                  <span class="text-[11px] text-[color:var(--brand-muted)] mono">05/12</span>
+                </div>
+              </div>
+              <div class="progress-mini"><div style="width:60%;"></div></div>
+              <div class="text-right text-[10px] text-[color:var(--brand-muted)] mono mt-1">60%</div>
+            </div>
+
+            <!-- カード -->
+            <div class="task-card">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0048</span>
+                <span class="type-chip type-bug"><i data-lucide="bug" class="w-2.5 h-2.5"></i>bug</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">部門管理者ロールでの編集権限の調整</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#F59E0B,#DC2626);">井</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">井上 翔</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-high">高</span>
+                  <span class="text-[11px] text-[color:var(--brand-muted)] mono">05/10</span>
+                </div>
+              </div>
+              <div class="progress-mini"><div style="width:25%;"></div></div>
+              <div class="text-right text-[10px] text-[color:var(--brand-muted)] mono mt-1">25%</div>
+            </div>
+
+            <!-- カード -->
+            <div class="task-card">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0045</span>
+                <span class="type-chip type-feat"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>feature</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">ダッシュボードのカードレイアウト試作</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#10B981,#0EA5E9);">佐</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">佐藤 美咲</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-low">低</span>
+                  <span class="text-[11px] text-[color:var(--brand-muted)] mono">05/15</span>
+                </div>
+              </div>
+              <div class="progress-mini"><div style="width:50%;"></div></div>
+              <div class="text-right text-[10px] text-[color:var(--brand-muted)] mono mt-1">50%</div>
+            </div>
+
+            <!-- カード -->
+            <div class="task-card">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0042</span>
+                <span class="type-chip type-impr"><i data-lucide="trending-up" class="w-2.5 h-2.5"></i>improvement</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">レスポンシブ：案件詳細のタブ切替</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);">夏</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">夏目 拓也</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="pri pri-mid">中</span>
+                  <span class="text-[11px] text-[color:var(--brand-muted)] mono">05/20</span>
+                </div>
+              </div>
+              <div class="progress-mini"><div style="width:15%;"></div></div>
+              <div class="text-right text-[10px] text-[color:var(--brand-muted)] mono mt-1">15%</div>
+            </div>
+          </div>
+
+          <!-- ===== 列3: 完了 (closed) ===== -->
+          <div class="kanban-col">
+            <div class="kanban-col-header">
+              <div class="kanban-col-title">
+                <span class="w-2 h-2 rounded-full bg-[#16A34A]"></span>
+                完了
+                <span class="text-[10px] font-normal text-[color:var(--brand-muted)] ml-1">(直近30日)</span>
+              </div>
+              <span class="col-count">3</span>
+            </div>
+
+            <div class="task-card is-done">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0042</span>
+                <span class="type-chip type-task"><i data-lucide="check-square" class="w-2.5 h-2.5"></i>task</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">案件詳細：開発タブ実装</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#01CFFF,#6D28D9);">高</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">高橋 朋子</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[10px] text-[#16A34A] flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i>04/27</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="task-card is-done">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0045</span>
+                <span class="type-chip type-feat"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>feature</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">予算実績入力モーダルの実装</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#10B981,#0EA5E9);">佐</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">佐藤 美咲</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[10px] text-[#16A34A] flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i>04/24</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="task-card is-done">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="prj-tag mono">PRJ-0042</span>
+                <span class="type-chip type-bug"><i data-lucide="bug" class="w-2.5 h-2.5"></i>bug</span>
+              </div>
+              <div class="task-title text-sm font-medium leading-snug mb-2">通知未読バッジの計算ずれ修正</div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="avatar" style="background:linear-gradient(135deg,#F59E0B,#DC2626);">井</span>
+                  <span class="text-xs text-[color:var(--brand-muted)]">井上 翔</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[10px] text-[#16A34A] flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i>04/20</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Legend -->
+        <div class="mt-5 text-xs text-[color:var(--brand-muted)] flex items-center gap-4 flex-wrap">
+          <span class="flex items-center gap-1.5"><span class="legend-dot" style="border-color:var(--brand-red);box-shadow:0 0 0 1px rgba(230,0,19,.15);"></span>期限超過</span>
+          <span class="flex items-center gap-1.5"><span class="legend-dot" style="border-color:var(--brand-warn);box-shadow:0 0 0 1px rgba(245,158,11,.15);"></span>3日以内（早期警告）</span>
+          <span class="flex items-center gap-1.5"><span class="pri pri-high">高</span><span class="pri pri-mid">中</span><span class="pri pri-low">低</span><span>= 優先度</span></span>
+          <span class="flex items-center gap-1.5"><span class="type-chip type-task">task</span><span class="type-chip type-bug">bug</span><span class="type-chip type-feat">feature</span><span class="type-chip type-impr">improvement</span></span>
+          <span class="ml-auto flex items-center gap-1">カードをクリックでタスク編集モーダル <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

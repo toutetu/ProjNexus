@@ -89,6 +89,7 @@ erDiagram
     bigint project_id FK "所属案件"
     bigint parent_id FK "親タスク(nullable)"
     bigint assignee_id FK "担当者"
+    bigint reviewer_id FK "確認者(nullable・4値運用)"
     bigint created_by FK "作成者"
     bigint milestone_id FK "マイルストーン(nullable)"
     string title "タスク名"
@@ -139,6 +140,7 @@ erDiagram
   users ||--o{ projects : "主担当"
   users ||--o{ approvals : "承認"
   users ||--o{ tasks : "担当"
+  users ||--o{ tasks : "確認"
   users ||--o{ tasks : "作成"
   users ||--o{ task_comments : "投稿"
   users ||--o{ task_histories : "変更"
@@ -209,19 +211,20 @@ erDiagram
 |---|---|:---:|:---:|
 | open | 未着手（未対応） | ✅ 使用 | ✅ 使用 |
 | in_progress | 進行中（処理中） | ✅ 使用 | ✅ 使用 |
-| resolved | 確認待ち（申請者の完了報告後・確認者の確認前） | ❌ 使わない | ✅ 使用 |
-| closed | 完了（すべて完了） | ✅ 使用 | ✅ 使用 |
+| resolved | 確認待ち（実装者の完了報告後・確認者の確認前） | ✅ 使用 | ✅ 使用 |
+| closed | 完了（確認者OK後） | ✅ 使用 | ✅ 使用 |
 
-**課題1 の運用（3値）**：
-- 申請者（主担当）がタスクを終えたら **`in_progress → closed`** に遷移させて完了
-- UI のチップは「未着手 / 進行中 / 完了」の 3 つだけ表示
-- `resolved` は DB カラムでは許容するが、課題1 では遷移させない
-
-**課題2 の運用（4値・確認工程追加）**：
-- 申請者が作業完了したら **`in_progress → resolved`**（「完了報告」）
-- 確認者（別ユーザー）が内容確認して **`resolved → closed`**（「確認OK」）
+**運用（4値・課題1 で完全実装）**：
+- 実装者（`assignee_id`）が作業完了したら **`in_progress → resolved`**（「完了報告」）
+- 確認者（`reviewer_id`）が内容確認して **`resolved → closed`**（「確認OK」）
 - UI のチップは「未着手 / 進行中 / 確認待ち / 完了」の 4 つ
-- タスクに `reviewer_id`（確認者）カラム追加の検討が必要（課題2 で設計）
+- `reviewer_id` カラムは **課題1 で追加**（migration で nullable FK→users）。本部承認時の自動タスクでは申請者の所属部門の管理者を初期値、ユーザー作成タスクでは S-10 モーダルで明示選択
+- 4値運用に伴い通知タイプ `task_resolved` / `task_reviewed` を追加（`NotificationType` enum）
+
+**Policy（権限分岐）**：
+- `in_progress → resolved`: 担当者（`assignee_id = self`）のみ
+- `resolved → closed`: 確認者（`reviewer_id = self`）のみ
+- 逆遷移（`closed → open` 等）: 部門管理者・本部管理者のみ
 
 ### tasks.category（課題1 では未使用・将来拡張用）
 
@@ -252,7 +255,9 @@ erDiagram
 | project_returned | 申請取り戻し |
 | task_assigned | タスク担当アサイン |
 | task_due_soon | タスク期限間近 |
-| task_completed | タスク完了 |
+| task_resolved | タスク完了報告（確認者宛・4値運用） |
+| task_reviewed | タスク確認OK（実装者・申請者宛・4値運用） |
+| task_completed | タスク完了（互換維持） |
 | budget_alert | 予算アラート（課題2） |
 
 ---
