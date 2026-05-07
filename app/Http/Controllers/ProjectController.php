@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Enums\ApprovalAction;
 use App\Enums\ProjectStatus;
 use App\Enums\Role;
@@ -224,16 +225,21 @@ class ProjectController extends Controller
             ->pluck('id')
             ->values();
 
-        $rejectionLevelByProjectId = [];
+        $rejectionInfoByProjectId = [];
         if ($rejectedIds->isNotEmpty()) {
-            $rejectionLevelByProjectId = Approval::query()
+            $rejectionInfoByProjectId = Approval::query()
                 ->whereIn('project_id', $rejectedIds)
                 ->where('action', ApprovalAction::Rejected)
                 ->orderByDesc('acted_at')
                 ->get()
                 ->unique('project_id')
                 ->mapWithKeys(fn (Approval $approval) => [
-                    $approval->project_id => $approval->level->value,
+                    $approval->project_id => [
+                        'level' => $approval->level->value,
+                        'comment' => $approval->comment !== null && $approval->comment !== ''
+                            ? (string) $approval->comment
+                            : null,
+                    ],
                 ])
                 ->all();
         }
@@ -259,16 +265,22 @@ class ProjectController extends Controller
                 ->get(),
             'budgetSummary' => $budgetSummary,
             'tabCounts' => $tabCounts,
-            'projects' => $paginator->through(function (Project $project) use ($user, $rejectionLevelByProjectId) {
+            'projects' => $paginator->through(function (Project $project) use ($user, $rejectionInfoByProjectId) {
                 $rejectedAt = null;
+                $rejectedComment = null;
                 if ($project->status === ProjectStatus::Rejected) {
-                    $level = $rejectionLevelByProjectId[$project->id] ?? null;
-                    $rejectedAt = $level === 'dept' || $level === 'hq' ? $level : null;
+                    $info = $rejectionInfoByProjectId[$project->id] ?? null;
+                    if (is_array($info)) {
+                        $level = $info['level'] ?? null;
+                        $rejectedAt = $level === 'dept' || $level === 'hq' ? $level : null;
+                        $rejectedComment = $info['comment'] ?? null;
+                    }
                 }
 
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
+                    'purpose' => $project->purpose,
                     'department' => $project->department?->name,
                     'status' => $project->status->value,
                     'applicant' => $project->applicant?->name,
@@ -286,6 +298,7 @@ class ProjectController extends Controller
                     'nearestTaskDueDate' => $project->tasks_min_due_date,
                     'canEdit' => $user->can('update', $project),
                     'rejectedAt' => $rejectedAt,
+                    'rejectedComment' => $rejectedComment,
                     'applicantSubmitsToHqDirect' => $project->applicant?->hasRole(Role::DeptManager->value) ?? false,
                 ];
             }),

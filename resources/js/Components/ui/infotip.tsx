@@ -22,7 +22,7 @@ export function Infotip({ children, ariaLabel, align = 'right', className }: Inf
                 className="rounded-full p-0.5 text-brand-muted outline-none hover:text-brand-dark focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
                 aria-label={ariaLabel}
             >
-                <Info className="h-4 w-4" aria-hidden />
+                <Info className="h-3.5 w-3.5" aria-hidden />
             </button>
             <span
                 role="tooltip"
