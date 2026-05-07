@@ -321,11 +321,23 @@ class ApprovalService
             'progress_rate' => 0,
             'estimated_days' => 3,
             'assignee_id' => $project->applicant_id,
+            'reviewer_id' => $this->defaultReviewerUserId($project),
             'created_by' => $approver->id,
         ]);
 
         $task->refresh();
         $task->loadMissing('assignee');
         $this->taskHistoryService->recordCreation($task, $approver);
+    }
+
+    private function defaultReviewerUserId(Project $project): ?int
+    {
+        $manager = User::query()
+            ->role(Role::DeptManager->value)
+            ->where('department_id', $project->department_id)
+            ->orderBy('id')
+            ->first();
+
+        return $manager?->id;
     }
 }

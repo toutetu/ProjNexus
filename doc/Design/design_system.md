@@ -140,123 +140,28 @@ theme: {
 
 ---
 
-## 5. コンポーネント仕様（shadcn/ui ベース）
+## 5. コンポーネント運用方針（正本参照）
 
-### 5-1. ボタン
+コンポーネント仕様の正本は `doc/Design/components_spec.md` とし、本書では重複定義を持たない。
 
-| 種類 | 色 | 用途 | 例 |
-|------|----|------|---|
-| Primary | bg-brand-red, text-white | 主要アクション（申請・承認・保存） | 「申請する」「承認する」 |
-| Secondary | bg-white, border, text-brand-dark | 副次アクション | 「キャンセル」「戻る」 |
-| Destructive | bg-brand-red, text-white | 危険操作（却下・削除） | 「却下する」 |
-| Ghost | text-brand-blue, hover:bg-brand-bg | リンク的操作 | 「詳細を見る」 |
-| Outline | border-brand-red, text-brand-red | 強調したい副アクション | 「再申請」 |
+- 本書（`design_system.md`）: デザイン原則、カラートークン、タイポグラフィ、レイアウト、アクセシビリティ基準
+- 正本（`components_spec.md`）: コンポーネントの責務、Props、状態遷移、画面別利用方針、実装配置
 
-**全ボタン共通の「押せる感」**:
-- `rounded-md`（角丸 ）
-- `shadow-sm hover:shadow-md`（ホバーで影が強く）
-- `transition-all duration-150`
-- `active:scale-95`（押下時に少し縮む）
-- `disabled:opacity-50 disabled:cursor-not-allowed`
-- カーソルは常に `cursor-pointer`
+### 5-1. 参照ルール
 
-### 5-2. ステータスバッジ
+- 新規コンポーネント追加・既存仕様変更は **必ず** `components_spec.md` を更新する
+- `design_system.md` には個別コンポーネントの詳細（Props/状態遷移/個別UI要件）を追記しない
+- 実装レビュー時は「トークン整合は本書」「部品仕様整合は正本」の2軸で確認する
+- ボタンの運用基準は `components_spec.md` の `Button（shadcn/ui）` に従う（特に補助アクションは `variant="neutral"` を既定とする）
 
-```tsx
-// 色 + アイコン + ラベル の3点セットで色覚特性にも配慮
-draft       → グレー丸 + "下書き"
-pending_dept → シアン丸 + "部門承認待ち"
-pending_hq  → ブルー丸 + "本部承認待ち"
-approved    → グリーン✓ + "承認済"
-rejected    → レッド✕ + "却下"
-```
+### 5-2. 代表的な対応関係（抜粋）
 
-形：`rounded-full px-3 py-1 text-xs font-medium`
-
-### 5-3. 承認ステッパーUI（課題2）
-
-案件詳細画面のヘッダー直下に配置。横長の進捗バー：
-
-```
-[申請] ━━━ [部門承認] ━━━ [本部承認] ━━━ [承認済]
- ●完了      ●完了         ◐進行中       ○未到達
- cyan       cyan          blue          gray
-```
-
-- 完了: 塗りつぶし円 + チェックマーク
-- 進行中: パルスアニメーション付き円
-- 未到達: 枠線のみ
-- 承認後は折りたたんで「✓ 承認済（履歴を見る）」バッジに変化
-
-### 5-4. カード
-
-- `bg-white rounded-lg border border-brand-border shadow-sm`
-- クリック可能なカードは `hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer`
-
-### 5-5. テーブル（案件一覧・タスク一覧）
-
-- ヘッダー: `bg-brand-bg text-brand-muted text-sm font-medium`
-- 行: `hover:bg-brand-bg/50 cursor-pointer transition-colors`
-- 区切り線: `divide-y divide-brand-border`
-- 重要列（ステータス・予算消費率）はバッジやプログレスバーで視覚化
-
-### 5-6. フォーム
-
-- ラベル: `text-sm font-medium text-brand-dark`
-- 入力欄: `border border-brand-border rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-blue focus:border-brand-blue`
-- エラー: `border-brand-red text-brand-red text-sm`
-- 必須マーク: 赤い `*` をラベル右に
-
-### 5-7. モーダル（Dialog）
-
-- shadcn/ui の Dialog を使用
-- オーバーレイ: `bg-brand-dark/50 backdrop-blur-sm`
-- コンテンツ: `bg-white rounded-lg shadow-xl max-w-lg p-6`
-- 開閉アニメーション: fade + scale
-
-### 5-8. 通知トースト
-
-- shadcn/ui の Sonner を使用
-- 成功: グリーン左ボーダー
-- エラー: レッド左ボーダー
-- 情報: ブルー左ボーダー
-- 自動消滅: 5秒、ホバーで停止
-
-### 5-9. プログレスバー（進捗率・予算消費率）
-
-- 高さ: h-2
-- 角丸: rounded-full
-- 予算消費率の色分け（`components_spec.md` と統一）:
-  - 0-60%: グリーン（safe）
-  - 61-85%: ブルー（normal）
-  - 86-100%: オレンジ（warning）
-  - 100%超: レッド（danger）
-
-### 5-10. 空状態（Empty State）
-
-- 中央寄せ
-- アイコン（lucide-react、64px、brand-muted色）
-- メインテキスト「まだ案件がありません」
-- サブテキスト「右上の『新規申請』から始めましょう」
-- CTAボタン
-
-### 5-11. スケルトンローディング
-
-- `bg-brand-border animate-pulse rounded-md`
-- テーブルなら行5本、カードなら矩形を並べる
-
-### 5-12. コマンドパレット（Cmd+K / Ctrl+K）
-
-- shadcn/ui の `Command` コンポーネントを使用
-- ヘッダーから常に `Cmd+K` (Mac) / `Ctrl+K` (Win) で起動
-- 起動UIヒント: ヘッダー右側に `⌘K` バッジ表示（クリックでも開く）
-- 検索対象:
-  - 案件（タイトル・ID）→ 案件詳細へ遷移
-  - タスク（タイトル・ID）→ タスク詳細へ遷移
-  - クイックアクション（「新規申請」「承認待ちを開く」「ダッシュボードへ」など）
-- グルーピング: 「案件」「タスク」「アクション」の3グループ
-- キーボード操作: 矢印で選択、Enter で実行、Esc で閉じる
-- プレゼン受けが良い機能。実装コストはshadcnの`Command`+検索データ提供だけで軽い。
+- ステータスバッジ → `StatusPill`
+- 承認ステッパー → `ApprovalStepperMini` / `ApprovalStepperFull`
+- テーブル → `ProjectTable` / `MemberTasksListTable`
+- フォーム部品 → `FieldLabel` / `AmountInput` / `Input・Textarea・Select`
+- モーダル → `ConfirmDialog` / `ApprovalDialog` / `TaskFormDialog` / `BudgetActualDialog`
+- ユーティリティ → `ProgressBar` / `EmptyState` / `Toast` / `KbdBadge`
 
 ---
 
@@ -296,7 +201,7 @@ rejected    → レッド✕ + "却下"
 
 ---
 
-## 9. V0 プロンプト先頭に貼る共通テンプレ
+## 9. V0 プロンプト先頭に貼る共通テンプレ（使用せず）
 
 各画面のV0プロンプトの先頭にコピペする「共通仕様」：
 
@@ -350,4 +255,4 @@ rejected    → レッド✕ + "却下"
 - 赤（CTA・却下）は使用箇所を絞り、視認性と注意喚起を両立
 - ロゴの cyan→blue→purple グラデーションを承認フローの進行表現に転用し、ブランドと機能を結びつけた
 - アイコン+色+テキストの3点セットで色覚特性にも配慮
-
+/**更新完了**/

@@ -1,4 +1,4 @@
-# ER図（v5） - 開発管理統合アプリケーション
+# ER図（v6） - 開発管理統合アプリケーション
 
 ## テーブル一覧（PoC：8テーブル）
 
@@ -12,6 +12,8 @@
 | 6 | task_comments | タスクコメント |
 | 7 | task_histories | タスク変更履歴 |
 | 8 | notifications | 通知 |
+
+> 補足: 上記は業務ドメインの主要テーブル。実DBにはフレームワーク標準テーブル（`cache` / `jobs` / `sessions` / `password_reset_tokens`）および権限管理テーブル（Spatie Permission）も存在する。
 
 ## 将来拡張用の nullable FK カラム（既存テーブルに配置済み）
 
@@ -58,8 +60,10 @@ erDiagram
   }
   projects {
     bigint id PK
+    string project_code "案件コード(nullable, unique)"
     string title "案件名"
     text purpose "目的・概要"
+    text description "詳細説明(nullable)"
     decimal estimated_amount "概算予算(申請時)"
     decimal estimated_days "概算工数(申請時)"
     decimal budget_amount "確定予算額"
@@ -70,7 +74,9 @@ erDiagram
     enum status "draft / pending_dept / pending_hq / approved / rejected"
     integer revision "申請回数(初回=1)"
     bigint parent_project_id FK "元案件(nullable・却下時の再申請元)"
+    timestamp submitted_at "申請日時"
     timestamp approved_at "最終承認日時"
+    timestamp rejected_at "却下日時"
     timestamp created_at
     timestamp updated_at
   }
@@ -79,8 +85,10 @@ erDiagram
     bigint project_id FK "対象案件"
     bigint approver_id FK "承認者"
     enum level "dept(部門承認) / hq(本部承認)"
+    enum action "approved / rejected"
     enum status "approved / rejected"
     text comment "承認・却下コメント"
+    timestamp acted_at "操作日時"
     timestamp created_at
     timestamp updated_at
   }
@@ -88,7 +96,7 @@ erDiagram
     bigint id PK
     bigint project_id FK "所属案件"
     bigint parent_id FK "親タスク(nullable)"
-    bigint assignee_id FK "担当者"
+    bigint assignee_id FK "担当者(nullable)"
     bigint reviewer_id FK "確認者(nullable・4値運用)"
     bigint created_by FK "作成者"
     bigint milestone_id FK "マイルストーン(nullable)"
@@ -128,7 +136,11 @@ erDiagram
     bigint user_id FK "通知先ユーザー"
     bigint project_id FK "関連案件"
     string type "通知種別"
-    string message "通知メッセージ"
+    string title "通知タイトル"
+    text body "通知本文(nullable)"
+    text message "互換メッセージ(nullable)"
+    json meta "追加情報(nullable)"
+    timestamp read_at "既読日時(nullable)"
     boolean is_read "既読フラグ"
     timestamp created_at
     timestamp updated_at
@@ -227,8 +239,7 @@ erDiagram
 - 逆遷移（`closed → open` 等）: 部門管理者・本部管理者のみ
 
 ### tasks.category（課題1 では未使用・将来拡張用）
-
-
+/**更新完了**/
 | 値 | 説明 |
 |---|---|
 | design | 設計 |
@@ -259,6 +270,15 @@ erDiagram
 | task_reviewed | タスク確認OK（実装者・申請者宛・4値運用） |
 | task_completed | タスク完了（互換維持） |
 | budget_alert | 予算アラート（課題2） |
+
+> 現在の実装差分: `budget_alert` は **ER図を正** とし、アプリ実装（`NotificationType` enum / notifications.type enum migration）へ後追いで追加する。
+
+## 実装差分の対応スケジュール（ER図準拠）
+
+| ID | 変更内容 | 対象 | 優先度 | 予定時期 |
+|---|---|---|---|---|
+| NTF-01 | `notifications.type` に `budget_alert` を追加 | `app/Enums/NotificationType.php` / enum更新migration / 通知生成ロジック | 中 | 課題2着手時（`budget_actuals` 実装と同スプリント） |
+| NTF-02 | 予算閾値到達時に `budget_alert` を発火 | Budgetサービス層・通知配信処理 | 中 | NTF-01 完了直後 |
 
 ---
 
@@ -314,5 +334,4 @@ projects.status が approved になった時点で以下が解禁される：
 ### さらに将来の拡張
 - 費目別予算管理 → `budget_items` テーブル追加
 - 月次予算管理 → `budget_actuals.applied_on` での月次集計
-
-
+/**更新完了**/

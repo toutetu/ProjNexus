@@ -17,29 +17,47 @@ class UserSeeder extends Seeder
         $dept2 = Department::where('name', '開発2部')->firstOrFail();
         $dept3 = Department::where('name', '開発3部')->firstOrFail();
 
-        // AI.md §11 のテストアカウント（primary）
-        $accounts = [
-            [
-                'name' => '申請 太郎',
-                'email' => 'applicant@example.com',
-                'department' => $dept1,
-                'role' => RoleEnum::Applicant,
-            ],
-            [
-                'name' => '部門 花子',
-                'email' => 'dept@example.com',
-                'department' => $dept1,
-                'role' => RoleEnum::DeptManager,
-            ],
-            [
-                'name' => '本部 一郎',
-                'email' => 'hq@example.com',
-                'department' => $hq,
-                'role' => RoleEnum::HqManager,
-            ],
+        /** 開発1部：申請者4名（S-14 モック想定）＋部門管理者 */
+        $dev1Applicants = [
+            ['name' => '高橋 朋子', 'email' => 'applicant@example.com'],
+            ['name' => '佐藤 美咲', 'email' => 'applicant-dev1-02@example.com'],
+            ['name' => '井上 翔', 'email' => 'applicant-dev1-03@example.com'],
+            ['name' => '鈴木 実', 'email' => 'applicant-dev1-04@example.com'],
         ];
 
-        // 動作検証強化用：他部門にも申請者・部門管理者を1名ずつ
+        foreach ($dev1Applicants as $row) {
+            $user = User::updateOrCreate(
+                ['email' => $row['email']],
+                [
+                    'name' => $row['name'],
+                    'password' => Hash::make('password'),
+                    'department_id' => $dept1->id,
+                ],
+            );
+            $user->syncRoles([RoleEnum::Applicant->value]);
+        }
+
+        $deptManagerDev1 = User::updateOrCreate(
+            ['email' => 'dept@example.com'],
+            [
+                'name' => '夏目 拓也',
+                'password' => Hash::make('password'),
+                'department_id' => $dept1->id,
+            ],
+        );
+        $deptManagerDev1->syncRoles([RoleEnum::DeptManager->value]);
+
+        $hqUser = User::updateOrCreate(
+            ['email' => 'hq@example.com'],
+            [
+                'name' => '本部 一郎',
+                'password' => Hash::make('password'),
+                'department_id' => $hq->id,
+            ],
+        );
+        $hqUser->syncRoles([RoleEnum::HqManager->value]);
+
+        /** 他部門の検証用アカウント */
         $extras = [
             ['name' => '申請 次郎', 'email' => 'applicant2@example.com', 'department' => $dept2, 'role' => RoleEnum::Applicant],
             ['name' => '部門 慎二', 'email' => 'dept2@example.com', 'department' => $dept2, 'role' => RoleEnum::DeptManager],
@@ -47,7 +65,7 @@ class UserSeeder extends Seeder
             ['name' => '部門 美咲', 'email' => 'dept3@example.com', 'department' => $dept3, 'role' => RoleEnum::DeptManager],
         ];
 
-        foreach (array_merge($accounts, $extras) as $attrs) {
+        foreach ($extras as $attrs) {
             $user = User::updateOrCreate(
                 ['email' => $attrs['email']],
                 [

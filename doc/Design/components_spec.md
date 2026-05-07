@@ -3,6 +3,8 @@
 > HTMLモックから抽出した共通UI部品の棚卸しと、React(Inertia + TypeScript + shadcn/ui)への変換仕様。
 > **Cursor で実装する前にこのファイルを読み、ここに定義された部品を先に作成してから Pages を組み立てること。**
 > 新しい共通部品を発見した場合は、このファイルを更新してから実装する。
+> **このファイルをコンポーネント仕様の正本（Single Source of Truth）とする。**
+> `doc/Design/design_system.md` はデザイン原則・トークン中心のガイドとし、部品の詳細仕様は本書のみで管理する。
 
 ---
 
@@ -163,6 +165,64 @@ interface ApprovalFlowGuideProps {
 
 ---
 
+## 2.5 Infotip（補足説明ツールチップ）
+
+**役割**: 見出し・カードタイトルなどの**右上付近**に情報アイコン（ⓘ 相当、`lucide-react` の `Info`）を置き、**マウスホバー**または**キーボードフォーカス**時だけ説明文を表示する。長い脚注を常時表示せず画面を圧迫しない用途に使う。
+
+**配置（共通部品）**: `resources/js/Components/ui/infotip.tsx`（**実装済み**）
+
+**利用例**: `resources/js/Pages/Projects/Show.tsx` の「工数サマリー」カード見出し行（`<Infotip ariaLabel="…">…</Infotip>`）
+
+### Props
+
+```ts
+import type { ReactNode } from 'react';
+
+interface InfotipProps {
+  /** ツールチップ内の説明文（短文推奨。複数文は可） */
+  children: ReactNode;
+  /** トリガーボタンの aria-label（例: 「工数サマリーの説明」）。実装では props 名は camelCase の `ariaLabel` */
+  ariaLabel: string;
+  /** ツールチップの水平寄せ（トリガー基準）。既定: 右寄せ `right` */
+  align?: 'left' | 'right';
+  /** ラッパーへの追加クラス（`-mr-0.5` など位置微調整） */
+  className?: string;
+}
+```
+
+### 挙動・マークアップ
+
+| 項目 | 方針 |
+|------|------|
+| 依存 | **Radix Tooltip は未導入のため使わない**。追加パッケージなしで実装する |
+| 表示制御 | 親に `group`、トリガー＋ツールチップをラップし、`group-hover:` と `group-focus-within:` で `opacity` / `visibility` を切り替える |
+| トリガー | `type="button"` のアイコンボタン。`rounded-full`、`focus-visible:ring-2`（`brand-blue`） |
+| ツールチップ | `role="tooltip"`、`pointer-events-none`（ホバーが下の要素に伝わるようにする） |
+| 位置 | `absolute`、`top-full`、`mt-1.5` 程度でトリガーの直下。`right-0` でカード右上アイコンと揃える |
+| 幅 | `w-[min(18rem,calc(100vw-2rem))]` などでビューポートからはみ出さない |
+
+### 視覚仕様（デザイントークン）
+
+- 背景: `bg-white`
+- 枠線: `border border-brand-border`
+- 文字: `text-xs`、`text-brand-dark`、`leading-snug`
+- 余白: `px-2.5 py-2`
+- 影: `shadow-md`
+- アイコン色（既定）: `text-brand-muted`、ホバー時 `text-brand-dark`
+
+### アクセシビリティ
+
+- トリガーには必ず **`aria-label`**（日本語で内容が推測できる文言）
+- キーボードのみ利用時も **フォーカス中はツールチップを表示**すること（`focus-within`）
+- タッチ端末ではホバーが無いため、必要に応じて将来 **タップで開閉**や別導線を検討（現仕様はホバー／フォーカス主体）
+
+### 利用ガイド
+
+- **ここを使う**: 用語説明・集計定義・「なぜこの数字か」の一文など、読み飛ばしても業務は進む補足
+- **ここではなく Modal / インライン本文**: 手順が長いヘルプ、法的文言、入力必須の注意事項
+
+---
+
 ## 3. タブ・テーブル・ページネーション
 
 ### Tabs
@@ -180,18 +240,61 @@ interface TabsProps<T extends string> {
 **注意**: URL クエリ `?tab=approval|dev|budget` と同期させる。Inertia の `router.visit()` で遷移。
 
 ### ProjectTable（3バリアント）
-**役割**: 案件一覧テーブル。tab props で列セットを切り替える。
+**役割**: 案件一覧テーブル。`tab` で列セットを切り替える。
 **配置**: `resources/js/Components/Projects/ProjectTable.tsx`
-**使用モック**: s03a（申請タブ）、今後 s03b/s03c
-**Props**:
+**関連**: 表示ユーティリティは `resources/js/Components/Projects/projectTableUtils.ts`。ページ側の組み込み例は `resources/js/Pages/Projects/Index.tsx`。
+**使用モック**: s03a（申請タブ）、s03b（開発）、s03c（予算）
+**Props**（実装どおりの判別共用 Union。行型は `ProjectTable.tsx` で `export`）:
 ```ts
-interface ProjectTableProps {
-  tab: 'approval' | 'dev' | 'budget';
-  projects: Project[];
-  onRowClick: (id: number) => void;
+type TabSortDir = 'asc' | 'desc';
+
+type ProjectTableProps =
+  | {
+      tab: 'approval';
+      rows: ApprovalProjectRow[];
+      sortKey: ApprovalSortKey | null;
+      sortDir: TabSortDir;
+      onSort: (key: ApprovalSortKey) => void;
+      getRowHref: (row: ApprovalProjectRow) => string;
+      onNavigate: (href: string) => void;
+    }
+  | {
+      tab: 'dev';
+      rows: ProjectTableListRow[];
+      sortKey: DevSortKey | null;
+      sortDir: TabSortDir;
+      onSort: (key: DevSortKey) => void;
+      detailHref: (id: number) => string;
+      onNavigate: (href: string) => void;
+    }
+  | {
+      tab: 'budget';
+      rows: ProjectTableListRow[];
+      sortKey: BudgetSortKey | null;
+      sortDir: TabSortDir;
+      onSort: (key: BudgetSortKey) => void;
+      detailHref: (id: number) => string;
+      onNavigate: (href: string) => void;
+    };
+```
+**内部**: `tab` に応じて `<table>` の thead／tbody を分岐。列ヘッダーのソートはコンポーネント内の `TableSortHeader`。行クリック・リンクは `onNavigate` / Inertia `Link` で親から渡した URL に遷移する。
+
+#### `ProjectController@index` が返す `projects.data[]`（申請タブ関連の追記フィールド）
+一覧はページネータの `through()` で行配列に整形される。申請タブではタイトル副行・却下行表示のために特に次を参照する。
+
+```ts
+// 抜粋（実装準拠・キーのみ）
+{
+  id: number;
+  title: string;
+  purpose: string | null;
+  rejectedAt: 'dept' | 'hq' | null;
+  rejectedComment: string | null;
+  // …その他 status / department / submittedAt / canEdit など
 }
 ```
-**内部**: tabに応じて列定義を切り替え。列定義は `const approvalColumns = [...]; const devColumns = [...]; const budgetColumns = [...];` のように同ファイル内に持つ。
+
+**却下メタの算出**: `status === rejected` の案件 ID に対し、`Approval::query()` で `action = rejected` を `acted_at` 降順で取得し、`project_id` ごとに **先頭 1 件**だけを採用。`level` が `dept` / `hq` のときのみ `rejectedAt` に反映し、`comment` は空文字を除き文字列化して `rejectedComment` とする（空・未設定は `null`）。一覧での N+1 を避けるための一括取得である。
 
 #### S-03a（申請タブ）位置づけ
 - 申請・承認フローの基準画面として必須
@@ -267,6 +370,79 @@ interface ProjectTableProps {
 - タブのアクティブは `予算`
 - 色と閾値は S-11 のプレビュー表示と一致させる（予算管理の一貫性を担保）
 
+### MemberTasksViewToggle（S-14）
+**役割**: S-14 タスク一覧の視点切替（ピル型トグル）。
+**配置**: `resources/js/Components/MemberTasks/ViewToggle.tsx`
+**使用モック**: `mockups/s14b_member_tasks_toggle.html`（拡張運用）
+**Props**:
+```ts
+type ViewMode = 'board' | 'members' | 'list';
+
+interface ViewToggleProps {
+  value: ViewMode;
+  onChange: (next: ViewMode) => void;
+}
+```
+**ボタン構成**:
+- `カンバン`（`view=board`）
+- `メンバー別`（`view=members`）
+- `一覧`（`view=list`）
+
+**遷移ルール**:
+- URLクエリ `?view=` と同期（`router.get(..., { replace: true, preserveState: true })`）
+- 初期値はロール依存（applicant=board / dept_manager・hq_manager=members）
+
+### MemberTasksFilterBar（S-14 共通）
+**役割**: S-14 の3ビュー共通フィルタ行。
+**実装位置（現状）**: `resources/js/Pages/MemberTasks/Index.tsx`（ページ内実装）
+**将来配置（推奨）**: `resources/js/Components/MemberTasks/FilterBar.tsx`
+
+**フィールド（実装準拠）**:
+- キーワード（`keyword`）: `キーワード（タイトル・説明・担当など）`
+- 部門（`department_id`）: HQは選択必須、部門管理者/申請者は固定
+- 担当者（`assignee_id`）
+- 案件（`project_id`）
+- 優先度（`priority`: all/high/medium/low）
+- 期日（`due`: all/overdue/soon/week/month/unset）
+- クリア
+
+**キーワード対象（サーバ実装）**:
+- `ProjectWorkItem.title`
+- `ProjectWorkItem.description`
+- `ProjectWorkItem.id`
+- `assignee.name`
+- `reviewer.name`
+- `project.title`
+
+### MemberTasksListTable（S-14 list）
+**役割**: `view=list` の表形式表示。S-04（案件詳細 > 進捗管理）に準じる列設計。
+**実装位置（現状）**: `resources/js/Pages/MemberTasks/Index.tsx`（ページ内実装）
+**将来配置（推奨）**: `resources/js/Components/MemberTasks/ListTable.tsx`
+
+**列定義**:
+- タイトル（下段に `PRJ-XXXX / 案件名`）
+- 種類
+- 優先度
+- ステータス
+- 担当
+- 確認者
+- 期日
+
+**ステータスセル仕様**:
+- ステータスバッジ（4値: 未着手/進行中/確認待ち/完了）
+- 進捗バー（全ステータスで表示）
+- 進捗率テキスト（右寄せ、mono）
+
+**進捗バー配色ルール**（S-04/S-03c と統一）:
+- `0-60%`: 緑
+- `61-85%`: 青
+- `86-100%`: 橙
+- `100%超`: 赤
+
+**操作**:
+- 行クリックで `ProjectTaskDialog` を開く
+- 編集可否は `canUpdate` を参照（閲覧専用時は read-only）
+
 ### Pagination
 **役割**: ページネーションコントロール。
 **配置**: `resources/js/Components/Pagination.tsx`
@@ -310,6 +486,66 @@ interface AmountInputProps {
 
 ### Input / Textarea / Select
 shadcn/ui の部品をそのまま使う。**プロジェクト固有のラッパーは作らない**（直接 shadcn/ui の `Input` 等を import）。スタイル調整が必要なら shadcn/ui の components.json 側で一括設定。
+
+### Button（shadcn/ui）
+**役割**: 主要アクション（保存/申請）と補助アクション（戻る/キャンセル）を同一基盤で管理する。
+**配置**: `resources/js/Components/ui/button.tsx`
+**運用方針**:
+- ページ個別の単発ボタンを新規コンポーネント化せず、`variant` 追加で吸収する
+- 「一覧に戻る」「キャンセル」のような補助アクションは `variant="neutral"` を使用する
+
+**Props（実装準拠）**:
+```ts
+type ButtonVariant =
+  | 'default'
+  | 'destructive'
+  | 'outline'
+  | 'secondary'
+  | 'neutral'
+  | 'ghost'
+  | 'link';
+
+type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
+```
+
+**variant 一覧（使い分け）**:
+- `default`: 主アクション。例: 申請する / 更新して申請
+- `destructive`: 破壊的アクション。例: 削除確定（誤操作防止導線とセット）
+- `outline`: 主アクションの代替。例: 下書き保存（強調は弱めるが明確に押せる）
+- `secondary`: 補助アクション（通常）。例: 更新を保存、カード内の補助ボタン
+- `neutral`: 補助アクション（戻る/キャンセル専用）。薄枠 + hoverグレー
+- `ghost`: 背景を持たない軽アクション。例: テキスト寄りの軽操作
+- `link`: 文中リンク風アクション。例: 補足導線
+
+**`neutral` バリアント詳細仕様**（実装済み）:
+- 枠線: `border-slate-300`（薄いグレー）
+- 背景: `bg-white`
+- 文字: `text-brand-muted`（通常） / `text-brand-dark`（hover）
+- hover: `bg-slate-100`（薄いグレーで少し濃くする）
+- 推奨文言: 「一覧に戻る」「キャンセル」「閉じる（非破壊）」
+
+**size 指針**:
+- `default`: 標準フォームボタン（高さ 40px）
+- `sm`: テーブル内など高密度UI
+- `lg`: 主要CTAを目立たせたい場面
+- `icon`: アイコン単体（必ず `aria-label` を付与）
+
+**実装パターン**:
+- 画面遷移リンクをボタン見た目にする場合は `asChild` + `Link` を使う
+- 非同期処理中は `disabled` を付与し、多重送信を防ぐ
+- 文言と `variant` の意味を一致させる（例: 「削除」で `ghost` は使わない）
+
+**利用例**:
+- `resources/js/Pages/Projects/Create.tsx`
+  - 上部「一覧に戻る」（`Button asChild variant="neutral"`）
+  - フッター/確認モーダル「キャンセル」（`variant="neutral"`）
+  - 下書き保存（`variant="outline"`）
+  - 申請する（`variant="default"`）
+- `resources/js/Pages/Projects/Edit.tsx`
+  - 上部「一覧に戻る」（`Button asChild variant="neutral"`）
+  - フッター/確認モーダル「キャンセル」（`variant="neutral"`）
+  - 更新を保存（`variant="secondary"`）
+  - 更新して申請（`variant="default"`）
 
 ---
 
@@ -361,65 +597,60 @@ interface ApprovalDialogProps {
 - モーダル本体は中央配置 `max-w-2xl`
 - 基本は編集モード基準で作り、作成モードは差分制御で対応
 
-> **タスク管理方針**：**Backlog 風の 4 ステータス**（`open / in_progress / resolved / closed`）を DB スキーマで採用。  
-> - **課題1**：3値運用（`open / in_progress / closed`）。`resolved` チップは非表示。申請者が自分で完了まで遷移  
-> - **課題2**：4値運用。申請者は `in_progress → resolved`（完了報告）、確認者が `resolved → closed`（確認OK）  
+> **タスク管理方針（実装正）**：**Backlog 風の 4 ステータス**（`open / in_progress / resolved / closed`）を DB・UI・Policy すべてで運用する。  
+> - 実装者（`assignee_id`）: `in_progress → resolved`（完了報告）  
+> - 確認者（`reviewer_id`）: `resolved → closed`（確認OK）  
 > 詳細は `mockups/s10_policy.md` および `doc/Design/er_diagram.md §tasks.status` を参照。
 
-**Props（推奨）**:
+**Props（実装準拠・`ProjectTaskDialog.tsx`）**:
 ```ts
 type TaskType = 'task' | 'feature' | 'improvement' | 'bug';
 type TaskPriority = 'high' | 'medium' | 'low';
-// DB スキーマは 4 値で設計。課題1 では 'resolved' を使わない
 type TaskStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 
-interface TaskFormDialogProps {
+interface ProjectTaskDialogProps {
   open: boolean;
-  mode: 'create' | 'edit';
   onClose: () => void;
-  project: { id: number; code: string; title: string };
-  task?: Task; // edit時は必須
-  members: { id: number; name: string; avatarUrl?: string }[];
-  onSave: (payload: TaskFormPayload) => void;
-  onDelete?: (taskId: number) => void; // edit時のみ
-  // 課題1: 常に false。課題2 で現在ユーザーが確認者の場合に true
-  canReview?: boolean;
-  // 課題1: 'challenge1' | 課題2: 'challenge2'。UI のチップ表示制御に利用
-  statusMode?: 'challenge1' | 'challenge2';
+  projectId: number;
+  projectTitle: string;
+  /** null のとき新規作成、非 null のとき編集（型は同ファイル export の TaskListItem） */
+  task: TaskListItem | null;
+  assignees: Array<{ id: number; name: string }>;
+  /** 一覧から渡す編集可否（新規時は案件のタスク管理権限に準拠） */
+  readOnly?: boolean;
 }
 ```
+
+保存・削除・コメント投稿は **モーダル内部で Inertia `router` により POST** する（親 Page に `onSave` を渡さない構成）。
 
 **フィールド仕様**:
 - タイトル: 全幅 input（必須）
 - 種類: `タスク / 機能追加 / 改善 / バグ`（chip selector）
 - 優先度: `高 / 中 / 低`（chip selector）
-- ステータス:
-  - **課題1**: `未着手 / 進行中 / 完了`（3チップ。内部値 `open / in_progress / closed`）
-  - **課題2**: `未着手 / 進行中 / 確認待ち / 完了`（4チップ。内部値 `open / in_progress / resolved / closed`）
-  - 課題2 の `closed` チップは `canReview=true` の時だけ押下可能（作業者は `resolved` までしか遷移できない）
-- 担当者: アバター付き select
+- ステータス: **4 チップ固定** — `未着手 / 進行中 / 確認待ち / 完了`（内部値 `open / in_progress / resolved / closed`）。遷移の可否は **サーバー側 Policy / バリデーション** が正（フロントは補助）
+- 確認者: select（`resolved` へ進める際に必須となるケースあり）
+- 担当者: select（アバター表示は実装に準拠）
 - 期日: date input（補助表示として「あとN日」を表示）
-- 進捗: slider + 数値（`ステータス = 進行中` の時だけ表示。`resolved / closed` は自動で 100%）
-- 説明: textarea（3行）
-- コメント: 既存コメント + 投稿欄（モーダル下部）
-- 変更履歴: 折りたたみ表示（初期は閉じる）。データは `task_histories`（`ProjectTaskHistory`）を Inertia で受け取り、サーバー側では `TaskHistoryService` がタスク作成・更新時に自動記録する。案件詳細のタスク一覧では行展開でも同一履歴を参照可能
+- 進捗: slider + 数値（**ステータスが進行中のときのみ**表示）
+- 説明: textarea
+- コメント: 既存コメント一覧 + 投稿欄（モーダル下部）
+- 変更履歴: 折りたたみ（編集時）。データは `task_histories`。案件詳細タスク行展開と同一ソース
 
 **フッターアクション**:
-- 左: 削除（編集モードのみ、赤アウトライン）
+- 左: 削除（編集時のみ、権限あり時）
 - 右: キャンセル / 保存
 
-**作成モードとの差分**:
-- ヘッダー: `タスクを編集` -> `タスクを作成`
+**作成モードとの差分**（`task === null`）:
+- ヘッダー: `タスクを作成`
 - 削除ボタン: 非表示
-- 進捗: 初期値0%、かつ `未着手` 時は非表示
-- コメント・変更履歴: セクションごと非表示
+- 進捗: `open` など進行中以外では進捗スライダー非表示（実装に準拠）
+- コメント: 一覧・投稿は出さず「タスク保存後に追加できます」のガイドのみ
+- 変更履歴: セクション自体はあるが件数 0（初回保存前）
 
 **実装メモ（判断理由）**:
 - S-10 は操作完結性を優先し、コメント入力を同一モーダル内に置く（別画面遷移しない）
 - chip selector で種類/優先度/ステータスを即時切替できるようにする
-- 条件表示（進捗、削除、履歴）を mode/status で統一制御して複雑化を防ぐ
-- **ステータス DB を 4 値で設計**することで、課題2 レビュー工程追加時に migration なしで対応可能（Enum 値は既に存在、UI 切替だけで済む）
-- 課題2 のレビュー機能は `canReview` フラグと `statusMode` プロップで注入。ロジックの中核は Controller / Policy 側で担保
+- **4 値は PoC の標準**。課題の「+α」との対応関係はプレゼン用ラベルであり、実装の状態機械は上記 4 値のみ
 
 ### BudgetActualDialog（S-11）
 **役割**: 予算実績入力モーダル。
@@ -593,7 +824,7 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 >
 > **作業順序**:
 > 1. まず `doc/Design/components_spec.md` を読んで、使用する共通部品をリストアップ
-> 2. 未実装の共通部品（`ApprovalFlowGuide`, `AmountInput`, `FieldLabel` など）があれば先に `Components/` 配下に作成
+> 2. 未実装の共通部品（`ApprovalFlowGuide`, `AmountInput`, `FieldLabel`, など）があれば先に `Components/` 配下に作成
 > 3. Create.tsx は共通部品を組み立てるだけの薄い実装にする
 > 4. Tailwind クラスの直書きは最小限に。繰り返すパターンは部品化する
 > 5. 実装後、`doc/Design/components_spec.md` の「使用モック」欄にこのページを追記
@@ -603,7 +834,7 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 ## 部品化しないもの（過剰分離を避ける）
 
 - ページタイトル（`<h1>`）とサブタイトル — 画面ごとに違うので各 Page で直接書く
-- 「一覧に戻る」リンクなどの単発要素
+- 単一画面でしか使わない一時的な装飾（ただしボタン見た目は `Button` の `variant` で吸収する）
 - 画面固有のレイアウト（例: S-05 の下書き復元ヒント）
 
 **判断基準**: 「2つ以上のPagesで同じパターンを書きそうか？」Yes なら共通化、No ならPageにそのまま書く。
@@ -615,3 +846,7 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 - 2026-04-16: s02/s03a/s05 モックから初版を作成。S-04/S-07/S-08/S-10/S-11/S-12/S-13 は今後のモック作成時に追記。
 - 2026-04-18: 各画面方針書（`mockups/s0x_policy.md`）との整合確認を実施。S-03b の進捗フィルタ区分を `未着手/進行中/完了間近(90%+)/完了` に改訂し、進捗バー配色ルールを4帯（0-60緑 / 61-85青 / 86-100橙 / 100超赤）へ統一。
 - 2026-05-01: タスク変更履歴の自動記録（`TaskHistoryService`・`task_histories`）と S-04 のタスク一覧行展開を反映。S-10 モーダルの実装ファイル名を `ProjectTaskDialog.tsx` に明記。
+- 2026-05-07: S-10（`ProjectTaskDialog`）を **4 値運用・実装 Props** に同期。案件詳細 `detailTab` は `screen_flow.md` / `Information.md` と実装（`apply` 等）を正に統一。
+- 2026-05-07: `Button` に `neutral` バリアントを追加し、「一覧に戻る」「キャンセル」を共通化。単発の `NeutralAction.tsx` は廃止して既存部品へ統合。
+- 2026-05-07: `Button` 章を拡張し、`default/destructive/outline/secondary/neutral/ghost/link` の使い分け、`size` 指針、`asChild` 運用を追記。部品化しない方針もボタン運用に合わせて更新。
+/**更新完了**/

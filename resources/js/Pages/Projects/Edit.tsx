@@ -1,20 +1,14 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import {
-    ArrowLeft,
-    Check,
-    ChevronRight,
-    FileCheck2,
-    FilePenLine,
-    Info,
-    Save,
-    Send,
-} from 'lucide-react';
+import { ArrowLeft, FileCheck2, FilePenLine, Save, Send } from 'lucide-react';
 
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
+import ApprovalStepperFull from '@/Components/Approval/ApprovalStepperFull';
 import StatusPill from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
+import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps, RoleName } from '@/types';
@@ -101,54 +95,31 @@ export default function ProjectsEdit({ departments, project }: Props) {
             <div className="mx-auto max-w-3xl space-y-6">
                 <section className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-brand-dark">
-                            案件編集
-                        </h1>
-                        <p className="mt-1 text-sm text-brand-muted">
-                            新規申請と同じ入力項目で内容を更新し、そのまま申請できます
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl font-bold tracking-tight text-brand-dark">
+                                案件編集
+                            </h1>
+                            <Infotip ariaLabel="案件編集の説明" align="left">
+                                新規申請と同じ入力項目で内容を更新し、そのまま申請できます
+                            </Infotip>
+                        </div>
                     </div>
-                    <Link
-                        href={route('projects.index', { tab: 'approval' })}
-                        className="flex items-center gap-1 pt-1 text-sm text-brand-muted hover:text-brand-dark"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        一覧に戻る
-                    </Link>
+                    <Button asChild variant="neutral" className="mt-1 gap-1.5 text-sm">
+                        <Link href={route('projects.index', { tab: 'approval' })}>
+                            <ArrowLeft className="h-4 w-4" />
+                            一覧に戻る
+                        </Link>
+                    </Button>
                 </section>
 
-                <section className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-[#106EBE33] bg-[linear-gradient(135deg,rgba(1,207,255,0.08),rgba(109,40,217,0.06))] px-5 py-4">
-                    <div className="flex items-center gap-2 text-xs">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-dark text-[11px] font-semibold text-white">
-                            1
-                        </span>
-                        <span className="font-semibold">あなたが編集・申請</span>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-brand-muted" />
-                    {!submitsToHqDirect && (
-                        <>
-                            <div className="flex items-center gap-2 text-xs">
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#01CFFF] text-[11px] font-semibold text-[#062A40]">
-                                    2
-                                </span>
-                                <span>部門管理者が承認</span>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-brand-muted" />
-                        </>
-                    )}
-                    <div className="flex items-center gap-2 text-xs">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-blue text-[11px] font-semibold text-white">
-                            {submitsToHqDirect ? '2' : '3'}
-                        </span>
-                        <span>本部管理者が承認</span>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-brand-muted" />
-                    <div className="flex items-center gap-2 text-xs">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-green-600 bg-green-100 text-green-700">
-                            <Check className="h-3 w-3" />
-                        </span>
-                        <span>承認・開発フェーズへ</span>
-                    </div>
+                <section>
+                    <ApprovalStepperFull
+                        status="draft"
+                        approvals={[]}
+                        submittedAt={null}
+                        applicantName={auth.user.name}
+                        skipsDeptStep={submitsToHqDirect}
+                    />
                 </section>
 
                 <form
@@ -163,15 +134,15 @@ export default function ProjectsEdit({ departments, project }: Props) {
                     </div>
 
                     <div className="space-y-6 p-6">
-                        <p className="text-xs text-brand-muted">
-                            下書き保存は「案件名」のみ必須です。申請時は
-                            <span className="mx-1 font-semibold text-brand-red">*</span>
-                            項目の入力が必要です。
-                        </p>
                         <div>
-                            <InputLabel htmlFor="title">
-                                案件名 <span className="text-brand-red">*</span>
-                            </InputLabel>
+                            <div className="flex items-center gap-2">
+                                <InputLabel htmlFor="title">
+                                    案件名 <span className="text-brand-red">*</span>
+                                </InputLabel>
+                                <Infotip ariaLabel="案件名の入力ガイド" align="left">
+                                    一覧で識別しやすい名称を推奨（80文字まで）
+                                </Infotip>
+                            </div>
                             <Input
                                 id="title"
                                 value={data.title}
@@ -182,21 +153,26 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                 required
                             />
                             <div className="mt-1 flex justify-between text-xs text-brand-muted">
-                                <span>一覧で識別しやすい名称を推奨（80文字まで）</span>
+                                <span />
                                 <span className="font-mono">{data.title.length} / 80</span>
                             </div>
                             <InputError className="mt-2" message={errors.title} />
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="department_id">
-                                担当部門 <span className="text-brand-red">*</span>
-                            </InputLabel>
+                            <div className="flex items-center gap-2">
+                                <InputLabel htmlFor="department_id">
+                                    担当部門 <span className="text-brand-red">*</span>
+                                </InputLabel>
+                                <Infotip ariaLabel="担当部門の説明" align="left">
+                                    案件の主担当となる部門を選択。部門管理者がこの部門の承認者として割り当てられます
+                                </Infotip>
+                            </div>
                             <select
                                 id="department_id"
                                 value={data.department_id}
                                 onChange={(event) => setData('department_id', event.target.value)}
-                                className="mt-1.5 w-full rounded-md border border-brand-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                                className="mt-1.5 w-full rounded-md border border-brand-border bg-white px-3 py-2 text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-brand-blue"
                                 required
                             >
                                 <option value="">選択してください</option>
@@ -210,39 +186,56 @@ export default function ProjectsEdit({ departments, project }: Props) {
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="purpose">
-                                目的 <span className="text-brand-red">*</span>
-                            </InputLabel>
+                            <div className="flex items-center gap-2">
+                                <InputLabel htmlFor="purpose">
+                                    目的 <span className="text-brand-red">*</span>
+                                </InputLabel>
+                                <Infotip ariaLabel="目的の入力ガイド" align="left">
+                                    承認者が投資判断をする際の最重要項目。定量的な目標があれば含めてください
+                                </Infotip>
+                            </div>
                             <textarea
                                 id="purpose"
                                 value={data.purpose}
                                 onChange={(event) => setData('purpose', event.target.value)}
                                 maxLength={2000}
                                 rows={4}
-                                className="mt-1.5 w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                                placeholder="この案件で達成したいビジネス成果や解決したい課題を記述"
+                                className="mt-1.5 w-full rounded-md border border-brand-border px-3 py-2 text-sm shadow-md placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                                 required
                             />
                             <InputError className="mt-2" message={errors.purpose} />
                         </div>
 
                         <div>
-                            <InputLabel htmlFor="description" value="概要・説明" />
+                            <div className="flex items-center gap-2">
+                                <InputLabel htmlFor="description" value="概要・説明" />
+                                <Infotip ariaLabel="概要・説明の補足" align="left">
+                                    任意。承認後は編集ロックされるため、可能な範囲で詳細にお願いします
+                                </Infotip>
+                            </div>
                             <textarea
                                 id="description"
                                 value={data.description}
                                 onChange={(event) => setData('description', event.target.value)}
                                 maxLength={5000}
                                 rows={7}
-                                className="mt-1.5 w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                                placeholder="対象システム・主要機能・スコープ・想定ユーザー・技術的な前提条件などを記述"
+                                className="mt-1.5 w-full rounded-md border border-brand-border px-3 py-2 text-sm shadow-md placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                             />
                             <InputError className="mt-2" message={errors.description} />
                         </div>
 
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                             <div>
-                                <InputLabel htmlFor="estimated_amount">
-                                    概算予算 <span className="text-brand-red">*</span>
-                                </InputLabel>
+                                <div className="flex items-center gap-2">
+                                    <InputLabel htmlFor="estimated_amount">
+                                        概算予算 <span className="text-brand-red">*</span>
+                                    </InputLabel>
+                                    <Infotip ariaLabel="概算予算の補足" align="left">
+                                        承認時に「確定予算」として確定し、以降は変更不可
+                                    </Infotip>
+                                </div>
                                 <div className="relative mt-1.5">
                                     <Input
                                         id="estimated_amount"
@@ -255,6 +248,7 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                                 toIntegerAmountString(event.target.value),
                                             )
                                         }
+                                        placeholder="10,000,000"
                                         className="pr-10 text-right font-mono"
                                         required
                                     />
@@ -265,7 +259,12 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                 <InputError className="mt-2" message={errors.estimated_amount} />
                             </div>
                             <div>
-                                <InputLabel htmlFor="estimated_days" value="概算工数" />
+                                <div className="flex items-center gap-2">
+                                    <InputLabel htmlFor="estimated_days" value="概算工数" />
+                                    <Infotip ariaLabel="概算工数の補足" align="left">
+                                        任意。タスクの合計見積と比較する参考値
+                                    </Infotip>
+                                </div>
                                 <div className="relative mt-1.5">
                                     <Input
                                         id="estimated_days"
@@ -278,6 +277,7 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                                 toIntegerAmountString(event.target.value),
                                             )
                                         }
+                                        placeholder="120"
                                         className="pr-12 text-right font-mono"
                                     />
                                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-brand-muted">
@@ -287,31 +287,49 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                 <InputError className="mt-2" message={errors.estimated_days} />
                             </div>
                         </div>
+
+                        <div className="rounded-md border border-dashed border-slate-300 bg-slate-100/70 px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <InputLabel htmlFor="attachments" value="ファイル添付" />
+                                <Challenge2Badge />
+                            </div>
+                            <Input
+                                id="attachments"
+                                type="file"
+                                className="mt-1.5 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                                disabled
+                            />
+                            <p className="mt-1 text-xs text-slate-500">
+                                課題2で実装予定のため、現在は準備中です。
+                            </p>
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-between rounded-b-lg border-t border-brand-border bg-brand-bg px-6 py-4">
                         <div className="flex flex-col gap-1">
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() => submitWithAction('draft')}
-                                disabled={processing}
-                                className="flex items-center gap-2"
-                            >
-                                <Save className="h-4 w-4" />
-                                更新を保存
-                            </Button>
-                            <p className="text-xs text-brand-muted">
-                                更新を保存: 案件名のみで保存できます
-                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => submitWithAction('draft')}
+                                    disabled={processing}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Save className="h-4 w-4" />
+                                    更新を保存
+                                </Button>
+                                <Infotip ariaLabel="更新を保存の補足" align="left">
+                                    更新を保存: 案件名のみで保存できます
+                                </Infotip>
+                            </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <Button
                                 type="button"
-                                variant="ghost"
+                                variant="neutral"
                                 onClick={() => history.back()}
                                 disabled={processing}
-                                className="text-brand-muted hover:text-brand-dark"
+                                className="text-sm"
                             >
                                 キャンセル
                             </Button>
@@ -326,16 +344,19 @@ export default function ProjectsEdit({ departments, project }: Props) {
                             </Button>
                         </div>
                     </div>
-                    <div className="border-t border-brand-border bg-brand-bg px-6 py-2 text-right text-xs text-brand-muted">
-                        更新して申請: 必須項目（*）をすべて入力してください
-                    </div>
                 </form>
 
-                <div className="flex items-start gap-2 text-xs text-brand-muted">
-                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <p className="mt-2 text-sm text-brand-muted">
-                        申請後部門承認までは、取り戻して編集できます。部門承認後は編集できません。承認・却下の結果は通知で届きます。却下された場合は「再申請」から内容を引き継いで作成できます。
-                    </p>
+                <div className="flex items-center justify-end gap-2 text-xs text-brand-muted">
+                    <span className="text-sm">注意事項</span>
+                    <Infotip ariaLabel="申請時の注意事項" align="right">
+                        <span>
+                            申請後部門承認までは、取り戻して編集できます。部門承認後は編集できません。
+                            <br />
+                            承認・却下の結果は通知で届きます。
+                            <br />
+                            却下された場合は「再申請」から内容を引き継いで作成できます。
+                        </span>
+                    </Infotip>
                 </div>
             </div>
 
@@ -356,28 +377,46 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                 <div>
                                     <h3 className="text-lg font-semibold">更新して申請しますか？</h3>
                                     <p className="mt-1.5 text-sm text-brand-muted">
-                                        保存後に承認待ちへ遷移します。申請後は編集できません。
+                                        申請後部門承認までは、取り戻して編集できます。
+                                        <br />
+                                        部門承認後は編集できません。
                                     </p>
                                     <p className="mt-1 text-xs text-brand-muted">
                                         申請時は「*」項目の入力が必要です。
                                     </p>
                                 </div>
                             </div>
-                            <div className="mt-5 rounded-lg bg-brand-bg p-4 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-brand-muted">次ステータス:</span>
-                                    <StatusPill
-                                        status={submitsToHqDirect ? 'pending_hq' : 'pending_dept'}
-                                    />
+                            <div className="mt-5 space-y-1.5 rounded-lg bg-brand-bg p-4 text-sm">
+                                <div className="flex">
+                                    <span className="w-24 text-brand-muted">ステータス</span>
+                                    <div className="flex items-center gap-2">
+                                        <StatusPill
+                                            status={
+                                                submitsToHqDirect
+                                                    ? 'pending_hq'
+                                                    : 'pending_dept'
+                                            }
+                                        />
+                                        <span>へ</span>
+                                    </div>
+                                </div>
+                                <div className="flex">
+                                    <span className="w-24 text-brand-muted">次の承認者</span>
+                                    <span>
+                                        {submitsToHqDirect
+                                            ? '本部管理者'
+                                            : '選択部門の部門管理者'}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                         <div className="flex items-center justify-end gap-2 rounded-b-xl bg-brand-bg px-6 py-4">
                             <Button
                                 type="button"
-                                variant="ghost"
+                                variant="neutral"
                                 onClick={() => setConfirmOpen(false)}
                                 disabled={processing}
+                                className="text-sm"
                             >
                                 キャンセル
                             </Button>

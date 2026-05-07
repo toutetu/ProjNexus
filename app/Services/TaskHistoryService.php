@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\DB;
 class TaskHistoryService
 {
     /** @var list<string> */
-    private const TRACKED_FIELDS = ['status', 'progress_rate', 'assignee_id', 'due_date', 'priority'];
+    private const TRACKED_FIELDS = ['status', 'progress_rate', 'assignee_id', 'reviewer_id', 'due_date', 'priority', 'estimated_days', 'actual_days'];
 
     public function recordCreation(ProjectWorkItem $task, User $actor): void
     {
         DB::transaction(function () use ($task, $actor): void {
-            $task->loadMissing('assignee');
+            $task->loadMissing('assignee', 'reviewer');
 
             foreach (self::TRACKED_FIELDS as $field) {
                 ProjectTaskHistory::query()->create([
@@ -37,7 +37,7 @@ class TaskHistoryService
     public function recordChanges(ProjectWorkItem $task, array $beforeDisplay, User $actor): void
     {
         $task->refresh();
-        $task->loadMissing('assignee');
+        $task->loadMissing('assignee', 'reviewer');
         $afterDisplay = $this->displaySnapshot($task);
 
         DB::transaction(function () use ($task, $beforeDisplay, $afterDisplay, $actor): void {
@@ -60,18 +60,21 @@ class TaskHistoryService
     }
 
     /**
-     * @return array{status: string, progress_rate: string, assignee_id: string, due_date: string, priority: string}
+     * @return array<string, string>
      */
     public function displaySnapshot(ProjectWorkItem $task): array
     {
-        $task->loadMissing('assignee');
+        $task->loadMissing('assignee', 'reviewer');
 
         return [
             'status' => $this->formatStatus($task->status),
             'progress_rate' => $this->formatProgressRate((int) $task->progress_rate),
             'assignee_id' => $this->formatAssignee($task),
+            'reviewer_id' => $this->formatReviewer($task),
             'due_date' => $this->formatDueDate($task),
             'priority' => $this->formatPriority($task->priority),
+            'estimated_days' => $this->formatLaborDays($task->estimated_days),
+            'actual_days' => $this->formatLaborDays($task->actual_days),
         ];
     }
 
@@ -81,10 +84,24 @@ class TaskHistoryService
             'status' => $this->formatStatus($task->status),
             'progress_rate' => $this->formatProgressRate((int) $task->progress_rate),
             'assignee_id' => $this->formatAssignee($task),
+            'reviewer_id' => $this->formatReviewer($task),
             'due_date' => $this->formatDueDate($task),
             'priority' => $this->formatPriority($task->priority),
+            'estimated_days' => $this->formatLaborDays($task->estimated_days),
+            'actual_days' => $this->formatLaborDays($task->actual_days),
             default => '',
         };
+    }
+
+    private function formatLaborDays(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+
+        $num = round((float) $value, 2);
+
+        return ($num == floor($num) ? (string) (int) $num : rtrim(rtrim(number_format($num, 2, '.', ''), '0'), '.')).' 人日';
     }
 
     private function formatStatus(TaskStatus $status): string
@@ -118,6 +135,15 @@ class TaskHistoryService
         }
 
         return $task->assignee?->name ?? User::query()->whereKey($task->assignee_id)->value('name') ?? '不明ユーザー';
+    }
+
+    private function formatReviewer(ProjectWorkItem $task): string
+    {
+        if ($task->reviewer_id === null) {
+            return '未設定';
+        }
+
+        return $task->reviewer?->name ?? User::query()->whereKey($task->reviewer_id)->value('name') ?? '不明ユーザー';
     }
 
     private function formatDueDate(ProjectWorkItem $task): string

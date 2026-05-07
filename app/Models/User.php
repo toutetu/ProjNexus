@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasMany(ProjectWorkItem::class, 'assignee_id');
     }
 
+    public function reviewingTasks(): HasMany
+    {
+        return $this->hasMany(ProjectWorkItem::class, 'reviewer_id');
+    }
+
     public function createdTasks(): HasMany
     {
         return $this->hasMany(ProjectWorkItem::class, 'created_by');

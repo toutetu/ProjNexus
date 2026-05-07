@@ -3,88 +3,108 @@
 `doc/daily/implementation_schedule.md` から技術的な日次の詳細作業記録を分離したログです。  
 最新の予定・進行管理は `implementation_schedule.md` を参照してください。
 
-## 2026-05-01（金）— タスク変更履歴（task_histories）自動記録・UI・設計書同期
+---
+
+## 2026-05-01（金）追記 — 案件詳細/タスク一覧 UI 統一・共通化・導線調整
 
 ### 実装概要
-- **`TaskHistoryService`（新規）**
-  - `recordCreation`：タスク作成時に追跡5項目（`status`, `progress_rate`, `assignee_id`, `due_date`, `priority`）をそれぞれ1行記録。`old_value` は null、`new_value` は画面表示と同一の文字列（例: 未着手、45%、担当者名、`Y-m-d`、高/中/低）
-  - `recordChanges`：更新前スナップショットと更新後を比較し、差分のみ INSERT
-  - `displaySnapshot`：コントローラが更新前状態を取得するため公開
-- **呼び出し元**
-  - `ProjectTaskController` の `store` / `update`
-  - `ApprovalService` の本部承認後初期タスク（`実装計画作成`）作成直後
-- **フロント（`Projects/Show.tsx`）**
-  - タスク一覧テーブルに展開列を追加し、行展開で `task_histories` を一覧表示
-  - 履歴タブのタイムライン用 `historyValueLabel` を、表示用文字列保存に合わせて調整（`progress_rate` の二重 `%` 回避、`resolved` ラベル）
-- **テスト**: `tests/Feature/TaskHistoryTest.php`（作成5件・更新差分の2ケース）
-- **ローカル検証**: `composer install` / `npm install` / `npm run build` / `migrate:fresh --seed`、ブラウザ確認
+- 案件詳細（`Projects/Show.tsx`）のヘッダー表示・パンくず・検索帯配置を調整
+  - タイトルから「（案件名）」を削除し、案件IDをタイトル右隣へ統合
+  - パンくずを `開発管理 → 案件一覧 → 案件詳細：{案件名}` へ統一
+  - タスク一覧フィルタ帯をコンパクト化し、配置を見出し直下へ整理
+- 工数サマリーに Info ツールチップを追加し、`Infotip` を共通部品化
+  - `resources/js/Components/ui/infotip.tsx` を新規追加
+  - `doc/Design/components_spec.md` に仕様を追記（実装済みとして更新）
+- タスク一覧表示を拡張
+  - ステータス列で全ステータスに進捗バー + 進捗率を表示
+  - 確認者フィルタ、期日フィルタ（3日以内/7日以内/日付指定）を追加
+- メンバータスク画面（`/member-tasks`）を改善
+  - ビュー切替に「一覧」を追加（案件詳細の開発管理に準じたテーブル）
+  - 一覧ビューの検索帯を案件詳細タブと同系UIへ統一
+  - キーワード検索（タイトル/説明/担当/確認者/案件名/ID）をサーバ側に追加
+- サイドバー導線を改善
+  - 3セクションの「案件一覧」配下に `|_案件詳細` を追加し、詳細表示時は親子ともアクティブ化
+  - プロフィール上に「マニュアル」リンクを追加
+- ルート遷移を変更
+  - `/` アクセス時、未ログインはログイン画面・ログイン済みはホームへリダイレクト
+- 予算タブ表示を調整
+  - 予算情報カードから「見積」行を削除（予算・実績のみ表示）
 
 ### 主要変更ファイル
-- `app/Services/TaskHistoryService.php`（新規）
-- `app/Http/Controllers/ProjectTaskController.php`
-- `app/Services/ApprovalService.php`
 - `resources/js/Pages/Projects/Show.tsx`
-- `tests/Feature/TaskHistoryTest.php`（新規）
-- `doc/Design/*.md`（AI / requirements / design-philosophy / screen_flow / er_diagram / components_spec）
+- `resources/js/Pages/MemberTasks/Index.tsx`
+- `resources/js/Components/MemberTasks/ViewToggle.tsx`
+- `resources/js/Components/Layout/Sidebar.tsx`
+- `resources/js/Components/ui/infotip.tsx`（新規）
+- `app/Http/Controllers/MemberTaskController.php`
+- `routes/web.php`
+- `doc/Design/components_spec.md`
 
 ### 検証
-- `php artisan test` 全件通過（当時点）
-- `read_lints` 対象ファイルで問題なし
+- `npm run build` 成功
+- `ReadLints` で変更ファイルにエラーなし
 
 ---
 
-## 2026-04-30（木）— 権限制御調整・通知拡張・承認後初期タスク自動化
+## 2026-05-07（木）追記 — マニュアル画面改善・ボタン共通化・下書き保存エラー修正
 
 ### 実装概要
-- **下書き案件の閲覧制御を厳格化**
-  - 下書き（`draft`）は申請者のみ閲覧可能に統一
-  - 一覧の可視範囲（query scope）と直接URLアクセス（policy）の両方で制御
-- **下書き保存時のバリデーション緩和**
-  - 下書き保存（`submit_action=draft`）はタイトルのみ必須
-  - 申請時（`submit`）は従来どおり必須項目チェックを維持
-- **案件一覧の操作性改善**
-  - 申請/開発/予算タブの件数を実データで表示
-  - 一覧タブから詳細遷移時に対応タブを初期表示する導線へ統一
-  - 一覧行末の `>` アイコンを削除し、情報ノイズを低減
-- **案件詳細の表示調整**
-  - 履歴表示を古い順へ変更
-  - タスク進捗バーを4段階配色（緑/青/橙/赤）へ統一
-- **タスク通知機能（課題1最小）を追加**
-  - `task_assigned`：担当割当/変更時に通知
-  - `task_completed`：完了時に関係者へ通知
-  - `task_due_soon`：期限当日/3日前を日次コマンドで通知（重複防止あり）
-- **本部承認後の初期タスク自動作成**
-  - HQ最終承認時に「実装計画作成（見積3人日）」を自動作成
-  - 既存同名タスクがある場合は重複作成しない
+- マニュアル画面（`/manual`）の操作性と可読性を改善
+  - 2.2 承認フロー（状態遷移図）のコードブロック表示判定を修正し、図解を黒地・白字で表示
+  - 左目次リンクのスクロール挙動を安定化（`scrollIntoView` + hash 更新）
+  - 本文先頭の重複目次を削除（リンク切れ要因を解消）
+  - モバイル/タブレットで目次をハンバーガーメニュー化（PCはサイドバー維持）
+- アプリ名表記を `ProjNexus` へ統一し、表示階層を調整
+  - ログイン画面、マニュアルヘッダー、サイドバー上部を「開発管理アプリ（小） + ProjNexus（大）」へ統一
+  - ログイン画面のロゴ上余白を拡張
+  - サイドバー上部ロゴをログイン画面と同じ `ApplicationLogo` に統一
+- ボタンの共通運用を整理
+  - 既存 `Button`（`resources/js/Components/ui/button.tsx`）に `neutral` variant を追加
+  - 「一覧に戻る」「キャンセル」を `neutral` に統一（Create/Edit のヘッダー・フッター・モーダル）
+  - 一時作成した `NeutralAction.tsx` は廃止し、既存共通部品へ統合
+  - 一覧の「新規申請」ボタンは `/projects/create` の「申請する」と同じ `default` 挙動に再統一
+- ドキュメント同期
+  - `doc/Design/components_spec.md` に Button 章（variant一覧、size指針、運用ルール）を拡充
+  - `doc/Design/design_system.md` に「補助アクションは `neutral` 既定」運用ルールを追記
+- 不具合修正
+  - `/projects/create` の下書き保存で `estimated_amount` が `null` の場合に DB 制約違反となる問題を修正
+  - `ProjectController@store/update` で `estimated_amount` が `null` のとき `0` を補完
 
 ### 主要変更ファイル
-- `app/Models/Project.php`
-- `app/Policies/ProjectPolicy.php`
-- `app/Http/Controllers/ProjectController.php`
-- `app/Http/Controllers/ProjectTaskController.php`
-- `app/Services/ApprovalService.php`
-- `app/Services/NotificationService.php`
-- `app/Enums/NotificationType.php`
-- `app/Console/Commands/NotifyTaskDueSoon.php`
-- `routes/console.php`
-- `resources/js/Pages/Projects/Index.tsx`
-- `resources/js/Pages/Projects/Show.tsx`
+- `resources/js/Pages/Manual/Index.tsx`
+- `doc/manual/user_manual.md`
+- `resources/js/Layouts/GuestLayout.tsx`
+- `resources/js/Components/Layout/Sidebar.tsx`
+- `resources/js/Components/ui/button.tsx`
 - `resources/js/Pages/Projects/Create.tsx`
 - `resources/js/Pages/Projects/Edit.tsx`
-- `resources/js/Pages/Notifications/Index.tsx`
-- `database/migrations/2026_04_30_190000_update_notifications_type_enum.php`
-- `database/seeders/ProjectSeeder.php`
-- `database/seeders/DatabaseSeeder.php`
-
-### 設計ドキュメント更新
-- `doc/Design/AI.md`
+- `resources/js/Pages/Projects/Index.tsx`
+- `app/Http/Controllers/ProjectController.php`
 - `doc/Design/components_spec.md`
-- `doc/Design/design-philosophy.md`
-- `doc/Design/er_diagram.md`
-- `doc/Design/requirements.md`
-- `doc/Design/screen_flow.md`
+- `doc/Design/design_system.md`
 
-### 検証・補足
-- SQLite環境での enum 変更非対応に対して、migration 側で driver 判定を追加して回避
-- フロント反映遅延は `npm run build` とブラウザハードリロードで解消
-- TypeScript / build / test の通過を確認済み（当該修正群の反映時点）
+### 検証
+- `ReadLints` で変更対象の TypeScript ファイルにエラーなし
+- `php -l app/Http/Controllers/ProjectController.php` で構文エラーなし
+- ブラウザ手動確認で `/projects/create` の下書き保存エラー解消を確認
+
+---
+
+## 2026-05-07（木）追記2 — サイドバー別タブ導線の修正とマニュアル表示再調整
+
+### 実装概要
+- サイドバーの「マニュアル」リンクが同一タブ遷移になる問題を修正
+  - `SidebarLink` で `target="_blank"` 指定時は Inertia `Link` ではなく素の `<a>` を使用
+  - サイドバー導線で確実に別タブが開く挙動へ統一
+- マニュアル（`/manual`）の「2.2 承認フロー（状態遷移図）」表示を再調整
+  - `ReactMarkdown` の `pre` レンダラーでコード本文を判定し、状態遷移図ブロックのみ黒地/白字を適用
+  - `code` の inline/ブロック判定を安定化し、図解が消える副作用を回避
+
+### 主要変更ファイル
+- `resources/js/Components/Layout/Sidebar.tsx`
+- `resources/js/Pages/Manual/Index.tsx`
+
+### 検証
+- `ReadLints` で対象 TypeScript ファイルにエラーなし
+- `npm run build` はユーザー操作で中断されたため、最終ビルド反映は再実行して確認予定
+/**更新完了**/

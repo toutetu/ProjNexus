@@ -84,4 +84,54 @@ class NotificationService
             ],
         );
     }
+
+    public function notifyTaskResolved(Project $project, ProjectWorkItem $task, User $reviewer, User $actor): void
+    {
+        $this->notifyUsers(
+            [$reviewer],
+            NotificationType::TaskResolved,
+            'タスクの確認依頼があります',
+            sprintf(
+                '案件#%d「%s」のタスク「%s」が%sさんにより完了報告されました。確認をお願いします。',
+                $project->id,
+                $project->title,
+                $task->title,
+                $actor->name,
+            ),
+            [
+                'project_id' => $project->id,
+                'task_id' => $task->id,
+                'notification_context' => 'task_resolved',
+            ],
+        );
+    }
+
+    /**
+     * @param  array<int, User>  $recipients
+     */
+    public function notifyTaskReviewed(Project $project, ProjectWorkItem $task, User $reviewer, array $recipients): void
+    {
+        $targets = collect($recipients)->unique('id')->values()->all();
+        if ($targets === []) {
+            return;
+        }
+
+        $this->notifyUsers(
+            $targets,
+            NotificationType::TaskReviewed,
+            'タスクが確認OKになりました',
+            sprintf(
+                '案件#%d「%s」のタスク「%s」が%sさんにより確認されました。',
+                $project->id,
+                $project->title,
+                $task->title,
+                $reviewer->name,
+            ),
+            [
+                'project_id' => $project->id,
+                'task_id' => $task->id,
+                'notification_context' => 'task_reviewed',
+            ],
+        );
+    }
 }

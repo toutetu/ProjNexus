@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ArrowLeft, BookOpen, Menu, X } from 'lucide-react';
 
 import ApplicationLogo from '@/Components/ApplicationLogo';
 
@@ -34,6 +34,16 @@ const formatUpdatedAt = (iso: string | null): string => {
 export default function ManualIndex({ markdown, updatedAt }: Props) {
     const [tocItems, setTocItems] = useState<TocItem[]>([]);
     const [activeId, setActiveId] = useState<string>('');
+    const [mobileTocOpen, setMobileTocOpen] = useState<boolean>(false);
+
+    const scrollToHeading = (id: string) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.history.replaceState(null, '', `#${id}`);
+        setActiveId(id);
+        setMobileTocOpen(false);
+    };
 
     useEffect(() => {
         const article = document.querySelector('article#manual-body');
@@ -81,11 +91,18 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
             <div className="min-h-screen bg-brand-bg text-brand-dark">
                 <header className="sticky top-0 z-20 border-b border-brand-border bg-brand-dark text-white">
                     <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-                        <Link href="/" className="flex items-center gap-2.5 text-sm font-semibold">
+                        <Link href="/" className="flex items-center gap-2.5">
                             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-brand-cyan via-brand-blue to-brand-purple">
                                 <ApplicationLogo className="h-5 w-5 fill-white text-white" />
                             </span>
-                            開発管理アプリ
+                            <span className="flex flex-col leading-tight">
+                                <span className="text-[10px] font-medium text-white/80">
+                                    開発管理アプリ
+                                </span>
+                                <span className="text-base font-bold tracking-wide text-white">
+                                    ProjNexus
+                                </span>
+                            </span>
                             <span
                                 className="ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
                                 style={{ backgroundColor: ACCENT_BG, color: ACCENT_TEXT }}
@@ -105,7 +122,7 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                 </header>
 
                 <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8 sm:px-6 md:py-12">
-                    <aside className="hidden w-64 shrink-0 md:block">
+                    <aside className="hidden w-64 shrink-0 lg:block">
                         <nav className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
                             <p
                                 className="mb-3 text-xs font-semibold uppercase tracking-wider"
@@ -120,6 +137,10 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                         <li key={item.id}>
                                             <a
                                                 href={`#${item.id}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    scrollToHeading(item.id);
+                                                }}
                                                 className="block rounded-md px-3 py-1.5 leading-snug transition-colors hover:bg-[#FFF9E6] hover:text-[#7A5400]"
                                                 style={
                                                     isActive
@@ -143,27 +164,43 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                     </aside>
 
                     <main className="min-w-0 flex-1">
-                        <details className="mb-6 rounded-lg border border-brand-border bg-white px-4 py-3 text-sm md:hidden">
-                            <summary
-                                className="cursor-pointer font-semibold"
-                                style={{ color: ACCENT_TEXT }}
+                        <div className="mb-6 lg:hidden">
+                            <button
+                                type="button"
+                                onClick={() => setMobileTocOpen((prev) => !prev)}
+                                className="inline-flex items-center gap-2 rounded-md border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand-bg"
+                                aria-expanded={mobileTocOpen}
+                                aria-controls="mobile-manual-toc"
                             >
-                                目次を表示
-                            </summary>
-                            <ul className="mt-3 space-y-1">
-                                {tocItems.map((item) => (
-                                    <li key={item.id}>
-                                        <a
-                                            href={`#${item.id}`}
-                                            className="block rounded px-2 py-1 hover:bg-[#FFF9E6]"
-                                            style={{ color: ACCENT_TEXT }}
-                                        >
-                                            {item.label}
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
-                        </details>
+                                {mobileTocOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                                目次
+                            </button>
+
+                            {mobileTocOpen && (
+                                <div
+                                    id="mobile-manual-toc"
+                                    className="mt-3 rounded-lg border border-brand-border bg-white p-3 text-sm shadow-sm"
+                                >
+                                    <ul className="space-y-1">
+                                        {tocItems.map((item) => (
+                                            <li key={item.id}>
+                                                <a
+                                                    href={`#${item.id}`}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        scrollToHeading(item.id);
+                                                    }}
+                                                    className="block rounded px-2 py-1 hover:bg-[#FFF9E6]"
+                                                    style={{ color: ACCENT_TEXT }}
+                                                >
+                                                    {item.label}
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
 
                         <article
                             id="manual-body"
@@ -185,20 +222,20 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                     ),
                                     h2: ({ node, ...props }) => (
                                         <h2
-                                            className="mt-10 mb-4 border-l-4 pl-3 text-2xl font-bold text-brand-dark"
+                                            className="mt-10 mb-4 scroll-mt-20 border-l-4 pl-3 text-2xl font-bold text-brand-dark"
                                             style={{ borderColor: ACCENT }}
                                             {...props}
                                         />
                                     ),
                                     h3: ({ node, ...props }) => (
                                         <h3
-                                            className="mt-7 mb-3 text-xl font-semibold text-brand-dark"
+                                            className="mt-7 mb-3 scroll-mt-20 text-xl font-semibold text-brand-dark"
                                             {...props}
                                         />
                                     ),
                                     h4: ({ node, ...props }) => (
                                         <h4
-                                            className="mt-5 mb-2 text-base font-semibold text-brand-dark"
+                                            className="mt-5 mb-2 scroll-mt-20 text-base font-semibold text-brand-dark"
                                             {...props}
                                         />
                                     ),
@@ -263,8 +300,11 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                         />
                                     ),
                                     code: ({ node, className, children, ...props }) => {
-                                        const isInline = !className;
-                                        if (isInline) {
+                                        const codeText = String(children ?? '');
+                                        const isBlockCode =
+                                            (className ?? '').includes('language-') ||
+                                            codeText.includes('\n');
+                                        if (!isBlockCode) {
                                             return (
                                                 <code
                                                     className="rounded bg-brand-bg px-1.5 py-0.5 font-mono text-[0.85em]"

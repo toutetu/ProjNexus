@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Bell,
+    BookOpen,
     Coins,
     FileCheck2,
     FolderSearch,
@@ -8,6 +9,7 @@ import {
     Inbox,
     ListChecks,
     LogOut,
+    PanelLeftClose,
     PlusCircle,
     User as UserIcon,
     Wallet,
@@ -16,6 +18,7 @@ import {
 import { ReactNode } from 'react';
 
 import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
+import ApplicationLogo from '@/Components/ApplicationLogo';
 import { cn } from '@/lib/utils';
 import type { PageProps, RoleName } from '@/types';
 
@@ -27,7 +30,7 @@ interface SidebarSectionProps {
 function SidebarSection({ label, children }: SidebarSectionProps) {
     return (
         <div className="mt-5 first:mt-2">
-            <div className="mb-1 px-5 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+            <div className="mb-1.5 px-5 text-[11px] font-semibold tracking-wide text-white/70">
                 {label}
             </div>
             {children}
@@ -46,6 +49,26 @@ interface SidebarLinkProps {
     dimLabel?: string;
     method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
     as?: 'a' | 'button';
+    target?: string;
+    rel?: string;
+}
+
+interface SidebarChildLabelProps {
+    label: string;
+    active?: boolean;
+}
+
+function SidebarChildLabel({ label, active = false }: SidebarChildLabelProps) {
+    return (
+        <div
+            className={cn(
+                'pl-12 pr-5 py-1.5 text-xs transition-colors',
+                active ? 'text-white' : 'text-white/45',
+            )}
+        >
+            {label}
+        </div>
+    );
 }
 
 function SidebarLink({
@@ -59,6 +82,8 @@ function SidebarLink({
     dimLabel,
     method,
     as,
+    target,
+    rel,
 }: SidebarLinkProps) {
     const baseClasses =
         'relative flex items-center gap-3 px-5 py-2.5 text-sm transition-colors';
@@ -109,11 +134,28 @@ function SidebarLink({
         );
     }
 
+    // Inertia の Link は target="_blank" を期待どおり扱えない場合があるため、
+    // 外部（別タブ）リンクは素の <a> にフォールバックする。
+    if (target === '_blank') {
+        return (
+            <a
+                href={href}
+                target={target}
+                rel={rel}
+                className={cn(baseClasses, stateClasses, 'justify-between')}
+            >
+                {content}
+            </a>
+        );
+    }
+
     return (
         <Link
             href={href}
             method={method}
             as={as}
+            target={target}
+            rel={rel}
             className={cn(baseClasses, stateClasses, 'justify-between')}
         >
             {content}
@@ -142,16 +184,18 @@ type ActiveKey =
     | 'tasks'
     | 'budget-input'
     | 'notifications'
+    | 'manual'
     | 'profile'
     | null;
 
 interface SidebarProps {
     activeKey?: ActiveKey;
+    onToggleSidebar?: () => void;
 }
 
-export default function Sidebar({ activeKey = null }: SidebarProps) {
-    const { auth, unreadNotificationCount = 0, pendingApprovalCount = 0 } =
-        usePage<PageProps>().props;
+export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarProps) {
+    const page = usePage<PageProps>();
+    const { auth, unreadNotificationCount = 0, pendingApprovalCount = 0 } = page.props;
     const user = auth.user;
     const roles = user.roles;
     const hasRole = (role: RoleName) => roles.includes(role);
@@ -166,30 +210,56 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
     const primaryRole = roles[0];
     const roleLabel = primaryRole ? ROLE_LABEL[primaryRole] : 'ゲスト';
     const deptLabel = user.department?.name ?? '未所属';
+    const pageUrl = page.url ?? '';
+    const [path, query = ''] = pageUrl.split('?');
+    const isProjectDetailPage = /^\/projects\/\d+$/.test(path ?? '');
+    const detailTab = new URLSearchParams(query).get('detailTab');
+    const detailSection = !isProjectDetailPage
+        ? null
+        : detailTab === 'tasks'
+          ? 'dev'
+          : detailTab === 'budget'
+            ? 'budget'
+            : 'approval';
+    const approvalActive = activeKey === 'projects-approval' || detailSection === 'approval';
+    const devActive = activeKey === 'projects-dev' || detailSection === 'dev';
+    const budgetActive = activeKey === 'projects-budget' || detailSection === 'budget';
 
     return (
         <aside
             className="flex h-screen w-64 shrink-0 flex-col overflow-hidden text-white"
             style={{ background: '#212429' }}
         >
-            <div className="flex h-14 items-center border-b border-white/10 px-5">
+            <div className="relative flex min-h-14 items-center border-b border-white/10 pl-5 pr-0 py-3">
                 <Link href="/" className="flex items-center gap-2">
-                    <div
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-sm font-bold text-white"
-                        style={{
-                            background:
-                                'linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%)',
-                        }}
-                    >
-                        J
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-cyan via-brand-blue to-brand-purple">
+                        <ApplicationLogo className="h-5 w-5 fill-white text-white" />
                     </div>
-                    <div className="text-[15px] font-bold tracking-wide">
-                        開発管理アプリ
+                    <div className="flex flex-col leading-tight">
+                        <span className="text-[10px] font-medium text-white/75">
+                            開発管理アプリ
+                        </span>
+                        <span className="text-[15px] font-bold tracking-wide">
+                            ProjNexus
+                        </span>
                     </div>
                 </Link>
+                <div className="group absolute right-0 top-1/2 -translate-y-1/2">
+                    <button
+                        type="button"
+                        onClick={onToggleSidebar}
+                        className="rounded-md p-2 text-white/75 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                        aria-label="レフトナビを閉じる"
+                    >
+                        <PanelLeftClose className="h-4.5 w-4.5" />
+                    </button>
+                    <span className="pointer-events-none absolute right-0 top-full mt-1 whitespace-nowrap rounded bg-black/80 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                        閉じる
+                    </span>
+                </div>
             </div>
 
-            <nav className="flex-1 py-3 text-sm">
+            <nav className="sidebar-scroll flex-1 min-h-0 overflow-y-auto py-3 text-sm">
                 <SidebarSection label="申請・承認">
                     {canCreate && (
                         <SidebarLink
@@ -218,8 +288,9 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         href="/projects?tab=approval"
                         icon={FolderSearch}
                         label="案件一覧"
-                        active={activeKey === 'projects-approval'}
+                        active={approvalActive}
                     />
+                    <SidebarChildLabel label="|_案件詳細" active={detailSection === 'approval'} />
                 </SidebarSection>
 
                 <SidebarSection label="開発管理">
@@ -227,14 +298,14 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         href="/projects?tab=dev"
                         icon={Folders}
                         label="案件一覧"
-                        active={activeKey === 'projects-dev'}
+                        active={devActive}
                     />
+                    <SidebarChildLabel label="|_案件詳細" active={detailSection === 'dev'} />
                     <SidebarLink
-                        href="#"
+                        href={route('member-tasks.index')}
                         icon={ListChecks}
                         label="タスク一覧"
-                        disabled
-                        dimLabel="課題2"
+                        active={activeKey === 'tasks'}
                     />
                 </SidebarSection>
 
@@ -243,8 +314,9 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         href="/projects?tab=budget"
                         icon={Wallet}
                         label="案件一覧"
-                        active={activeKey === 'projects-budget'}
+                        active={budgetActive}
                     />
+                    <SidebarChildLabel label="|_案件詳細" active={detailSection === 'budget'} />
                     {isApplicant && (
                         <SidebarLink
                             href="#"
@@ -270,11 +342,28 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         }
                     />
                     <SidebarLink
+                        href={route('manual.show')}
+                        icon={BookOpen}
+                        label="マニュアル"
+                        active={activeKey === 'manual'}
+                        target="_blank"
+                        rel="noopener"
+                    />
+                    <SidebarLink
                         href={route('profile.edit')}
                         icon={UserIcon}
                         label="プロフィール"
                         active={activeKey === 'profile'}
                     />
+                    <div className="mt-3 border-t border-white/10 pt-3">
+                        <SidebarLink
+                            href={route('logout')}
+                            method="post"
+                            as="button"
+                            icon={LogOut}
+                            label="ログアウト"
+                        />
+                    </div>
                 </div>
             </nav>
 
@@ -296,15 +385,6 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         {roleLabel} / {deptLabel}
                     </div>
                 </div>
-                <Link
-                    href={route('logout')}
-                    method="post"
-                    as="button"
-                    className="ml-auto text-white/50 transition-colors hover:text-white"
-                    aria-label="ログアウト"
-                >
-                    <LogOut className="h-4 w-4" />
-                </Link>
             </div>
         </aside>
     );

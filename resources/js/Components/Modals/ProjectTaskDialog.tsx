@@ -27,7 +27,7 @@ import {
 } from '@/Components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-export type TaskStatus = 'open' | 'in_progress' | 'closed';
+export type TaskStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 export type TaskType = 'task' | 'feature' | 'improvement' | 'bug';
 export type TaskPriority = 'high' | 'medium' | 'low';
 
@@ -46,10 +46,15 @@ export interface TaskListItem {
     priority: TaskPriority;
     status: TaskStatus;
     progressRate: number;
+    estimatedDays?: number | null;
+    actualDays?: number | null;
     assigneeId: number | null;
     assignee: string | null;
+    reviewerId?: number | null;
+    reviewer?: string | null;
     dueDate: string | null;
     updatedAt: string | null;
+    canUpdate?: boolean;
     comments?: TaskCommentItem[];
     histories?: TaskHistoryItem[];
 }
@@ -70,6 +75,7 @@ interface ProjectTaskDialogProps {
     projectTitle: string;
     task: TaskListItem | null;
     assignees: Array<{ id: number; name: string }>;
+    readOnly?: boolean;
 }
 
 type ChipOption<T extends string> = {
@@ -105,6 +111,11 @@ const STATUS_OPTIONS: ChipOption<TaskStatus>[] = [
         value: 'in_progress',
         label: '進行中',
         activeClass: 'bg-brand-blue border-brand-blue text-white',
+    },
+    {
+        value: 'resolved',
+        label: '確認待ち',
+        activeClass: 'bg-[#7C3AED] border-[#7C3AED] text-white',
     },
     { value: 'closed', label: '完了', activeClass: 'bg-green-600 border-green-600 text-white' },
 ];
@@ -169,8 +180,11 @@ const historyFieldLabel = (fieldName: string): string => {
         status: 'ステータス',
         progress_rate: '進捗率',
         assignee_id: '担当者',
+        reviewer_id: '確認者',
         due_date: '期日',
         description: '説明',
+        estimated_days: '計画工数',
+        actual_days: '実績工数',
     };
 
     return map[fieldName] ?? fieldName;
@@ -183,6 +197,7 @@ export default function ProjectTaskDialog({
     projectTitle,
     task,
     assignees,
+    readOnly = false,
 }: ProjectTaskDialogProps) {
     const [title, setTitle] = useState('');
     const [taskType, setTaskType] = useState<TaskType>('task');
@@ -191,7 +206,10 @@ export default function ProjectTaskDialog({
     const [progressRate, setProgressRate] = useState(0);
     const [assigneeId, setAssigneeId] = useState('');
     const [dueDate, setDueDate] = useState('');
+    const [reviewerId, setReviewerId] = useState('');
     const [description, setDescription] = useState('');
+    const [estimatedDaysInput, setEstimatedDaysInput] = useState('');
+    const [actualDaysInput, setActualDaysInput] = useState('');
     const [commentBody, setCommentBody] = useState('');
     const [processing, setProcessing] = useState(false);
     const [postingComment, setPostingComment] = useState(false);
@@ -207,8 +225,17 @@ export default function ProjectTaskDialog({
         setStatus(task?.status ?? 'open');
         setProgressRate(task?.progressRate ?? 0);
         setAssigneeId(task?.assigneeId ? String(task.assigneeId) : '');
+        setReviewerId(task?.reviewerId ? String(task.reviewerId) : '');
         setDueDate(task?.dueDate ?? '');
         setDescription(task?.description ?? '');
+        setEstimatedDaysInput(
+            task?.estimatedDays !== undefined && task.estimatedDays !== null
+                ? String(task.estimatedDays)
+                : '',
+        );
+        setActualDaysInput(
+            task?.actualDays !== undefined && task.actualDays !== null ? String(task.actualDays) : '',
+        );
         setCommentBody('');
         setProcessing(false);
         setPostingComment(false);
@@ -230,8 +257,11 @@ export default function ProjectTaskDialog({
     const effectiveProgress = useMemo(() => {
         if (status === 'open') return 0;
         if (status === 'closed') return 100;
+        if (status === 'resolved') return progressRate;
         return progressRate;
     }, [progressRate, status]);
+
+    const allowEdit = readOnly === false;
 
     const taskCode = useMemo(() => {
         if (!task) return null;
@@ -244,7 +274,22 @@ export default function ProjectTaskDialog({
     }, [dueDate]);
 
     const submit = () => {
+        if (!allowEdit) return;
+
         setProcessing(true);
+
+        const estimatedLabor = ((): number | null => {
+            const t = estimatedDaysInput.trim();
+            if (t === '') return null;
+            const n = Number.parseFloat(t.replace(',', '.'));
+            return Number.isNaN(n) ? null : n;
+        })();
+        const actualLabor = ((): number => {
+            const t = actualDaysInput.trim();
+            if (t === '') return 0;
+            const n = Number.parseFloat(t.replace(',', '.'));
+            return Number.isNaN(n) ? 0 : n;
+        })();
 
         const payload = {
             title,
@@ -253,8 +298,11 @@ export default function ProjectTaskDialog({
             status,
             progress_rate: effectiveProgress,
             assignee_id: assigneeId === '' ? null : Number(assigneeId),
+            reviewer_id: reviewerId === '' ? null : Number(reviewerId),
             due_date: dueDate === '' ? null : dueDate,
             description: description.trim() === '' ? null : description,
+            estimated_days: estimatedLabor,
+            actual_days: actualLabor,
         };
 
         const options = {
@@ -272,7 +320,7 @@ export default function ProjectTaskDialog({
     };
 
     const destroy = () => {
-        if (!task || !window.confirm('このタスクを削除しますか？')) return;
+        if (!allowEdit || !task || !window.confirm('このタスクを削除しますか？')) return;
 
         setProcessing(true);
         router.delete(route('projects.tasks.destroy', [projectId, task.id]), {
@@ -283,7 +331,7 @@ export default function ProjectTaskDialog({
     };
 
     const submitComment = () => {
-        if (!task || commentBody.trim() === '') return;
+        if (!allowEdit || !task || commentBody.trim() === '') return;
         setPostingComment(true);
         setPendingCommentScroll(true);
         router.post(
@@ -338,8 +386,9 @@ export default function ProjectTaskDialog({
                         </label>
                         <input
                             value={title}
+                            disabled={!allowEdit}
                             onChange={(event) => setTitle(event.target.value.slice(0, 120))}
-                            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
                             placeholder="例：IoTゲートウェイ設計書作成"
                         />
                         <div className="mt-1 text-right font-mono text-[10px] text-brand-muted">
@@ -354,6 +403,7 @@ export default function ProjectTaskDialog({
                             value={taskType}
                             onChange={setTaskType}
                             chipClass={chipClass}
+                            disabled={!allowEdit}
                         />
 
                         <ChipGroup
@@ -362,6 +412,7 @@ export default function ProjectTaskDialog({
                             value={priority}
                             onChange={setPriority}
                             chipClass={chipClass}
+                            disabled={!allowEdit}
                         />
                     </div>
 
@@ -371,6 +422,7 @@ export default function ProjectTaskDialog({
                         value={status}
                         onChange={setStatus}
                         chipClass={chipClass}
+                        disabled={!allowEdit}
                     />
 
                     {status === 'in_progress' && (
@@ -390,8 +442,9 @@ export default function ProjectTaskDialog({
                                 max={100}
                                 step={5}
                                 value={progressRate}
+                                disabled={!allowEdit}
                                 onChange={(event) => setProgressRate(Number(event.target.value))}
-                                className="w-full accent-[#106EBE]"
+                                className="w-full accent-[#106EBE] disabled:opacity-50"
                             />
                             <div className="mt-1 flex justify-between font-mono text-[10px] text-brand-muted">
                                 <span>0%</span>
@@ -403,14 +456,15 @@ export default function ProjectTaskDialog({
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                         <div>
                             <label className="mb-1.5 block text-xs font-semibold text-brand-dark">担当者</label>
                             <div className="relative">
                                 <select
                                     value={assigneeId}
+                                    disabled={!allowEdit}
                                     onChange={(event) => setAssigneeId(event.target.value)}
-                                    className="w-full appearance-none rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                    className="w-full appearance-none rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
                                 >
                                     <option value="">未割当</option>
                                     {assignees.map((assignee) => (
@@ -423,13 +477,40 @@ export default function ProjectTaskDialog({
                             </div>
                         </div>
                         <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-brand-dark">
+                                確認者 <span className="text-brand-red">*</span>
+                            </label>
+                            <div className="relative">
+                                <select
+                                    value={reviewerId}
+                                    disabled={!allowEdit}
+                                    onChange={(event) => setReviewerId(event.target.value)}
+                                    className="w-full appearance-none rounded-md border border-brand-border bg-white px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
+                                >
+                                    <option value="">選択してください</option>
+                                    {assignees.map((assignee) => (
+                                        <option key={assignee.id} value={assignee.id}>
+                                            {assignee.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                            </div>
+                            {status === 'resolved' && (
+                                <p className="mt-1 text-[10px] text-brand-muted">
+                                    確認待ちでは確認者が完了内容を確認します。
+                                </p>
+                            )}
+                        </div>
+                        <div>
                             <label className="mb-1.5 block text-xs font-semibold text-brand-dark">期日</label>
                             <div className="relative">
                                 <input
                                     type="date"
                                     value={dueDate}
+                                    disabled={!allowEdit}
                                     onChange={(event) => setDueDate(event.target.value)}
-                                    className="w-full rounded-md border border-brand-border px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                    className="w-full rounded-md border border-brand-border px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
                                 />
                                 <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
                             </div>
@@ -447,13 +528,51 @@ export default function ProjectTaskDialog({
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                        <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-brand-dark">
+                                計画工数（人日）
+                            </label>
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={estimatedDaysInput}
+                                disabled={!allowEdit}
+                                onChange={(event) => setEstimatedDaysInput(event.target.value)}
+                                placeholder="例: 3 または 2.5"
+                                className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
+                            />
+                            <p className="mt-1 text-[10px] text-brand-muted">
+                                タスク単位の見込み工数です。空欄は未設定として集計から除外されます。
+                            </p>
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-brand-dark">
+                                実績工数（人日）
+                            </label>
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={actualDaysInput}
+                                disabled={!allowEdit}
+                                onChange={(event) => setActualDaysInput(event.target.value)}
+                                placeholder="例: 0"
+                                className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
+                            />
+                            <p className="mt-1 text-[10px] text-brand-muted">
+                                実際に投入した工数の目安です。
+                            </p>
+                        </div>
+                    </div>
+
                     <div>
                         <label className="mb-1.5 block text-xs font-semibold text-brand-dark">説明</label>
                         <textarea
                             value={description}
+                            disabled={!allowEdit}
                             onChange={(event) => setDescription(event.target.value)}
                             rows={4}
-                            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
                             placeholder="タスクの詳細や受入基準を記入"
                         />
                     </div>
@@ -516,10 +635,11 @@ export default function ProjectTaskDialog({
                                         <textarea
                                             rows={2}
                                             value={commentBody}
+                                            disabled={!allowEdit}
                                             onChange={(event) => setCommentBody(event.target.value)}
                                             onKeyDown={onCommentKeyDown}
                                             placeholder="コメントを追加..."
-                                            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
                                         />
                                         <div className="mt-2 flex items-center justify-between">
                                             <p className="text-[10px] text-brand-muted">
@@ -530,7 +650,11 @@ export default function ProjectTaskDialog({
                                                 variant="outline"
                                                 size="sm"
                                                 className="gap-1.5"
-                                                disabled={postingComment || commentBody.trim() === ''}
+                                                disabled={
+                                                    !allowEdit ||
+                                                    postingComment ||
+                                                    commentBody.trim() === ''
+                                                }
                                                 onClick={submitComment}
                                             >
                                                 <Send className="h-3.5 w-3.5" />
@@ -596,7 +720,7 @@ export default function ProjectTaskDialog({
 
                 <DialogFooter className="sticky bottom-0 items-center justify-between border-t border-brand-border bg-white px-6 py-4 sm:justify-between">
                     <div>
-                        {task && (
+                        {task && allowEdit && (
                             <Button
                                 type="button"
                                 variant="outline"
@@ -611,17 +735,23 @@ export default function ProjectTaskDialog({
                     </div>
                     <div className="flex gap-2">
                         <Button type="button" variant="secondary" onClick={onClose}>
-                            キャンセル
+                            {allowEdit ? 'キャンセル' : '閉じる'}
                         </Button>
-                        <Button
-                            type="button"
-                            className="gap-1.5 bg-brand-red hover:bg-brand-red/90"
-                            onClick={submit}
-                            disabled={processing || title.trim().length === 0}
-                        >
-                            <Check className="h-4 w-4" />
-                            保存
-                        </Button>
+                        {allowEdit && (
+                            <Button
+                                type="button"
+                                className="gap-1.5 bg-brand-red hover:bg-brand-red/90"
+                                onClick={submit}
+                                disabled={
+                                    processing ||
+                                    title.trim().length === 0 ||
+                                    reviewerId === ''
+                                }
+                            >
+                                <Check className="h-4 w-4" />
+                                保存
+                            </Button>
+                        )}
                     </div>
                 </DialogFooter>
             </DialogContent>
@@ -635,12 +765,14 @@ function ChipGroup<T extends string>({
     value,
     onChange,
     chipClass,
+    disabled = false,
 }: {
     label: string;
     options: ChipOption<T>[];
     value: T;
     onChange: (value: T) => void;
     chipClass: (active: boolean, activeClass: string) => string;
+    disabled?: boolean;
 }) {
     return (
         <div>
@@ -650,7 +782,11 @@ function ChipGroup<T extends string>({
                     <button
                         key={option.value}
                         type="button"
-                        className={chipClass(value === option.value, option.activeClass)}
+                        disabled={disabled}
+                        className={cn(
+                            chipClass(value === option.value, option.activeClass),
+                            disabled && 'cursor-not-allowed opacity-45',
+                        )}
                         onClick={() => onChange(option.value)}
                     >
                         {option.label}

@@ -1,5 +1,8 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    ChevronDown,
+    ChevronsUpDown,
+    ChevronUp,
     FileCheck2,
     FileText,
     FolderSearch,
@@ -9,6 +12,7 @@ import {
     Search,
     Wallet,
 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 import ApprovalStepperMini from '@/Components/Approval/ApprovalStepperMini';
 import EmptyState from '@/Components/EmptyState';
@@ -171,6 +175,105 @@ const taskProgress = (project: ProjectListItem): number => {
     return Math.round(((project.closedTaskCount ?? 0) / total) * 100);
 };
 
+type TabSortDir = 'asc' | 'desc';
+
+type DevSortKey =
+    | 'title'
+    | 'department'
+    | 'primaryAssignee'
+    | 'taskProgress'
+    | 'nearestDue'
+    | 'updatedAt';
+
+function compareDevProjects(
+    a: ProjectListItem,
+    b: ProjectListItem,
+    key: DevSortKey,
+    dir: TabSortDir,
+): number {
+    const mul = dir === 'asc' ? 1 : -1;
+    switch (key) {
+        case 'title':
+            return a.title.localeCompare(b.title, 'ja') * mul;
+        case 'department':
+            return (a.department ?? '').localeCompare(b.department ?? '', 'ja') * mul;
+        case 'primaryAssignee': {
+            const va = a.primaryAssignee?.trim() ?? '';
+            const vb = b.primaryAssignee?.trim() ?? '';
+            if (!va && !vb) return 0;
+            if (!va) return 1;
+            if (!vb) return -1;
+            return va.localeCompare(vb, 'ja') * mul;
+        }
+        case 'taskProgress':
+            return (taskProgress(a) - taskProgress(b)) * mul;
+        case 'nearestDue': {
+            const ta = a.nearestTaskDueDate
+                ? Date.parse(`${a.nearestTaskDueDate}T00:00:00`)
+                : null;
+            const tb = b.nearestTaskDueDate
+                ? Date.parse(`${b.nearestTaskDueDate}T00:00:00`)
+                : null;
+            if (ta === null && tb === null) return 0;
+            if (ta === null) return 1;
+            if (tb === null) return -1;
+            return (ta - tb) * mul;
+        }
+        case 'updatedAt': {
+            const ta = Date.parse(a.updatedAt);
+            const tb = Date.parse(b.updatedAt);
+            const va = Number.isNaN(ta) ? null : ta;
+            const vb = Number.isNaN(tb) ? null : tb;
+            if (va === null && vb === null) return 0;
+            if (va === null) return 1;
+            if (vb === null) return -1;
+            return (va - vb) * mul;
+        }
+        default:
+            return 0;
+    }
+}
+
+function TableSortHeader<T extends string>({
+    label,
+    sortKey,
+    activeKey,
+    dir,
+    onSort,
+    className,
+}: {
+    label: string;
+    sortKey: T;
+    activeKey: T | null;
+    dir: TabSortDir;
+    onSort: (key: T) => void;
+    className: string;
+}) {
+    const active = activeKey === sortKey;
+    return (
+        <th scope="col" className={`py-3 text-left align-bottom font-semibold ${className}`}>
+            <button
+                type="button"
+                className="-mx-1 inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-xs uppercase tracking-wider text-slate-600 hover:bg-slate-100 hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                onClick={() => onSort(sortKey)}
+                aria-label={`${label}で並び替え（クリックで昇順・降順の切替）`}
+                aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+            >
+                <span className="truncate normal-case tracking-normal">{label}</span>
+                {active ? (
+                    dir === 'asc' ? (
+                        <ChevronUp className="h-3.5 w-3.5 shrink-0 text-slate-800" aria-hidden />
+                    ) : (
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-800" aria-hidden />
+                    )
+                ) : (
+                    <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+                )}
+            </button>
+        </th>
+    );
+}
+
 type ProgressBand = 'not_started' | 'in_progress' | 'completing' | 'completed';
 
 const projectProgressBand = (project: ProjectListItem): ProgressBand => {
@@ -209,6 +312,47 @@ const consumptionClass = (rate: number): string => {
     return 'bg-[#16A34A] text-[#166534]';
 };
 
+type BudgetSortKey =
+    | 'title'
+    | 'department'
+    | 'budgetAmount'
+    | 'actualAmount'
+    | 'consumption'
+    | 'updatedAt';
+
+function compareBudgetProjects(
+    a: ProjectListItem,
+    b: ProjectListItem,
+    key: BudgetSortKey,
+    dir: TabSortDir,
+): number {
+    const mul = dir === 'asc' ? 1 : -1;
+    switch (key) {
+        case 'title':
+            return a.title.localeCompare(b.title, 'ja') * mul;
+        case 'department':
+            return (a.department ?? '').localeCompare(b.department ?? '', 'ja') * mul;
+        case 'budgetAmount':
+            return (toNumber(a.budgetAmount) - toNumber(b.budgetAmount)) * mul;
+        case 'actualAmount':
+            return (toNumber(a.actualAmount) - toNumber(b.actualAmount)) * mul;
+        case 'consumption':
+            return (consumptionRate(a) - consumptionRate(b)) * mul;
+        case 'updatedAt': {
+            const ta = Date.parse(a.updatedAt);
+            const tb = Date.parse(b.updatedAt);
+            const va = Number.isNaN(ta) ? null : ta;
+            const vb = Number.isNaN(tb) ? null : tb;
+            if (va === null && vb === null) return 0;
+            if (va === null) return 1;
+            if (vb === null) return -1;
+            return (va - vb) * mul;
+        }
+        default:
+            return 0;
+    }
+}
+
 interface ApprovalProjectRow {
     id: number;
     title: string;
@@ -219,6 +363,68 @@ interface ApprovalProjectRow {
     rejectedAt?: 'dept' | 'hq';
     canEdit: boolean;
     applicantSubmitsToHqDirect?: boolean;
+}
+
+type ApprovalSortKey =
+    | 'title'
+    | 'status'
+    | 'approvalStep'
+    | 'appliedAt'
+    | 'department'
+    | 'updatedAt';
+
+const approvalStatusRank: Record<ProjectStatus, number> = {
+    draft: 1,
+    pending_dept: 2,
+    pending_hq: 3,
+    approved: 4,
+    rejected: 5,
+};
+
+function parseSubmittedAtSortValue(value: string): number | null {
+    if (!value || value === '—') return null;
+    const t = Date.parse(value);
+    return Number.isNaN(t) ? null : t;
+}
+
+function compareApprovalRows(
+    a: ApprovalProjectRow,
+    b: ApprovalProjectRow,
+    key: ApprovalSortKey,
+    dir: TabSortDir,
+): number {
+    const mul = dir === 'asc' ? 1 : -1;
+    switch (key) {
+        case 'title':
+            return a.title.localeCompare(b.title, 'ja') * mul;
+        case 'status':
+        case 'approvalStep':
+            return (approvalStatusRank[a.status] - approvalStatusRank[b.status]) * mul;
+        case 'appliedAt': {
+            const va = parseSubmittedAtSortValue(a.appliedAt);
+            const vb = parseSubmittedAtSortValue(b.appliedAt);
+            if (va !== null && vb !== null) return (va - vb) * mul;
+            if (va === null && vb === null)
+                return a.appliedAt.localeCompare(b.appliedAt, 'ja') * mul;
+            if (va === null) return 1;
+            return -1;
+        }
+        case 'department':
+            return a.department.localeCompare(b.department, 'ja') * mul;
+        case 'updatedAt': {
+            const ta = Date.parse(a.updatedAt);
+            const tb = Date.parse(b.updatedAt);
+            const va = Number.isNaN(ta) ? null : ta;
+            const vb = Number.isNaN(tb) ? null : tb;
+            if (va === null && vb === null)
+                return a.updatedAt.localeCompare(b.updatedAt, 'ja') * mul;
+            if (va === null) return 1;
+            if (vb === null) return -1;
+            return (va - vb) * mul;
+        }
+        default:
+            return 0;
+    }
 }
 
 interface DevProjectRow {
@@ -350,6 +556,48 @@ export default function ProjectsIndex({
     const activeKey: ActiveKey =
         isPendingFilter ? 'pending' : TAB_ACTIVE_KEY[tab];
     const projectRows = projects?.data ?? [];
+    const [devSort, setDevSort] = useState<{ key: DevSortKey | null; dir: TabSortDir }>({
+        key: null,
+        dir: 'asc',
+    });
+    const [approvalSort, setApprovalSort] = useState<{
+        key: ApprovalSortKey | null;
+        dir: TabSortDir;
+    }>({ key: null, dir: 'asc' });
+    const [budgetSort, setBudgetSort] = useState<{ key: BudgetSortKey | null; dir: TabSortDir }>({
+        key: null,
+        dir: 'asc',
+    });
+
+    useEffect(() => {
+        if (tab !== 'dev') {
+            setDevSort({ key: null, dir: 'asc' });
+        }
+        if (tab !== 'approval') {
+            setApprovalSort({ key: null, dir: 'asc' });
+        }
+        if (tab !== 'budget') {
+            setBudgetSort({ key: null, dir: 'asc' });
+        }
+    }, [tab]);
+
+    const devSortedRows = useMemo(() => {
+        if (tab !== 'dev' || devSort.key === null) {
+            return projectRows;
+        }
+        return [...projectRows].sort((a, b) =>
+            compareDevProjects(a, b, devSort.key!, devSort.dir),
+        );
+    }, [tab, projectRows, devSort]);
+
+    const toggleDevSort = (nextKey: DevSortKey) => {
+        setDevSort((prev) =>
+            prev.key !== nextKey
+                ? { key: nextKey, dir: 'asc' }
+                : { key: nextKey, dir: prev.dir === 'asc' ? 'desc' : 'asc' },
+        );
+    };
+
     const currentPage = projects?.current_page ?? 1;
     const lastPage = projects?.last_page ?? 1;
     const from = projects?.from ?? (projectRows.length > 0 ? 1 : 0);
@@ -368,6 +616,41 @@ export default function ProjectsIndex({
               applicantSubmitsToHqDirect: project.applicantSubmitsToHqDirect ?? false,
           }))
         : APPROVAL_ROWS;
+
+    const approvalSortedRows = useMemo(() => {
+        if (tab !== 'approval' || approvalSort.key === null) {
+            return approvalRows;
+        }
+        return [...approvalRows].sort((a, b) =>
+            compareApprovalRows(a, b, approvalSort.key!, approvalSort.dir),
+        );
+    }, [tab, approvalRows, approvalSort]);
+
+    const budgetSortedRows = useMemo(() => {
+        if (tab !== 'budget' || budgetSort.key === null) {
+            return projectRows;
+        }
+        return [...projectRows].sort((a, b) =>
+            compareBudgetProjects(a, b, budgetSort.key!, budgetSort.dir),
+        );
+    }, [tab, projectRows, budgetSort]);
+
+    const toggleApprovalSort = (nextKey: ApprovalSortKey) => {
+        setApprovalSort((prev) =>
+            prev.key !== nextKey
+                ? { key: nextKey, dir: 'asc' }
+                : { key: nextKey, dir: prev.dir === 'asc' ? 'desc' : 'asc' },
+        );
+    };
+
+    const toggleBudgetSort = (nextKey: BudgetSortKey) => {
+        setBudgetSort((prev) =>
+            prev.key !== nextKey
+                ? { key: nextKey, dir: 'asc' }
+                : { key: nextKey, dir: prev.dir === 'asc' ? 'desc' : 'asc' },
+        );
+    };
+
     const tabItems: TabItem<ProjectTab>[] = DEFAULT_TAB_ITEMS.map((item) => ({
         ...item,
         count: tabCounts?.[item.value] ?? 0,
@@ -956,16 +1239,58 @@ export default function ProjectsIndex({
                         <table className="min-w-full text-sm">
                             <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
                                 <tr>
-                                    <th className="px-5 py-3 text-left font-semibold">タイトル</th>
-                                    <th className="px-4 py-3 text-left font-semibold">ステータス</th>
-                                    <th className="px-4 py-3 text-left font-semibold">承認ステップ</th>
-                                    <th className="px-4 py-3 text-left font-semibold">申請日</th>
-                                    <th className="px-4 py-3 text-left font-semibold">部門</th>
-                                    <th className="px-4 py-3 text-left font-semibold">最終更新</th>
+                                    <TableSortHeader
+                                        label="タイトル"
+                                        sortKey="title"
+                                        activeKey={approvalSort.key}
+                                        dir={approvalSort.dir}
+                                        onSort={toggleApprovalSort}
+                                        className="px-5"
+                                    />
+                                    <TableSortHeader
+                                        label="ステータス"
+                                        sortKey="status"
+                                        activeKey={approvalSort.key}
+                                        dir={approvalSort.dir}
+                                        onSort={toggleApprovalSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="承認ステップ"
+                                        sortKey="approvalStep"
+                                        activeKey={approvalSort.key}
+                                        dir={approvalSort.dir}
+                                        onSort={toggleApprovalSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="申請日"
+                                        sortKey="appliedAt"
+                                        activeKey={approvalSort.key}
+                                        dir={approvalSort.dir}
+                                        onSort={toggleApprovalSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="部門"
+                                        sortKey="department"
+                                        activeKey={approvalSort.key}
+                                        dir={approvalSort.dir}
+                                        onSort={toggleApprovalSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="最終更新"
+                                        sortKey="updatedAt"
+                                        activeKey={approvalSort.key}
+                                        dir={approvalSort.dir}
+                                        onSort={toggleApprovalSort}
+                                        className="px-4"
+                                    />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
-                                {approvalRows.map((row, index) => (
+                                {approvalSortedRows.map((row, index) => (
                                     <tr
                                         key={row.id}
                                         className={cn(
@@ -1028,16 +1353,58 @@ export default function ProjectsIndex({
                         <table className="min-w-full text-sm">
                             <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
                                 <tr>
-                                    <th className="px-5 py-3 text-left font-semibold">タイトル</th>
-                                    <th className="px-4 py-3 text-left font-semibold">部門</th>
-                                    <th className="px-4 py-3 text-left font-semibold">主担当</th>
-                                    <th className="px-4 py-3 text-left font-semibold">タスク進捗</th>
-                                    <th className="px-4 py-3 text-left font-semibold">期限</th>
-                                    <th className="px-4 py-3 text-left font-semibold">最終更新</th>
+                                    <TableSortHeader
+                                        label="タイトル"
+                                        sortKey="title"
+                                        activeKey={devSort.key}
+                                        dir={devSort.dir}
+                                        onSort={toggleDevSort}
+                                        className="px-5"
+                                    />
+                                    <TableSortHeader
+                                        label="部門"
+                                        sortKey="department"
+                                        activeKey={devSort.key}
+                                        dir={devSort.dir}
+                                        onSort={toggleDevSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="主担当"
+                                        sortKey="primaryAssignee"
+                                        activeKey={devSort.key}
+                                        dir={devSort.dir}
+                                        onSort={toggleDevSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="タスク進捗"
+                                        sortKey="taskProgress"
+                                        activeKey={devSort.key}
+                                        dir={devSort.dir}
+                                        onSort={toggleDevSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="期限"
+                                        sortKey="nearestDue"
+                                        activeKey={devSort.key}
+                                        dir={devSort.dir}
+                                        onSort={toggleDevSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="最終更新"
+                                        sortKey="updatedAt"
+                                        activeKey={devSort.key}
+                                        dir={devSort.dir}
+                                        onSort={toggleDevSort}
+                                        className="px-4"
+                                    />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
-                                {projectRows.map((row) => {
+                                {devSortedRows.map((row) => {
                                     const progressRate = taskProgress(row);
                                     const total = row.taskCount ?? 0;
 
@@ -1135,16 +1502,58 @@ export default function ProjectsIndex({
                         <table className="min-w-full text-sm">
                             <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
                                 <tr>
-                                    <th className="px-5 py-3 text-left font-semibold">タイトル</th>
-                                    <th className="px-4 py-3 text-left font-semibold">部門</th>
-                                    <th className="px-4 py-3 text-left font-semibold">予算額</th>
-                                    <th className="px-4 py-3 text-left font-semibold">実績額</th>
-                                    <th className="px-4 py-3 text-left font-semibold">消費率</th>
-                                    <th className="px-4 py-3 text-left font-semibold">更新日</th>
+                                    <TableSortHeader
+                                        label="タイトル"
+                                        sortKey="title"
+                                        activeKey={budgetSort.key}
+                                        dir={budgetSort.dir}
+                                        onSort={toggleBudgetSort}
+                                        className="px-5"
+                                    />
+                                    <TableSortHeader
+                                        label="部門"
+                                        sortKey="department"
+                                        activeKey={budgetSort.key}
+                                        dir={budgetSort.dir}
+                                        onSort={toggleBudgetSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="予算額"
+                                        sortKey="budgetAmount"
+                                        activeKey={budgetSort.key}
+                                        dir={budgetSort.dir}
+                                        onSort={toggleBudgetSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="実績額"
+                                        sortKey="actualAmount"
+                                        activeKey={budgetSort.key}
+                                        dir={budgetSort.dir}
+                                        onSort={toggleBudgetSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="消費率"
+                                        sortKey="consumption"
+                                        activeKey={budgetSort.key}
+                                        dir={budgetSort.dir}
+                                        onSort={toggleBudgetSort}
+                                        className="px-4"
+                                    />
+                                    <TableSortHeader
+                                        label="更新日"
+                                        sortKey="updatedAt"
+                                        activeKey={budgetSort.key}
+                                        dir={budgetSort.dir}
+                                        onSort={toggleBudgetSort}
+                                        className="px-4"
+                                    />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
-                                {projectRows.map((row) => {
+                                {budgetSortedRows.map((row) => {
                                     const rate = consumptionRate(row);
                                     const rateClass = consumptionClass(rate);
                                     const remaining = toNumber(row.budgetAmount) - toNumber(row.actualAmount);
@@ -1232,6 +1641,7 @@ export default function ProjectsIndex({
                     </div>
                 </div>
             </section>
+
 
             {tab === 'approval' && (
                 <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-brand-muted">

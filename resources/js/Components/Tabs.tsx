@@ -16,6 +16,7 @@ interface TabsProps<T extends string> {
     className?: string;
 }
 
+
 export default function Tabs<T extends string>({
     value,
     onChange,

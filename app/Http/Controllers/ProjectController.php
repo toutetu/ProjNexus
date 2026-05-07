@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Enums\ApprovalAction;
 use App\Enums\ProjectStatus;
 use App\Enums\Role;
 use App\Enums\TaskStatus;
-use App\Models\Department;
 use App\Models\Approval;
+use App\Models\Department;
 use App\Models\Project;
 use App\Models\ProjectWorkItem;
 use App\Models\User;
 use App\Services\ApprovalService;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -216,7 +217,8 @@ class ProjectController extends Controller
             ];
         }
 
-        $paginator = $query->latest('updated_at')->paginate(15);
+        $perPage = $tab === 'approval' ? 5 : 15;
+        $paginator = $query->latest('updated_at')->paginate($perPage);
 
         $rejectedIds = $paginator
             ->getCollection()
@@ -224,16 +226,21 @@ class ProjectController extends Controller
             ->pluck('id')
             ->values();
 
-        $rejectionLevelByProjectId = [];
+        $rejectionInfoByProjectId = [];
         if ($rejectedIds->isNotEmpty()) {
-            $rejectionLevelByProjectId = Approval::query()
+            $rejectionInfoByProjectId = Approval::query()
                 ->whereIn('project_id', $rejectedIds)
                 ->where('action', ApprovalAction::Rejected)
                 ->orderByDesc('acted_at')
                 ->get()
                 ->unique('project_id')
                 ->mapWithKeys(fn (Approval $approval) => [
-                    $approval->project_id => $approval->level->value,
+                    $approval->project_id => [
+                        'level' => $approval->level->value,
+                        'comment' => $approval->comment !== null && $approval->comment !== ''
+                            ? (string) $approval->comment
+                            : null,
+                    ],
                 ])
                 ->all();
         }
@@ -259,16 +266,22 @@ class ProjectController extends Controller
                 ->get(),
             'budgetSummary' => $budgetSummary,
             'tabCounts' => $tabCounts,
-            'projects' => $paginator->through(function (Project $project) use ($user, $rejectionLevelByProjectId) {
+            'projects' => $paginator->through(function (Project $project) use ($user, $rejectionInfoByProjectId) {
                 $rejectedAt = null;
+                $rejectedComment = null;
                 if ($project->status === ProjectStatus::Rejected) {
-                    $level = $rejectionLevelByProjectId[$project->id] ?? null;
-                    $rejectedAt = $level === 'dept' || $level === 'hq' ? $level : null;
+                    $info = $rejectionInfoByProjectId[$project->id] ?? null;
+                    if (is_array($info)) {
+                        $level = $info['level'] ?? null;
+                        $rejectedAt = $level === 'dept' || $level === 'hq' ? $level : null;
+                        $rejectedComment = $info['comment'] ?? null;
+                    }
                 }
 
                 return [
                     'id' => $project->id,
                     'title' => $project->title,
+                    'purpose' => $project->purpose,
                     'department' => $project->department?->name,
                     'status' => $project->status->value,
                     'applicant' => $project->applicant?->name,
@@ -286,6 +299,7 @@ class ProjectController extends Controller
                     'nearestTaskDueDate' => $project->tasks_min_due_date,
                     'canEdit' => $user->can('update', $project),
                     'rejectedAt' => $rejectedAt,
+                    'rejectedComment' => $rejectedComment,
                     'applicantSubmitsToHqDirect' => $project->applicant?->hasRole(Role::DeptManager->value) ?? false,
                 ];
             }),
@@ -307,6 +321,7 @@ class ProjectController extends Controller
             'tasks' => static function ($q): void {
                 $q->with([
                     'assignee:id,name',
+                    'reviewer:id,name',
                     'creator:id,name',
                     'comments' => static function ($commentQuery): void {
                         $commentQuery->with('user:id,name')->orderBy('created_at');
@@ -374,6 +389,7 @@ class ProjectController extends Controller
             'project' => [
                 'id' => $project->id,
                 'title' => $project->title,
+                'projectCode' => $project->project_code,
                 'status' => $project->status->value,
                 'department' => $project->department?->name,
                 'applicant' => $project->applicant?->name,
@@ -407,8 +423,13 @@ class ProjectController extends Controller
                     'progressRate' => $task->progress_rate,
                     'assigneeId' => $task->assignee_id,
                     'assignee' => $task->assignee?->name,
+                    'reviewerId' => $task->reviewer_id,
+                    'reviewer' => $task->reviewer?->name,
                     'dueDate' => $task->due_date?->toDateString(),
+                    'estimatedDays' => $task->estimated_days !== null ? (float) $task->estimated_days : null,
+                    'actualDays' => (float) $task->actual_days,
                     'updatedAt' => $task->updated_at?->toDateTimeString(),
+                    'canUpdate' => $user?->can('update', $task) ?? false,
                     'comments' => $task->comments->map(fn ($comment) => [
                         'id' => $comment->id,
                         'user' => $comment->user?->name ?? '不明ユーザー',
@@ -472,6 +493,9 @@ class ProjectController extends Controller
         $submitAction = $validated['submit_action'] ?? $submitAction;
         unset($validated['submit_action']);
         $validated['primary_assignee_id'] = $request->user()->id;
+        if (($validated['estimated_amount'] ?? null) === null) {
+            $validated['estimated_amount'] = 0;
+        }
 
         $project = $request->user()->appliedProjects()->create([
             'status' => ProjectStatus::Draft,
@@ -514,6 +538,9 @@ class ProjectController extends Controller
         );
         $submitAction = $validated['submit_action'] ?? $submitAction;
         unset($validated['submit_action']);
+        if (($validated['estimated_amount'] ?? null) === null) {
+            $validated['estimated_amount'] = 0;
+        }
 
         $project->update($validated);
 
