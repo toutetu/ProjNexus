@@ -30,7 +30,7 @@
 
 ### 実装する（課題2・+α として実装決定）
 - ★ **タスク完了の確認工程**（実装者が `resolved` で完了報告 → 確認者が `closed` で承認の2段階・`reviewer_id` カラム追加）
-- ★ **S-14 タスク一覧**（部門メンバータスク + 個人タスク。カンバン/メンバー別の2ビュー切替・ロール別初期表示）
+- ★ **S-14 タスク一覧**（部門メンバータスク + 個人タスク。カンバン/メンバー別/一覧の3ビュー切替・ロール別初期表示）
 
 ### 実装しない（課題2・後回し）
 - ☆ ダッシュボード（画面 S-02、プレゼン用設計のみ）
@@ -85,7 +85,7 @@
 ### URL 設計メモ
 - 案件一覧は `/projects?tab=approval|dev|budget` でタブ切替（単一コンポーネント + tab props で列セット切替）
 - 承認待ち一覧は独立画面を持たず `/projects?tab=approval&filter=pending` のプリセット
-- タスク一覧（S-14）は `/member-tasks?view=board|members` でビュートグル切替（単一コンポーネント + view props で表示切替）。ロール別に初期 view が変わる（applicant=board / dept_manager・hq_manager=members）
+- タスク一覧（S-14）は `/member-tasks?view=board|members|list` でビュートグル切替（単一コンポーネント + view props で表示切替）。ロール別に初期 view が変わる（applicant=board / dept_manager・hq_manager=members）
 
 ---
 
@@ -99,7 +99,7 @@
 | users | ユーザー（Spatie Permission でロール管理） |
 | projects | 案件（予算カラム含む。`primary_assignee_id` で主担当を保持） |
 | approvals | 承認履歴（監査証跡） |
-| tasks | タスク（Backlog 風・ステータスは 4 値 Enum で DB 定義、課題1 は 3 値運用） |
+| tasks | タスク（Backlog 風・**4 値** Enum：`open` / `in_progress` / `resolved` / `closed`。UI・Policy・通知まで PoC で運用） |
 | task_comments | タスクコメント |
 | task_histories | タスク変更履歴（`TaskHistoryService` により自動記録。追跡は status 等5項目・表示用文字列） |
 | notifications | 通知 |
@@ -135,11 +135,11 @@
 | セクション | 画面 |
 |---|---|
 | 申請・承認 | 新規申請 / 承認待ち一覧 / 案件一覧（申請タブ） |
-| 開発管理 | 案件一覧（開発タブ） / 案件詳細 / **タスク一覧（S-14・カンバン/メンバー別の2ビュー切替）** / タスク管理はモーダル |
+| 開発管理 | 案件一覧（開発タブ） / 案件詳細 / **タスク一覧（S-14・カンバン/メンバー別/一覧の3ビュー切替）** / タスク管理はモーダル |
 | 予算管理 | 案件一覧（予算タブ） / 予算実績入力モーダル |
 | 共通（下部） | 通知 / プロフィール |
 
-> サイドバーの「タスク一覧」は **S-14 部門メンバータスク + 個人タスク**。`/member-tasks?view=board|members` の URL クエリで「カンバン」「メンバー別」を切替。ロール別に初期ビューが変わる（applicant=board / dept_manager・hq_manager=members）。全ロール閲覧可、編集権限は既存 Policy で制御。
+> サイドバーの「タスク一覧」は **S-14 部門メンバータスク + 個人タスク**。`/member-tasks?view=board|members|list` の URL クエリで「カンバン」「メンバー別」「一覧」を切替。ロール別に初期ビューが変わる（applicant=board / dept_manager・hq_manager=members）。全ロール閲覧可、編集権限は既存 Policy で制御。
 
 ### 案件一覧はタブで列切替
 
@@ -266,7 +266,15 @@ draft → pending_dept → pending_hq → approved
    - 命名規則：`feat/phase1-layout`、`feat/phase2-apply-form`、`docs/daily-YYYYMMDD` など
    - 日報のみの更新日は `docs/daily-YYYYMMDD` を使う
 3. ブランチを切ってから **実装 or ドキュメント更新を開始**（main 上では作業しない）
-4. 次回再開時は `doc/daily/next_chat_handover_YYYYMMDD.md` を先に確認してから着手する
+4. 次回再開時は `doc/daily/implementation_schedule.md` を先に確認してから着手する
+#### 作業中（区切りごと）
+1. **`doc/Design/` の各ファイルを更新**：
+2. **`mocks/` の各ファイルを更新**：
+3.コミット
+  `doc/Design/` `mocks/`以外と、`doc/Design/` `mocks/`のコミットを分ける
+  
+4. **`doc/daily/` の各ファイルを更新**：
+
 
 #### 作業終了時（毎日）
 1. **`doc/daily/` の各ファイルを更新**：
@@ -276,7 +284,7 @@ draft → pending_dept → pending_hq → approved
    - `doc/daily/implementation_schedule.md`：次回作業予定（具体的手順）を更新
 2. **変更をコミット**：`git add -A && git commit -m "docs: 日次更新 YYYY-MM-DD"`（実装があれば `feat:` などの prefix で別コミット）
 3. **ブランチを push**：`git push -u origin <branch-name>`
-4. 必要に応じて PR（マージリクエスト）を作成。main へのマージは自己レビュー後
+4. main へのマージは自己レビュー後
 
 #### 注意
 - `doc/daily/daily_report.md` は**提出済み部分は変更しない**（追記のみ）
@@ -302,7 +310,7 @@ draft → pending_dept → pending_hq → approved
 | S-05 | 新規申請 | `mockups/s05_project_create.html` | `mockups/s05_policy.md` |
 | S-10 | タスク作成・編集モーダル | `mockups/s10_task_form_modal.html` | `mockups/s10_policy.md` |
 | S-11 | 予算実績入力モーダル | `mockups/s11_budget_actual_modal.html` | `mockups/s11_policy.md` |
-| S-14 | タスク一覧（カンバン+メンバー別） | `mockups/s14b_member_tasks_toggle.html`（採用） | `mockups/s14_policy.md` |
+| S-14 | タスク一覧（カンバン+メンバー別+一覧） | `mockups/s14b_member_tasks_toggle.html`（採用） | `mockups/s14_policy.md` |
 
 > S-06（案件編集）・S-07（承認待ち一覧）・S-08（承認ダイアログ）・S-12（通知）は独立したモックなし。S-03a / S-05 モックおよび各ポリシー内の記述を参照。
 
@@ -317,6 +325,7 @@ draft → pending_dept → pending_hq → approved
 | デザインシステム | `doc/Design/design_system.md` | 色・フォント・余白ルール |
 | カラーガイド | `doc/Design/color-guide.md` | ステータス色・バッジ色の統一基準 |
 | 共通コンポーネント仕様 | `doc/Design/components_spec.md` | Props・使用条件（**Pages 実装前に必読**） |
+| 運用情報 | `doc/Design/Information.md` | デプロイ URL・テストアカウント・動作確認シナリオ等 |
 ---
 
 ## 11. テストアカウント
@@ -357,3 +366,4 @@ draft → pending_dept → pending_hq → approved
 プラン承認前にコードを書き始めない。ユーザーが「OK」「進めて」等の明示的な承認を返してから実装に移る。
 
 スコープや方針が不明な場合は §1（スコープ表）・§6（ロール別アクセス）・§12 FAQ を参照して自力で判断し、それでも判断に迷う場合のみ質問する（些末な確認で作業を止めない）。
+/**更新完了**/

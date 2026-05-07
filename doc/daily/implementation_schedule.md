@@ -5,14 +5,14 @@
 
 ---
 
-## 1. 現在地
+## 1. 現在地（2026-05-07 更新）
 
 - Phase 0: 完了
 - Phase 1: 完了
 - Phase 2: 完了
 - Phase 3: 完了（タスク変更履歴の自動記録・行展開表示・`TaskHistoryTest` まで反映済み・2026-05-01）
-- Phase 4: 着手可能（+α：レスポンシブ等。承認ステッパー大型版は実装済み）
-- Phase 5: 未着手（資料・提出）
+- Phase 4: 実装完了（S-14 3ビュー、4値運用、通知拡張まで完了）
+- Phase 5: 進行中（資料同期・提出準備）
 
 ---
 
@@ -29,40 +29,42 @@
 
 ---
 
-## 3. 次回作業予定（2026-05-02 以降 / Phase 4〜5）
+## 3. 次回作業予定（2026-05-02 以降 / Phase 5 中心）
 
 ### 目的
 
-- Phase 4 の残（レスポンシブ最低限など）と Phase 5（`doc/manual` 区切り更新、`Information.md`、プレゼン、デプロイ確認）
-- ブランチのマージ・`main` 同期を計画的に実施
+- 設計書・日報・提出物チェックリストの整合を最終化する
+- デプロイ環境でデモ導線（3ロール）を再確認する
+- 課題2設計資料（S-16 バーンダウン方針）をプレゼン文脈へ接続する
 
 ### 実行手順（例）
 
-1. `php artisan test` / `npm run build` で回帰確認
-2. Phase 4 チェックリスト（`development_schedule.md`）の未チェック項目を上から消化
-3. 利用マニュアルは機能単位で追記・スクショ差し替え（まとめてでも可）
-4. 提出前に `requirements.md` 提出物チェックリストと突合
-5. `npx tsc --noEmit` / `npm run build` / `php artisan test`
-6. `doc/daily` と設計書の差分最終確認
+1. `npx tsc --noEmit` / `npm run build` / `php artisan test` で回帰確認
+2. `doc/Design`（`requirements.md` / `screen_flow.md` / `Information.md` / `er_diagram.md`）の相互参照を最終確認
+3. `doc/manual/user_manual.md` を現行UIで見直し、必要スクショを差し替え
+4. `mockups/s16_burndown_policy.md` の要点をプレゼン草稿に反映
+5. 提出前に `requirements.md` の提出物チェックリストと実体を突合
+6. デプロイ環境で 3 ロール導線（申請→承認→開発/予算→通知）を再確認
 
 ### 手動確認チェックリスト（作業中に使用）
 
 
-### 完了条件
+### 完了条件（Phase 5）
 
-- [x] `npx tsc --noEmit` と `npm run build` が通る
-- [x] `php artisan test` が通る
-- [x] 下書き閲覧制御の手動確認記録完了
-- [x] タスク通知3種の手動確認記録完了
-- [x] 承認後初期タスク作成の手動確認記録完了
-- [x] 日次更新を反映
+- [ ] `npx tsc --noEmit` と `npm run build` が通る
+- [ ] `php artisan test` が通る
+- [ ] `requirements.md` の提出物5項目の状態が実体と一致
+- [ ] `Information.md` の動作確認シナリオがデモ導線と一致
+- [ ] デプロイ環境で 3 ロールの主要導線確認記録を残す
+- [ ] プレゼン提出物（`.md` または `.pdf`）の最終版を確定
 
 ---
 
-## 4. Phase 3 以降のフォロー（任意）
+## 4. Phase 4/5 のフォロー（任意）
 
 - ロール別の最終手動確認ログを必要に応じて追記
 - 通知運用（定時実行・重複防止）の監視手順を運用メモに残す場合は `doc/daily` または `Information.md` へ
+- `budget_alert` は ER図正本のスケジュール（`er_diagram.md` の NTF-01/02）に沿って別タスクで実装
 
 ---
 
@@ -74,3 +76,15 @@
 
 > 非エンジニア向け日報の詳細版（`daily_report_log.md`）は実装作業では参照しない。
 > 全ログファイル一覧は `development_schedule.md` §詳細ログ保管先 を参照。
+
+
+## 6.作業前に読むファイル
+
+### 共通（毎回必読）
+- `doc/Design/AI.md` — プロジェクト全体ルール
+- `doc/daily/development_schedule.md` — 現在の進捗・Phase 状態
+- `doc/daily/implementation_schedule.md` — 次回作業予定
+- `mockups` — モックと設計方針
+
+### 明日の作業向け
+/**更新完了**/

@@ -7,30 +7,29 @@
 
 ## 1. デプロイ URL
 
-> Laravel Cloud へのデプロイ完了後に更新する。
-
 | 環境 | URL | 備考 |
 |---|---|---|
-| 本番 | （未デプロイ） | Laravel Cloud |
+| 本番 | https://projnexus-main-butvrx.laravel.cloud | Laravel Cloud |
 | ローカル | http://localhost/ProjNexus/public/ | XAMPP |
+
+### 1.1 ルートアクセス時の挙動
+- `/` は Welcome 画面を表示せず、以下にリダイレクトする
+  - 未ログイン: `login`
+  - ログイン済み: `dashboard`（実際の遷移先は案件一覧）
+
+### 1.2 案件詳細のクエリ（実装）
+- URL: `/projects/{id}?detailTab={apply|tasks|budget|history}`
+- 一覧からの初期タブ: 申請タブ流入 → `apply`、開発タブ → `tasks`、予算タブ → `budget`
+- 互換: `?detailTab=overview` は実装上 **`apply`（申請タブ）と同義**（`resources/js/Pages/Projects/Show.tsx` の `parseDetailTab`）
 
 ---
 
-## 2. テストアカウント（シーダー投入済）
+## 2. テストアカウント
 
-全アカウントのパスワードは `password`。
+テストアカウントの最新情報は、必ずシーダーを参照すること。
 
-| ロール | 氏名 | メール | 所属部門 | 用途 |
-|---|---|---|---|---|
-| 申請者（主） | 申請 太郎 | applicant@example.com | 開発1部 | 単一動作確認 |
-| 申請者 | 申請 次郎 | applicant2@example.com | 開発2部 | 権限境界検証 |
-| 申請者 | 申請 三郎 | applicant3@example.com | 開発3部 | 権限境界検証 |
-| 部門管理者（主） | 部門 花子 | dept@example.com | 開発1部 | 単一動作確認 |
-| 部門管理者 | 部門 慎二 | dept2@example.com | 開発2部 | 権限境界検証 |
-| 部門管理者 | 部門 美咲 | dept3@example.com | 開発3部 | 権限境界検証 |
-| 本部管理者 | 本部 一郎 | hq@example.com | 本部 | 単一動作確認 |
-
-実装は `database/seeders/UserSeeder.php` を参照。
+- 参照先: `database/seeders/UserSeeder.php`
+- パスワード: `database/seeders/UserSeeder.php` の定義を正とする
 
 ---
 
@@ -51,14 +50,62 @@
 2. `dept@example.com` で却下（コメント付き）
 3. `applicant@example.com` で再申請 → `parent_project_id` で元案件と紐づき、`revision` が +1 されることを確認
 
-### 3.4 権限境界検証
+### 3.4 申請取り戻し（take back）
+1. `applicant@example.com` で申請提出し `pending_dept` にする
+2. 部門承認前に申請者で「取り戻し」を実行
+3. ステータスが `draft` に戻り、再編集・再提出できることを確認
+
+### 3.5 権限境界検証（案件閲覧）
 - `applicant2@example.com`（開発2部）の案件が `applicant@example.com`（開発1部）に見えないこと
 - `dept2@example.com`（開発2部）から開発1部の案件が見えないこと
 - `hq@example.com` からは全部門の案件が見えること
 
-### 3.5 予算実績入力
-- 承認済案件の主担当 `applicant@example.com` で `actual_amount` を更新
-- 消費率が `actual_amount / budget_amount * 100` で表示されること
+### 3.6 予算実績入力（課題1: 上書き方式）
+1. 承認済かつ `budget_amount` が設定済みの案件を開く
+2. 主担当 `applicant@example.com` で `actual_amount` を更新できることを確認
+3. 同部門の部門管理者 `dept@example.com` でも更新できることを確認
+4. それ以外のユーザーでは更新不可（403）であることを確認
+5. 消費率が `actual_amount / budget_amount * 100` で再計算表示されることを確認
+
+### 3.7 S-14 タスク一覧（3ビュー）
+1. `dept@example.com` でログインし `/member-tasks?view=members` を開く
+2. ビュートグルで `カンバン / メンバー別 / 一覧` の3ビューを切替できることを確認
+3. 一覧ビュー（`view=list`）で、以下の列が表示されることを確認
+   - タイトル / 種類 / 優先度 / ステータス（進捗バー付き） / 担当 / 確認者 / 期日
+4. キーワード + 各フィルタ（部門/担当/案件/優先度/期日）が併用できることを確認
+5. 行またはカードクリックで `ProjectTaskDialog` が開くことを確認
+
+### 3.8 S-14 ロール別表示差分
+1. `hq@example.com` で `/member-tasks` を開き、部門未選択時は一覧を出さず「部門選択が必要」の状態になることを確認
+2. `applicant@example.com` で `/member-tasks?view=board` を開き、自分が `assignee_id` または `reviewer_id` のタスクのみ表示されることを確認
+3. `dept@example.com` で `/member-tasks?view=members` を開き、同部門タスク全体が表示されることを確認
+
+### 3.9 案件詳細（開発管理タブ）の確認
+1. 承認済案件の詳細 `.../projects/{id}?detailTab=tasks` を開く
+2. タスク一覧のフィルタ帯が見出し直下に表示されることを確認
+3. フィルタに `確認者` と `期日（3日以内 / 7日以内 / 日付指定）` があることを確認
+4. ステータス列で全タスクに進捗バーが表示されることを確認
+
+### 3.10 タスク4値ステータス遷移と権限
+1. 担当者で `in_progress -> resolved` が可能であることを確認
+2. 担当者で `resolved -> closed` は不可（確認者のみ可）であることを確認
+3. 確認者で `resolved -> closed` が可能であることを確認
+4. 一般ユーザーで `closed -> open` は不可、管理者（部門管理者/本部管理者）では可能であることを確認
+5. `resolved` へ変更時、確認者未設定ならバリデーションエラーになることを確認
+
+### 3.11 タスク通知（割当・完了報告・確認OK）
+1. タスク作成時に担当者を自分以外へ設定し、担当者に `task_assigned` 通知が届くことを確認
+2. ステータスを `resolved` に変更し、確認者に `task_resolved` 通知が届くことを確認
+3. 確認者が `closed` に変更し、担当者と申請者に `task_reviewed` 通知が届くことを確認
+
+### 3.12 通知一覧と既読化
+1. `/notifications` で通知が新しい順・ページネーション付きで表示されることを確認
+2. 自分の通知を既読化すると `read_at` が設定されることを確認
+3. 他ユーザーの通知IDに対する既読APIは 403 になることを確認
+
+### 3.13 認証後導線
+1. 未ログインで `/` にアクセスすると `/login` へ遷移することを確認
+2. ログイン済みで `/dashboard` にアクセスすると `/projects?tab=approval` へリダイレクトされることを確認
 
 ---
 
@@ -78,6 +125,9 @@ php artisan migrate:fresh --seed
 |---|---|
 | Cursor 実装指示書 | `doc/Design/AI.md` |
 | 要件定義 | `doc/Design/requirements.md` |
+| 画面遷移 | `doc/Design/screen_flow.md` |
 | 設計思想 | `doc/Design/design-philosophy.md` |
 | ER 図 | `doc/Design/er_diagram.md` |
 | 共通コンポーネント仕様 | `doc/Design/components_spec.md` |
+| 各画面 設計方針（詳細） | `mockups/*.md` |
+/**更新完了**/
