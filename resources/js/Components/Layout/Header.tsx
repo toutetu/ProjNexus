@@ -6,14 +6,17 @@ import type { BreadcrumbItem, PageProps } from '@/types';
 
 interface HeaderProps {
     breadcrumb: BreadcrumbItem[];
+    leftInset?: boolean;
 }
 
-export default function Header({ breadcrumb }: HeaderProps) {
+export default function Header({ breadcrumb, leftInset = false }: HeaderProps) {
     const unread = usePage<PageProps>().props.unreadNotificationCount ?? 0;
 
     return (
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-brand-border bg-white px-6">
-            <Breadcrumb items={breadcrumb} />
+            <div className={leftInset ? 'pl-12' : ''}>
+                <Breadcrumb items={breadcrumb} />
+            </div>
 
             <div className="flex items-center gap-3">
                 <a

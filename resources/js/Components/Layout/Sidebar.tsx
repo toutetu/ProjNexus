@@ -9,6 +9,7 @@ import {
     Inbox,
     ListChecks,
     LogOut,
+    PanelLeftClose,
     PlusCircle,
     User as UserIcon,
     Wallet,
@@ -167,9 +168,10 @@ type ActiveKey =
 
 interface SidebarProps {
     activeKey?: ActiveKey;
+    onToggleSidebar?: () => void;
 }
 
-export default function Sidebar({ activeKey = null }: SidebarProps) {
+export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarProps) {
     const page = usePage<PageProps>();
     const { auth, unreadNotificationCount = 0, pendingApprovalCount = 0 } = page.props;
     const user = auth.user;
@@ -206,7 +208,7 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
             className="flex h-screen w-64 shrink-0 flex-col overflow-hidden text-white"
             style={{ background: '#212429' }}
         >
-            <div className="flex h-14 items-center border-b border-white/10 px-5">
+            <div className="relative flex min-h-14 items-center border-b border-white/10 pl-5 pr-0 py-3">
                 <Link href="/" className="flex items-center gap-2">
                     <div
                         className="flex h-7 w-7 items-center justify-center rounded-md text-sm font-bold text-white"
@@ -221,9 +223,22 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         開発管理アプリ
                     </div>
                 </Link>
+                <div className="group absolute right-0 top-1/2 -translate-y-1/2">
+                    <button
+                        type="button"
+                        onClick={onToggleSidebar}
+                        className="rounded-md p-2 text-white/75 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                        aria-label="レフトナビを閉じる"
+                    >
+                        <PanelLeftClose className="h-4.5 w-4.5" />
+                    </button>
+                    <span className="pointer-events-none absolute right-0 top-full mt-1 whitespace-nowrap rounded bg-black/80 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                        閉じる
+                    </span>
+                </div>
             </div>
 
-            <nav className="flex-1 py-3 text-sm">
+            <nav className="sidebar-scroll flex-1 min-h-0 overflow-y-auto py-3 text-sm">
                 <SidebarSection label="申請・承認">
                     {canCreate && (
                         <SidebarLink
@@ -338,15 +353,20 @@ export default function Sidebar({ activeKey = null }: SidebarProps) {
                         {roleLabel} / {deptLabel}
                     </div>
                 </div>
-                <Link
-                    href={route('logout')}
-                    method="post"
-                    as="button"
-                    className="ml-auto text-white/50 transition-colors hover:text-white"
-                    aria-label="ログアウト"
-                >
-                    <LogOut className="h-4 w-4" />
-                </Link>
+                <div className="group relative ml-auto">
+                    <Link
+                        href={route('logout')}
+                        method="post"
+                        as="button"
+                        className="text-white/50 transition-colors hover:text-white"
+                        aria-label="ログアウト"
+                    >
+                        <LogOut className="h-4 w-4" />
+                    </Link>
+                    <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-black/80 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                        ログアウト
+                    </span>
+                </div>
             </div>
         </aside>
     );
