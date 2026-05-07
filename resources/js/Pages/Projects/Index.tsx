@@ -1642,6 +1642,7 @@ export default function ProjectsIndex({
                 </div>
             </section>
 
+
             {tab === 'approval' && (
                 <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-brand-muted">
                     <StatusPill status="draft" />

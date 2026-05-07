@@ -118,13 +118,12 @@ export default function ProjectsCreate({
                             </Infotip>
                         </div>
                     </div>
-                    <Link
-                        href={route('projects.index', { tab: 'approval' })}
-                        className="flex items-center gap-1 pt-1 text-sm text-brand-muted hover:text-brand-dark"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        一覧に戻る
-                    </Link>
+                    <Button asChild variant="neutral" className="mt-1 gap-1.5 text-sm">
+                        <Link href={route('projects.index', { tab: 'approval' })}>
+                            <ArrowLeft className="h-4 w-4" />
+                            一覧に戻る
+                        </Link>
+                    </Button>
                 </section>
 
                 <section>
@@ -372,10 +371,10 @@ export default function ProjectsCreate({
                         <div className="flex items-center gap-2">
                             <Button
                                 type="button"
-                                variant="ghost"
+                                variant="neutral"
                                 onClick={() => history.back()}
                                 disabled={processing}
-                                className="text-brand-muted hover:text-brand-dark"
+                                className="text-sm"
                             >
                                 キャンセル
                             </Button>
@@ -468,10 +467,10 @@ export default function ProjectsCreate({
                         <div className="flex items-center justify-end gap-2 rounded-b-xl bg-brand-bg px-6 py-4">
                             <Button
                                 type="button"
-                                variant="ghost"
+                                variant="neutral"
                                 onClick={() => setConfirmOpen(false)}
                                 disabled={processing}
-                                className="text-brand-muted hover:text-brand-dark"
+                                className="text-sm"
                             >
                                 キャンセル
                             </Button>

@@ -17,6 +17,8 @@ const buttonVariants = cva(
                     'border border-brand-red bg-white text-brand-red hover:bg-brand-red/5',
                 secondary:
                     'border border-brand-border bg-white text-brand-dark shadow-sm hover:bg-brand-bg',
+                neutral:
+                    'border border-slate-300 bg-white text-brand-muted shadow-sm hover:bg-slate-100 hover:text-brand-dark',
                 ghost: 'text-brand-blue hover:bg-brand-bg',
                 link: 'text-brand-blue underline-offset-4 hover:underline',
             },

@@ -217,7 +217,8 @@ class ProjectController extends Controller
             ];
         }
 
-        $paginator = $query->latest('updated_at')->paginate(15);
+        $perPage = $tab === 'approval' ? 5 : 15;
+        $paginator = $query->latest('updated_at')->paginate($perPage);
 
         $rejectedIds = $paginator
             ->getCollection()
@@ -492,6 +493,9 @@ class ProjectController extends Controller
         $submitAction = $validated['submit_action'] ?? $submitAction;
         unset($validated['submit_action']);
         $validated['primary_assignee_id'] = $request->user()->id;
+        if (($validated['estimated_amount'] ?? null) === null) {
+            $validated['estimated_amount'] = 0;
+        }
 
         $project = $request->user()->appliedProjects()->create([
             'status' => ProjectStatus::Draft,
@@ -534,6 +538,9 @@ class ProjectController extends Controller
         );
         $submitAction = $validated['submit_action'] ?? $submitAction;
         unset($validated['submit_action']);
+        if (($validated['estimated_amount'] ?? null) === null) {
+            $validated['estimated_amount'] = 0;
+        }
 
         $project->update($validated);
 

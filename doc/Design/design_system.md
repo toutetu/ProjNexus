@@ -152,6 +152,7 @@ theme: {
 - 新規コンポーネント追加・既存仕様変更は **必ず** `components_spec.md` を更新する
 - `design_system.md` には個別コンポーネントの詳細（Props/状態遷移/個別UI要件）を追記しない
 - 実装レビュー時は「トークン整合は本書」「部品仕様整合は正本」の2軸で確認する
+- ボタンの運用基準は `components_spec.md` の `Button（shadcn/ui）` に従う（特に補助アクションは `variant="neutral"` を既定とする）
 
 ### 5-2. 代表的な対応関係（抜粋）
 

@@ -1,5 +1,6 @@
 # プレゼン資料 草案 — ProjNexus
 
+
 > **このファイルについて**
 > - 提出予定: `doc/presentation/presentation_高橋朋子.md`（PDF 化前提）
 > - 形式: PowerPoint 移植用 構造化 Markdown

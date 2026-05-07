@@ -18,6 +18,7 @@ import {
 import { ReactNode } from 'react';
 
 import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
+import ApplicationLogo from '@/Components/ApplicationLogo';
 import { cn } from '@/lib/utils';
 import type { PageProps, RoleName } from '@/types';
 
@@ -29,7 +30,7 @@ interface SidebarSectionProps {
 function SidebarSection({ label, children }: SidebarSectionProps) {
     return (
         <div className="mt-5 first:mt-2">
-            <div className="mb-1 px-5 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+            <div className="mb-1.5 px-5 text-[11px] font-semibold tracking-wide text-white/70">
                 {label}
             </div>
             {children}
@@ -48,6 +49,8 @@ interface SidebarLinkProps {
     dimLabel?: string;
     method?: 'get' | 'post' | 'put' | 'patch' | 'delete';
     as?: 'a' | 'button';
+    target?: string;
+    rel?: string;
 }
 
 interface SidebarChildLabelProps {
@@ -79,6 +82,8 @@ function SidebarLink({
     dimLabel,
     method,
     as,
+    target,
+    rel,
 }: SidebarLinkProps) {
     const baseClasses =
         'relative flex items-center gap-3 px-5 py-2.5 text-sm transition-colors';
@@ -129,11 +134,28 @@ function SidebarLink({
         );
     }
 
+    // Inertia の Link は target="_blank" を期待どおり扱えない場合があるため、
+    // 外部（別タブ）リンクは素の <a> にフォールバックする。
+    if (target === '_blank') {
+        return (
+            <a
+                href={href}
+                target={target}
+                rel={rel}
+                className={cn(baseClasses, stateClasses, 'justify-between')}
+            >
+                {content}
+            </a>
+        );
+    }
+
     return (
         <Link
             href={href}
             method={method}
             as={as}
+            target={target}
+            rel={rel}
             className={cn(baseClasses, stateClasses, 'justify-between')}
         >
             {content}
@@ -210,17 +232,16 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
         >
             <div className="relative flex min-h-14 items-center border-b border-white/10 pl-5 pr-0 py-3">
                 <Link href="/" className="flex items-center gap-2">
-                    <div
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-sm font-bold text-white"
-                        style={{
-                            background:
-                                'linear-gradient(135deg,#01CFFF 0%,#106EBE 50%,#6D28D9 100%)',
-                        }}
-                    >
-                        J
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-cyan via-brand-blue to-brand-purple">
+                        <ApplicationLogo className="h-5 w-5 fill-white text-white" />
                     </div>
-                    <div className="text-[15px] font-bold tracking-wide">
-                        開発管理アプリ
+                    <div className="flex flex-col leading-tight">
+                        <span className="text-[10px] font-medium text-white/75">
+                            開発管理アプリ
+                        </span>
+                        <span className="text-[15px] font-bold tracking-wide">
+                            ProjNexus
+                        </span>
                     </div>
                 </Link>
                 <div className="group absolute right-0 top-1/2 -translate-y-1/2">
@@ -325,6 +346,8 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                         icon={BookOpen}
                         label="マニュアル"
                         active={activeKey === 'manual'}
+                        target="_blank"
+                        rel="noopener"
                     />
                     <SidebarLink
                         href={route('profile.edit')}
@@ -332,6 +355,15 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                         label="プロフィール"
                         active={activeKey === 'profile'}
                     />
+                    <div className="mt-3 border-t border-white/10 pt-3">
+                        <SidebarLink
+                            href={route('logout')}
+                            method="post"
+                            as="button"
+                            icon={LogOut}
+                            label="ログアウト"
+                        />
+                    </div>
                 </div>
             </nav>
 
@@ -352,20 +384,6 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                     <div className="truncate text-[11px] text-white/50">
                         {roleLabel} / {deptLabel}
                     </div>
-                </div>
-                <div className="group relative ml-auto">
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
-                        className="text-white/50 transition-colors hover:text-white"
-                        aria-label="ログアウト"
-                    >
-                        <LogOut className="h-4 w-4" />
-                    </Link>
-                    <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-black/80 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
-                        ログアウト
-                    </span>
                 </div>
             </div>
         </aside>

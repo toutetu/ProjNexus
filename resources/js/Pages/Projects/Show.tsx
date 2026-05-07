@@ -24,6 +24,7 @@ import {
 import ApprovalStepperFull, {
     type ApprovalTimelineItem,
 } from '@/Components/Approval/ApprovalStepperFull';
+import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
 import ApprovalDialog from '@/Components/Modals/ApprovalDialog';
 import BudgetActualDialog from '@/Components/Modals/BudgetActualDialog';
 import ProjectTaskDialog, { type TaskListItem } from '@/Components/Modals/ProjectTaskDialog';
@@ -271,6 +272,7 @@ const parseDetailTab = (raw: string | null): DetailTab => {
     if (raw === 'overview') return 'apply';
     return 'apply';
 };
+
 
 const formatDateTime = (value: string | null): string => {
     if (!value) return '日時不明';
@@ -844,6 +846,22 @@ export default function ProjectsShow({
                                     className="mt-1.5 bg-brand-bg text-right font-mono"
                                 />
                             </div>
+                        </div>
+
+                        <div className="rounded-md border border-dashed border-slate-300 bg-slate-100/70 px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <InputLabel htmlFor="attachments" value="ファイル添付" />
+                                <Challenge2Badge />
+                            </div>
+                            <Input
+                                id="attachments"
+                                type="file"
+                                className="mt-1.5 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                                disabled
+                            />
+                            <p className="mt-1 text-xs text-slate-500">
+                                課題2で実装予定のため、現在は準備中です。
+                            </p>
                         </div>
 
                     </div>

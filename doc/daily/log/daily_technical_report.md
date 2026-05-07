@@ -43,4 +43,68 @@
 ### 検証
 - `npm run build` 成功
 - `ReadLints` で変更ファイルにエラーなし
+
+---
+
+## 2026-05-07（木）追記 — マニュアル画面改善・ボタン共通化・下書き保存エラー修正
+
+### 実装概要
+- マニュアル画面（`/manual`）の操作性と可読性を改善
+  - 2.2 承認フロー（状態遷移図）のコードブロック表示判定を修正し、図解を黒地・白字で表示
+  - 左目次リンクのスクロール挙動を安定化（`scrollIntoView` + hash 更新）
+  - 本文先頭の重複目次を削除（リンク切れ要因を解消）
+  - モバイル/タブレットで目次をハンバーガーメニュー化（PCはサイドバー維持）
+- アプリ名表記を `ProjNexus` へ統一し、表示階層を調整
+  - ログイン画面、マニュアルヘッダー、サイドバー上部を「開発管理アプリ（小） + ProjNexus（大）」へ統一
+  - ログイン画面のロゴ上余白を拡張
+  - サイドバー上部ロゴをログイン画面と同じ `ApplicationLogo` に統一
+- ボタンの共通運用を整理
+  - 既存 `Button`（`resources/js/Components/ui/button.tsx`）に `neutral` variant を追加
+  - 「一覧に戻る」「キャンセル」を `neutral` に統一（Create/Edit のヘッダー・フッター・モーダル）
+  - 一時作成した `NeutralAction.tsx` は廃止し、既存共通部品へ統合
+  - 一覧の「新規申請」ボタンは `/projects/create` の「申請する」と同じ `default` 挙動に再統一
+- ドキュメント同期
+  - `doc/Design/components_spec.md` に Button 章（variant一覧、size指針、運用ルール）を拡充
+  - `doc/Design/design_system.md` に「補助アクションは `neutral` 既定」運用ルールを追記
+- 不具合修正
+  - `/projects/create` の下書き保存で `estimated_amount` が `null` の場合に DB 制約違反となる問題を修正
+  - `ProjectController@store/update` で `estimated_amount` が `null` のとき `0` を補完
+
+### 主要変更ファイル
+- `resources/js/Pages/Manual/Index.tsx`
+- `doc/manual/user_manual.md`
+- `resources/js/Layouts/GuestLayout.tsx`
+- `resources/js/Components/Layout/Sidebar.tsx`
+- `resources/js/Components/ui/button.tsx`
+- `resources/js/Pages/Projects/Create.tsx`
+- `resources/js/Pages/Projects/Edit.tsx`
+- `resources/js/Pages/Projects/Index.tsx`
+- `app/Http/Controllers/ProjectController.php`
+- `doc/Design/components_spec.md`
+- `doc/Design/design_system.md`
+
+### 検証
+- `ReadLints` で変更対象の TypeScript ファイルにエラーなし
+- `php -l app/Http/Controllers/ProjectController.php` で構文エラーなし
+- ブラウザ手動確認で `/projects/create` の下書き保存エラー解消を確認
+
+---
+
+## 2026-05-07（木）追記2 — サイドバー別タブ導線の修正とマニュアル表示再調整
+
+### 実装概要
+- サイドバーの「マニュアル」リンクが同一タブ遷移になる問題を修正
+  - `SidebarLink` で `target="_blank"` 指定時は Inertia `Link` ではなく素の `<a>` を使用
+  - サイドバー導線で確実に別タブが開く挙動へ統一
+- マニュアル（`/manual`）の「2.2 承認フロー（状態遷移図）」表示を再調整
+  - `ReactMarkdown` の `pre` レンダラーでコード本文を判定し、状態遷移図ブロックのみ黒地/白字を適用
+  - `code` の inline/ブロック判定を安定化し、図解が消える副作用を回避
+
+### 主要変更ファイル
+- `resources/js/Components/Layout/Sidebar.tsx`
+- `resources/js/Pages/Manual/Index.tsx`
+
+### 検証
+- `ReadLints` で対象 TypeScript ファイルにエラーなし
+- `npm run build` はユーザー操作で中断されたため、最終ビルド反映は再実行して確認予定
 /**更新完了**/

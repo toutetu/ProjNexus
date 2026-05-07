@@ -487,6 +487,66 @@ interface AmountInputProps {
 ### Input / Textarea / Select
 shadcn/ui の部品をそのまま使う。**プロジェクト固有のラッパーは作らない**（直接 shadcn/ui の `Input` 等を import）。スタイル調整が必要なら shadcn/ui の components.json 側で一括設定。
 
+### Button（shadcn/ui）
+**役割**: 主要アクション（保存/申請）と補助アクション（戻る/キャンセル）を同一基盤で管理する。
+**配置**: `resources/js/Components/ui/button.tsx`
+**運用方針**:
+- ページ個別の単発ボタンを新規コンポーネント化せず、`variant` 追加で吸収する
+- 「一覧に戻る」「キャンセル」のような補助アクションは `variant="neutral"` を使用する
+
+**Props（実装準拠）**:
+```ts
+type ButtonVariant =
+  | 'default'
+  | 'destructive'
+  | 'outline'
+  | 'secondary'
+  | 'neutral'
+  | 'ghost'
+  | 'link';
+
+type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
+```
+
+**variant 一覧（使い分け）**:
+- `default`: 主アクション。例: 申請する / 更新して申請
+- `destructive`: 破壊的アクション。例: 削除確定（誤操作防止導線とセット）
+- `outline`: 主アクションの代替。例: 下書き保存（強調は弱めるが明確に押せる）
+- `secondary`: 補助アクション（通常）。例: 更新を保存、カード内の補助ボタン
+- `neutral`: 補助アクション（戻る/キャンセル専用）。薄枠 + hoverグレー
+- `ghost`: 背景を持たない軽アクション。例: テキスト寄りの軽操作
+- `link`: 文中リンク風アクション。例: 補足導線
+
+**`neutral` バリアント詳細仕様**（実装済み）:
+- 枠線: `border-slate-300`（薄いグレー）
+- 背景: `bg-white`
+- 文字: `text-brand-muted`（通常） / `text-brand-dark`（hover）
+- hover: `bg-slate-100`（薄いグレーで少し濃くする）
+- 推奨文言: 「一覧に戻る」「キャンセル」「閉じる（非破壊）」
+
+**size 指針**:
+- `default`: 標準フォームボタン（高さ 40px）
+- `sm`: テーブル内など高密度UI
+- `lg`: 主要CTAを目立たせたい場面
+- `icon`: アイコン単体（必ず `aria-label` を付与）
+
+**実装パターン**:
+- 画面遷移リンクをボタン見た目にする場合は `asChild` + `Link` を使う
+- 非同期処理中は `disabled` を付与し、多重送信を防ぐ
+- 文言と `variant` の意味を一致させる（例: 「削除」で `ghost` は使わない）
+
+**利用例**:
+- `resources/js/Pages/Projects/Create.tsx`
+  - 上部「一覧に戻る」（`Button asChild variant="neutral"`）
+  - フッター/確認モーダル「キャンセル」（`variant="neutral"`）
+  - 下書き保存（`variant="outline"`）
+  - 申請する（`variant="default"`）
+- `resources/js/Pages/Projects/Edit.tsx`
+  - 上部「一覧に戻る」（`Button asChild variant="neutral"`）
+  - フッター/確認モーダル「キャンセル」（`variant="neutral"`）
+  - 更新を保存（`variant="secondary"`）
+  - 更新して申請（`variant="default"`）
+
 ---
 
 ## 5. モーダル / ダイアログ
@@ -774,7 +834,7 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 ## 部品化しないもの（過剰分離を避ける）
 
 - ページタイトル（`<h1>`）とサブタイトル — 画面ごとに違うので各 Page で直接書く
-- 「一覧に戻る」リンクなどの単発要素
+- 単一画面でしか使わない一時的な装飾（ただしボタン見た目は `Button` の `variant` で吸収する）
 - 画面固有のレイアウト（例: S-05 の下書き復元ヒント）
 
 **判断基準**: 「2つ以上のPagesで同じパターンを書きそうか？」Yes なら共通化、No ならPageにそのまま書く。
@@ -786,5 +846,7 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 - 2026-04-16: s02/s03a/s05 モックから初版を作成。S-04/S-07/S-08/S-10/S-11/S-12/S-13 は今後のモック作成時に追記。
 - 2026-04-18: 各画面方針書（`mockups/s0x_policy.md`）との整合確認を実施。S-03b の進捗フィルタ区分を `未着手/進行中/完了間近(90%+)/完了` に改訂し、進捗バー配色ルールを4帯（0-60緑 / 61-85青 / 86-100橙 / 100超赤）へ統一。
 - 2026-05-01: タスク変更履歴の自動記録（`TaskHistoryService`・`task_histories`）と S-04 のタスク一覧行展開を反映。S-10 モーダルの実装ファイル名を `ProjectTaskDialog.tsx` に明記。
-- 2026-05-02: S-10（`ProjectTaskDialog`）を **4 値運用・実装 Props** に同期。案件詳細 `detailTab` は `screen_flow.md` / `Information.md` と実装（`apply` 等）を正に統一。
+- 2026-05-07: S-10（`ProjectTaskDialog`）を **4 値運用・実装 Props** に同期。案件詳細 `detailTab` は `screen_flow.md` / `Information.md` と実装（`apply` 等）を正に統一。
+- 2026-05-07: `Button` に `neutral` バリアントを追加し、「一覧に戻る」「キャンセル」を共通化。単発の `NeutralAction.tsx` は廃止して既存部品へ統合。
+- 2026-05-07: `Button` 章を拡張し、`default/destructive/outline/secondary/neutral/ghost/link` の使い分け、`size` 指針、`asChild` 運用を追記。部品化しない方針もボタン運用に合わせて更新。
 /**更新完了**/
