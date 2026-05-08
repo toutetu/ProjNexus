@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ProjectStatus;
 use App\Enums\Role;
+use App\Models\ProjectBudgetHistory;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,9 +34,21 @@ class BudgetController extends Controller
             ],
         );
 
+        $oldActualAmount = $project->actual_amount !== null ? (int) $project->actual_amount : null;
+        $newActualAmount = (int) $validated['actual_amount'];
+
         $project->update([
             'actual_amount' => $validated['actual_amount'],
         ]);
+
+        if ($oldActualAmount !== $newActualAmount) {
+            ProjectBudgetHistory::query()->create([
+                'project_id' => $project->id,
+                'user_id' => $request->user()?->id,
+                'old_actual_amount' => $oldActualAmount,
+                'new_actual_amount' => $newActualAmount,
+            ]);
+        }
 
         return redirect()
             ->route('projects.show', $project)

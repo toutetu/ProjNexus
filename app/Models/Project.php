@@ -83,6 +83,11 @@ class Project extends Model
         return $this->hasMany(\App\Models\ProjectWorkItem::class, 'project_id');
     }
 
+    public function budgetHistories(): HasMany
+    {
+        return $this->hasMany(ProjectBudgetHistory::class, 'project_id');
+    }
+
     public function scopeForTab(Builder $query, string $tab): Builder
     {
         return match ($tab) {

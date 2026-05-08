@@ -68,6 +68,45 @@ interface HeaderProps {
 
 ---
 
+## 1.5 Dashboard コンポーネント（S-02）
+
+### KpiCard
+**役割**: ダッシュボード上段の KPI カード共通表示（4枚）。
+**配置**: `resources/js/Components/Dashboard/KpiCard.tsx`
+**使用モック**: `mockups/s02_dashboard.html`
+**Props**:
+```ts
+type Accent = 'cyan-blue' | 'yellow' | 'blue-purple' | 'red';
+interface KpiCardProps {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  unit?: string;
+  badge?: { text: string; tone?: 'default' | 'warn' | 'danger' };
+  footer?: string;
+  progress?: number;
+  accent: Accent;
+}
+```
+
+### DeptProgressChart
+**役割**: 部門別の平均進捗率を棒グラフで可視化。
+**配置**: `resources/js/Components/Dashboard/DeptProgressChart.tsx`
+**実装**: Recharts `BarChart`（Y軸 0-100%、バー色は部門色）
+
+### BudgetTrendChart
+**役割**: 月次予算消費率の推移を折れ線で可視化。
+**配置**: `resources/js/Components/Dashboard/BudgetTrendChart.tsx`
+**実装**: Recharts `ComposedChart` + `ReferenceLine(y=70)`（警告ライン）
+
+### BudgetAlertTable
+**役割**: 消費率 70% 超の案件リスト表示。
+**配置**: `resources/js/Components/Dashboard/BudgetAlertTable.tsx`
+**列**: 案件名 / 部門 / 予算 / 実績 / 消費率 / 操作
+**遷移**: 行アクションから `projects/{id}?detailTab=budget`
+
+---
+
 ## 2. ステータス表示
 
 ### StatusPill ★最頻出
@@ -735,6 +774,7 @@ interface BudgetActualDialogPropsV2 {
 
 **設計ルール（重要）**:
 - 課題1 は `projects.actual_amount` の上書き。要件「案件単位の総額で可」を最小構成で満たす
+- 課題1 でも更新監査のため、`project_budget_histories` に `actual_amount` の更新前後・更新者・更新日時を保存し、S-04 履歴タブへ表示する
 - 課題2 は `budget_actuals` テーブル INSERT で監査証跡・内訳分析・誤入力耐性を獲得
 - `AmountInput`、サマリー 4 カード、Before/After プレビューは課題1/2 で共通部品化
 - 保存時は変更履歴に記録される前提で文言を表示する（課題2 で実装）
@@ -849,4 +889,6 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 - 2026-05-07: S-10（`ProjectTaskDialog`）を **4 値運用・実装 Props** に同期。案件詳細 `detailTab` は `screen_flow.md` / `Information.md` と実装（`apply` 等）を正に統一。
 - 2026-05-07: `Button` に `neutral` バリアントを追加し、「一覧に戻る」「キャンセル」を共通化。単発の `NeutralAction.tsx` は廃止して既存部品へ統合。
 - 2026-05-07: `Button` 章を拡張し、`default/destructive/outline/secondary/neutral/ghost/link` の使い分け、`size` 指針、`asChild` 運用を追記。部品化しない方針もボタン運用に合わせて更新。
+- 2026-05-08: S-02 ダッシュボードの実装部品（`KpiCard` / `DeptProgressChart` / `BudgetTrendChart` / `BudgetAlertTable`）を追加。サイドバー「予算管理」に `ダッシュボード` 導線を追加。
+- 2026-05-08: 課題1の予算実績更新で `project_budget_histories` を記録し、S-04 の履歴タブへ「予算実績を更新」イベントとして表示する仕様を追記。
 /**更新完了**/
