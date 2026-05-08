@@ -117,6 +117,11 @@ php artisan migrate:fresh --seed
 
 上記で DB 初期化 + 部門 / ロール / ユーザーを再投入する。
 
+### 4.1 本番のみ 500 になりローカルでは再現しない場合
+
+- **通知 INSERT と ENUM のずれ:** 本番 MySQL で `notifications.type` が ENUM のままだと、PHP の `NotificationType` と列定義が一致しないときに SQL 例外で 500 になることがある（PHPUnit の SQLite では再現しにくい）。対策として `2026_05_08_120000_notifications_type_to_varchar_mysql.php` で MySQL 上の `type` を `VARCHAR(64)` に変更する。**デプロイ後に `php artisan migrate` が成功しているか** Laravel Cloud のログとマイグレーション履歴で確認する。
+- **調査:** Laravel Cloud のアプリログで該当リクエスト時刻の `SQLSTATE` / スタックトレースを確認する。
+
 ---
 
 ## 5. 関連ドキュメント
@@ -124,6 +129,7 @@ php artisan migrate:fresh --seed
 | 資料 | パス |
 |---|---|
 | Cursor 実装指示書 | `doc/Design/AI.md` |
+| 次回作業・優先改修リスト（運用） | `doc/daily/implementation_schedule.md` §3 |
 | 要件定義 | `doc/Design/requirements.md` |
 | 画面遷移 | `doc/Design/screen_flow.md` |
 | 設計思想 | `doc/Design/design-philosophy.md` |

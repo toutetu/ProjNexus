@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Enums\ProjectStatus;
 use App\Enums\NotificationType;
+use App\Enums\ProjectStatus;
 use App\Models\Department;
+use App\Models\Notification;
 use App\Models\Project;
 use App\Models\User;
 use Database\Seeders\DepartmentSeeder;
@@ -142,7 +143,7 @@ class ProjectApprovalFlowTest extends TestCase
             'title' => '申請を受け付けました',
         ]);
 
-        $applicantNotification = \App\Models\Notification::query()
+        $applicantNotification = Notification::query()
             ->where('user_id', $applicant->id)
             ->where('type', NotificationType::ProjectSubmitted)
             ->where('title', '申請を受け付けました')
@@ -202,6 +203,54 @@ class ProjectApprovalFlowTest extends TestCase
         $project->refresh();
         $this->assertSame(ProjectStatus::Draft->value, $project->status->value);
         $this->assertNull($project->submitted_at);
+    }
+
+    public function test_hq_can_approve_pending_hq_project_and_creates_initial_task(): void
+    {
+        $applicant = $this->applicantUser();
+        $deptManager = $this->deptManagerUser();
+        $hqManager = $this->hqManagerUser();
+        $dept = Department::query()->where('name', '開発1部')->firstOrFail();
+
+        $project = Project::query()->create([
+            'title' => '本部承認までの結合テスト',
+            'applicant_id' => $applicant->id,
+            'department_id' => $dept->id,
+            'status' => ProjectStatus::PendingDept,
+            'estimated_amount' => 25000,
+            'submitted_at' => now(),
+            'revision' => 1,
+        ]);
+
+        $this->actingAs($deptManager)->post(
+            route('projects.approve', $project, absolute: false),
+            ['level' => 'dept', 'comment' => '部門OK'],
+        );
+
+        $project->refresh();
+        $this->assertSame(ProjectStatus::PendingHq->value, $project->status->value);
+
+        $response = $this->actingAs($hqManager)->post(
+            route('projects.approve', $project, absolute: false),
+            ['level' => 'hq', 'comment' => '本部OK'],
+        );
+
+        $response->assertRedirect(
+            route('projects.index', ['tab' => 'approval', 'filter' => 'pending'], absolute: false),
+        );
+
+        $project->refresh();
+        $this->assertSame(ProjectStatus::Approved->value, $project->status->value);
+        $this->assertNotNull($project->approved_at);
+        $this->assertDatabaseHas('tasks', [
+            'project_id' => $project->id,
+            'title' => '実装計画作成',
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $applicant->id,
+            'type' => NotificationType::ProjectApproved->value,
+            'title' => '本部承認が完了しました',
+        ]);
     }
 
     public function test_hq_reject_notifies_dept_manager_who_approved(): void

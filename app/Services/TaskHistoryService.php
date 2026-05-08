@@ -16,7 +16,7 @@ class TaskHistoryService
 
     public function recordCreation(ProjectWorkItem $task, User $actor): void
     {
-        DB::transaction(function () use ($task, $actor): void {
+        $this->runInTransaction(function () use ($task, $actor): void {
             $task->loadMissing('assignee', 'reviewer');
 
             foreach (self::TRACKED_FIELDS as $field) {
@@ -40,7 +40,7 @@ class TaskHistoryService
         $task->loadMissing('assignee', 'reviewer');
         $afterDisplay = $this->displaySnapshot($task);
 
-        DB::transaction(function () use ($task, $beforeDisplay, $afterDisplay, $actor): void {
+        $this->runInTransaction(function () use ($task, $beforeDisplay, $afterDisplay, $actor): void {
             foreach (self::TRACKED_FIELDS as $field) {
                 $oldVal = $beforeDisplay[$field] ?? '';
                 $newVal = $afterDisplay[$field] ?? '';
@@ -57,6 +57,20 @@ class TaskHistoryService
                 ]);
             }
         });
+    }
+
+    /**
+     * 既に外側トランザクション内（例: ApprovalService）にあるときはネストさせず、そのまま実行する。
+     */
+    private function runInTransaction(callable $callback): void
+    {
+        if (DB::transactionLevel() > 0) {
+            $callback();
+
+            return;
+        }
+
+        DB::transaction($callback);
     }
 
     /**
