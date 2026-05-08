@@ -107,4 +107,54 @@
 ### 検証
 - `ReadLints` で対象 TypeScript ファイルにエラーなし
 - `npm run build` はユーザー操作で中断されたため、最終ビルド反映は再実行して確認予定
+---
+
+## 2026-05-08（金）追記 — S-02 ダッシュボード実装
+
+### 実装概要
+- `recharts` を追加し、S-02 ダッシュボード画面を新規実装
+- バックエンドに `DashboardController` を追加し、以下をロール別スコープで集計
+  - 進行中案件数
+  - 承認待ち件数
+  - 平均進捗率
+  - 予算消費率
+  - 部門別進捗
+  - 予算70%超案件
+- ルーティングを `/dashboard` -> `DashboardController@index` に差し替え
+- サイドバー「予算管理」に「ダッシュボード」を追加（ActiveKey 追加）
+- ドキュメント同期
+  - `mockups/s02_policy.md`
+  - `doc/Design/AI.md`
+  - `doc/Design/screen_flow.md`
+  - `doc/Design/components_spec.md`
+
+### 主要変更ファイル
+- `app/Http/Controllers/DashboardController.php`（新規）
+- `resources/js/Pages/Dashboard/Index.tsx`（新規）
+- `resources/js/Components/Dashboard/KpiCard.tsx`（新規）
+- `resources/js/Components/Dashboard/DeptProgressChart.tsx`（新規）
+- `resources/js/Components/Dashboard/BudgetTrendChart.tsx`（新規）
+- `resources/js/Components/Dashboard/BudgetAlertTable.tsx`（新規）
+- `resources/js/Components/Layout/Sidebar.tsx`
+- `routes/web.php`
+- `package.json` / `package-lock.json`
+
+### 検証
+- `npm run build` 成功（TypeScript + Vite）
+- Recharts の Tooltip 型エラーを修正後に再ビルドし、成功を確認
+---
+
+## 2026-05-08（金）追記2 — タイムゾーンを日本時間へ統一
+
+### 実装概要
+- 履歴・更新時刻の表示を日本時間（JST）で扱うため、Laravel のアプリタイムゾーンを変更
+- `config/app.php` の `timezone` を `UTC` 固定から `env('APP_TIMEZONE', 'Asia/Tokyo')` へ変更
+- 反映のため `php artisan config:clear` を実行
+
+### 主要変更ファイル
+- `config/app.php`
+
+### 検証
+- `php artisan config:clear` 実行成功
+- `/dashboard` の「最終更新」および履歴系時刻が JST 基準になる設定を確認
 /**更新完了**/

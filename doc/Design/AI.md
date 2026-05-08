@@ -31,9 +31,9 @@
 ### 実装する（課題2・+α として実装決定）
 - ★ **タスク完了の確認工程**（実装者が `resolved` で完了報告 → 確認者が `closed` で承認の2段階・`reviewer_id` カラム追加）
 - ★ **S-14 タスク一覧**（部門メンバータスク + 個人タスク。カンバン/メンバー別/一覧の3ビュー切替・ロール別初期表示）
+- ★ **S-02 ダッシュボード**（`/dashboard`。Recharts で KPI / 部門別進捗 / 予算推移 / 予算70%超案件を可視化）
 
 ### 実装しない（課題2・後回し）
-- ☆ ダッシュボード（画面 S-02、プレゼン用設計のみ）
 - ☆ タスク詳細画面（画面 S-09、編集は S-10 モーダルで代替）
 - ☆ **予算実績の追加方式**（`budget_actuals` テーブルで支出内訳を履歴管理。監査証跡とカテゴリ別集計が可能に）
 - ☆ 予算アラート通知（86% / 100% の閾値超過で関係者に通知）
@@ -91,7 +91,7 @@
 
 ## 4. データモデル
 
-詳細は `doc/Design/er_diagram.md` 参照。PoC は **8 テーブル**（課題1 のスコープ）。
+詳細は `doc/Design/er_diagram.md` 参照。PoC は **9 テーブル**（課題1 のスコープ）。
 
 | テーブル | 役割 |
 |---|---|
@@ -102,6 +102,7 @@
 | tasks | タスク（Backlog 風・**4 値** Enum：`open` / `in_progress` / `resolved` / `closed`。UI・Policy・通知まで PoC で運用） |
 | task_comments | タスクコメント |
 | task_histories | タスク変更履歴（`TaskHistoryService` により自動記録。追跡は status 等5項目・表示用文字列） |
+| project_budget_histories | 予算実績更新履歴（`actual_amount` の更新前後・更新者・更新日時） |
 | notifications | 通知 |
 
 ### 将来追加するテーブル（課題2 以降）
@@ -116,6 +117,7 @@
 - **却下 → 再申請は新規レコード**: `parent_project_id` で元案件と紐づけ、`revision` で申請回数を表現
 - **部門管理者が申請者の場合**: 部門承認をスキップし直接 `pending_hq` へ
 - **予算（課題1）**: `estimated_amount`（申請時）→ 承認時に `budget_amount` に転記 → `actual_amount` を **上書き更新**（最小要件）
+- **予算履歴（課題1）**: `project_budget_histories` に `actual_amount` の更新前後を記録し、案件詳細の履歴タブへ表示
 - **予算（課題2）**: `budget_actuals` への INSERT に切替。`projects.actual_amount` は `SUM()` のキャッシュへ移行
 - **消費率**: DB に持たず `actual_amount / budget_amount * 100` で算出
 - **タスクステータス（Backlog 風・4値運用 / 課題1 で完全実装）**:

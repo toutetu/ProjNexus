@@ -1,6 +1,6 @@
 # ER図（v6） - 開発管理統合アプリケーション
 
-## テーブル一覧（PoC：8テーブル）
+## テーブル一覧（PoC：9テーブル）
 
 | # | テーブル名 | 説明 |
 |---|--------|------|
@@ -11,7 +11,8 @@
 | 5 | tasks | タスク（Backlog風） |
 | 6 | task_comments | タスクコメント |
 | 7 | task_histories | タスク変更履歴 |
-| 8 | notifications | 通知 |
+| 8 | project_budget_histories | 予算実績更新履歴 |
+| 9 | notifications | 通知 |
 
 > 補足: 上記は業務ドメインの主要テーブル。実DBにはフレームワーク標準テーブル（`cache` / `jobs` / `sessions` / `password_reset_tokens`）および権限管理テーブル（Spatie Permission）も存在する。
 
@@ -131,6 +132,15 @@ erDiagram
     string new_value "変更後の値"
     timestamp created_at
   }
+  project_budget_histories {
+    bigint id PK
+    bigint project_id FK "対象案件"
+    bigint user_id FK "更新者(nullable)"
+    bigint old_actual_amount "更新前実績額(nullable)"
+    bigint new_actual_amount "更新後実績額"
+    timestamp created_at
+    timestamp updated_at
+  }
   notifications {
     bigint id PK
     bigint user_id FK "通知先ユーザー"
@@ -156,9 +166,11 @@ erDiagram
   users ||--o{ tasks : "作成"
   users ||--o{ task_comments : "投稿"
   users ||--o{ task_histories : "変更"
+  users ||--o{ project_budget_histories : "予算更新"
   users ||--o{ notifications : "受信"
   projects ||--o{ approvals : "承認履歴"
   projects ||--o{ tasks : "タスク"
+  projects ||--o{ project_budget_histories : "予算実績履歴"
   projects ||--o{ notifications : "通知"
   projects o|--o{ projects : "再申請"
   tasks ||--o{ tasks : "親子"
@@ -175,6 +187,15 @@ erDiagram
 | 記録タイミング | タスクの作成・更新（`ProjectTaskController`）、本部承認直後の初期タスク作成（`ApprovalService`） |
 | 追跡フィールド | `status`, `progress_rate`, `assignee_id`, `due_date`, `priority`（`title` / `description` / `task_type` は対象外） |
 | `old_value` / `new_value` | 画面表示と揃えた文字列（例: 未着手、担当者氏名、`Y-m-d` 形式の期日、`45%`）。作成時は項目ごとに `old_value` を null、`new_value` に現在値 |
+
+### project_budget_histories（実装対応）
+
+| 項目 | 内容 |
+|------|------|
+| Eloquent | `App\Models\ProjectBudgetHistory`（テーブル名 `project_budget_histories`） |
+| 記録タイミング | `BudgetController@update` で `actual_amount` を更新したとき（値が変わった場合のみ） |
+| 記録内容 | `old_actual_amount` / `new_actual_amount` / `user_id` / `created_at` |
+| 表示先 | `Projects/Show` の履歴タブ（「予算実績を更新」イベントとして時系列表示） |
 
 ---
 
@@ -321,7 +342,7 @@ projects.status が approved になった時点で以下が解禁される：
 
 ### 課題1（PoC）- 上書き方式
 - `projects.actual_amount` をユーザーが直接更新（累計額を入力）
-- 支出の内訳・履歴は保持しない
+- 支出内訳は保持しないが、更新監査のため `project_budget_histories` に更新履歴を保存
 - 最小要件「案件単位の総額で可」を満たす最小構成
 - S-11 予算実績入力モーダルは「実績額（円）」の単一入力欄
 

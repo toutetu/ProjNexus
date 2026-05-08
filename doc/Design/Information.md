@@ -12,6 +12,11 @@
 | 本番 | https://projnexus-main-butvrx.laravel.cloud | Laravel Cloud |
 | ローカル | http://localhost/ProjNexus/public/ | XAMPP |
 
+### 1.0 時刻表示の運用（2026-05-08 追記）
+- 履歴・更新時刻は **日本時間（JST）** を基準とする
+- アプリ設定: `config/app.php` の `timezone` は `env('APP_TIMEZONE', 'Asia/Tokyo')`
+- 設定変更時は `php artisan config:clear` を実行して反映する
+
 ### 1.1 ルートアクセス時の挙動
 - `/` は Welcome 画面を表示せず、以下にリダイレクトする
   - 未ログイン: `login`
