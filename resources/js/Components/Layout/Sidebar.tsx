@@ -7,6 +7,7 @@ import {
     FolderSearch,
     Folders,
     Inbox,
+    LayoutDashboard,
     ListChecks,
     LogOut,
     PanelLeftClose,
@@ -176,6 +177,7 @@ const ROLE_LABEL: Record<RoleName, string> = {
 };
 
 type ActiveKey =
+    | 'dashboard'
     | 'new'
     | 'pending'
     | 'projects-approval'
@@ -310,6 +312,12 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                 </SidebarSection>
 
                 <SidebarSection label="予算管理">
+                    <SidebarLink
+                        href={route('dashboard')}
+                        icon={LayoutDashboard}
+                        label="ダッシュボード"
+                        active={activeKey === 'dashboard'}
+                    />
                     <SidebarLink
                         href="/projects?tab=budget"
                         icon={Wallet}

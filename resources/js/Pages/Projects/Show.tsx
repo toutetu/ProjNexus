@@ -57,6 +57,13 @@ interface ProjectShowData {
     applicantSubmitsToHqDirect?: boolean;
     approvals: ApprovalTimelineItem[];
     tasks: TaskListItem[];
+    budgetHistories: Array<{
+        id: number;
+        user: string;
+        oldActualAmount: number | null;
+        newActualAmount: number;
+        createdAt: string | null;
+    }>;
 }
 
 interface Props {
@@ -578,12 +585,32 @@ export default function ProjectsShow({
             })),
         );
 
-        return [submittedEvent, ...approvalEvents, ...changeEvents].sort((a, b) => {
+        const budgetEvents: HistoryEvent[] = (project.budgetHistories ?? []).map((history) => ({
+            id: `budget-history-${history.id}`,
+            occurredAt: history.createdAt,
+            actor: history.user,
+            title: '予算実績を更新',
+            fromValue:
+                history.oldActualAmount === null
+                    ? '—'
+                    : `¥${Math.trunc(history.oldActualAmount).toLocaleString('ja-JP')}`,
+            toValue: `¥${Math.trunc(history.newActualAmount).toLocaleString('ja-JP')}`,
+            kind: 'change',
+            eventType: 'change',
+        }));
+
+        return [submittedEvent, ...approvalEvents, ...changeEvents, ...budgetEvents].sort((a, b) => {
             const aTime = a.occurredAt ? new Date(a.occurredAt).getTime() : 0;
             const bTime = b.occurredAt ? new Date(b.occurredAt).getTime() : 0;
             return aTime - bTime;
         });
-    }, [project.submittedAt, project.applicant, project.approvals, project.tasks]);
+    }, [
+        project.submittedAt,
+        project.applicant,
+        project.approvals,
+        project.tasks,
+        project.budgetHistories,
+    ]);
 
     const switchTab = (nextTab: DetailTab) => {
         setActiveTab(nextTab);

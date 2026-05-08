@@ -335,6 +335,9 @@ class ProjectController extends Controller
             'approvals' => static function ($q): void {
                 $q->with('approver:id,name')->orderByDesc('acted_at');
             },
+            'budgetHistories' => static function ($q): void {
+                $q->with('user:id,name')->latest('created_at');
+            },
         ]);
 
         $rejectedAt = null;
@@ -444,6 +447,13 @@ class ProjectController extends Controller
                         'newValue' => $history->new_value,
                         'createdAt' => $history->created_at?->toIso8601String(),
                     ])->values(),
+                ])->values(),
+                'budgetHistories' => $project->budgetHistories->map(fn ($history) => [
+                    'id' => $history->id,
+                    'user' => $history->user?->name ?? '不明ユーザー',
+                    'oldActualAmount' => $history->old_actual_amount,
+                    'newActualAmount' => $history->new_actual_amount,
+                    'createdAt' => $history->created_at?->toIso8601String(),
                 ])->values(),
             ],
         ]);

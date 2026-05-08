@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualController;
 use App\Http\Controllers\MemberTaskController;
 use App\Http\Controllers\NotificationController;
@@ -17,9 +18,9 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return redirect()->route('projects.index', ['tab' => 'approval']);
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::get('/manual', [ManualController::class, 'show'])->name('manual.show');
 Route::get('/manual/assets/{file}', [ManualController::class, 'asset'])
