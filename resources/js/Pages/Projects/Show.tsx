@@ -34,6 +34,7 @@ import { Button } from '@/Components/ui/button';
 import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
 
 interface ProjectShowData {
     id: number;
@@ -548,7 +549,31 @@ export default function ProjectsShow({
             ? 'apply'
             : parseDetailTab(new URLSearchParams(window.location.search).get('detailTab'));
     const [activeTab, setActiveTab] = useState<DetailTab>(initialTab);
-    const activeSidebarKey = activeTab === 'tasks' ? 'projects-dev' : 'projects-approval';
+    const activeSidebarKey =
+        activeTab === 'tasks'
+            ? 'projects-dev'
+            : activeTab === 'budget'
+              ? 'projects-budget'
+              : 'projects-approval';
+
+    const listCrumb =
+        activeTab === 'tasks'
+            ? {
+                  sectionLabel: '開発管理',
+                  sectionIcon: GitBranch,
+                  tab: 'dev' as const,
+              }
+            : activeTab === 'budget'
+              ? {
+                    sectionLabel: '予算管理',
+                    sectionIcon: Wallet,
+                    tab: 'budget' as const,
+                }
+              : {
+                    sectionLabel: '申請・承認',
+                    sectionIcon: FileCheck2,
+                    tab: 'approval' as const,
+                };
     const isRejectedProject =
         project.status === 'rejected' || !!project.rejectedAt || !!project.rejectedComment;
     const pageTitle = project.status === 'approved' ? project.title : '承認画面';
@@ -641,8 +666,12 @@ export default function ProjectsShow({
         <AuthenticatedLayout
             activeKey={activeSidebarKey}
             breadcrumb={[
-                { label: '開発管理', icon: GitBranch },
-                { label: '案件一覧', href: '/projects?tab=dev', icon: FolderSearch },
+                { label: listCrumb.sectionLabel, icon: listCrumb.sectionIcon },
+                {
+                    label: PROJECT_LIST_PAGE_TITLE[listCrumb.tab],
+                    href: route('projects.index', { tab: listCrumb.tab }),
+                    icon: FolderSearch,
+                },
                 { label: `案件詳細：${project.title}` },
             ]}
         >

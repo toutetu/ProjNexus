@@ -21,6 +21,7 @@ import Tabs, { type TabItem } from '@/Components/Tabs';
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { ActiveKey } from '@/Components/Layout/Sidebar';
+import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 
@@ -809,10 +810,10 @@ export default function ProjectsIndex({
                               : '申請・承認',
                     icon: tab === 'dev' ? GitBranch : tab === 'budget' ? Wallet : FileCheck2,
                 },
-                { label: '案件一覧', icon: FolderSearch },
+                { label: PROJECT_LIST_PAGE_TITLE[tab], icon: FolderSearch },
             ]}
         >
-            <Head title="案件一覧" />
+            <Head title={PROJECT_LIST_PAGE_TITLE[tab]} />
 
             {flash?.error && (
                 <div
@@ -827,7 +828,7 @@ export default function ProjectsIndex({
                 <div>
                     <h1 className="flex items-center text-2xl font-bold tracking-tight text-brand-dark">
                         <span className="mr-2.5 inline-block h-6 w-1 rounded-sm bg-brand-accent" />
-                        案件一覧
+                        {PROJECT_LIST_PAGE_TITLE[tab]}
                     </h1>
                     <p className="mt-1 text-sm text-brand-muted">
                         {TAB_SUBTITLE[tab]}

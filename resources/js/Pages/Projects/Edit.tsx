@@ -12,6 +12,7 @@ import { Button } from '@/Components/ui/button';
 import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
 import type { PageProps, RoleName } from '@/types';
 
 interface ProjectEditData {
@@ -116,7 +117,10 @@ export default function ProjectsEdit({ departments, project }: Props) {
             activeKey="projects-approval"
             breadcrumb={[
                 { label: '申請・承認', icon: FileCheck2 },
-                { label: '案件一覧', href: route('projects.index', { tab: 'approval' }) },
+                {
+                    label: PROJECT_LIST_PAGE_TITLE.approval,
+                    href: route('projects.index', { tab: 'approval' }),
+                },
                 { label: '案件編集', icon: FilePenLine },
             ]}
         >

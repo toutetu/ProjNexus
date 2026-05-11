@@ -21,6 +21,7 @@ import { Button } from '@/Components/ui/button';
 import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
 import type { PageProps, RoleName } from '@/types';
 
 interface CreateProjectForm {
@@ -350,7 +351,7 @@ export default function ProjectsCreate({
                                             })}
                                             className="ml-1 font-medium text-brand-blue hover:underline"
                                         >
-                                            案件一覧から再編集できます。
+                                            {PROJECT_LIST_PAGE_TITLE.approval}から再編集できます。
                                         </Link>
                                     </p>
                                 </div>

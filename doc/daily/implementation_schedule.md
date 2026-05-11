@@ -38,8 +38,8 @@
 
 | # | 項目 | メモ | 主な編集先（目安） |
 |---|------|------|-------------------|
-| 1 | レフトバー「申請・承認」「開発管理」「予算管理」の各項目 | セクション内リンク・ラベルの情報設計を見直し、現行フローと対応が一目で分かるようにする | `resources/js/Components/Layout/Sidebar.tsx`、必要なら `routes/web.php`・パンくず渡し元 |
-| 2 | 「案件一覧」名称の変更（同一文言が3つありわかりづらい） | セクション別に **一覧の意味が伝わる名称** に変更（例: 申請セクションは「案件一覧（申請）」、開発は「案件一覧（開発）」、予算は「案件一覧（予算）」など。文言は実装時に確定） | 同上 + `AuthenticatedLayout` / 各 Page の `breadcrumb` |
+| 1 | サイドバー（セクション設計/配色）見直し | **✅ 2026-05-11** ライトテーマへ刷新。セクション別アクセント色（申請/開発/予算）・アクティブ背景/左ボーダー・dot を統一 | `resources/js/Components/Layout/Sidebar.tsx`、`doc/Design/components_spec.md` |
+| 2 | 「案件一覧」名称の変更 | **✅ 2026-05-11** 文言確定: **申請状況一覧** / **開発進捗一覧** / **予算状況一覧**。`projectListLabels.ts` で共通化（サイドバー・`/projects` の見出し・パンくず・編集導線の一部） | `resources/js/lib/projectListLabels.ts`、`Sidebar.tsx`、`Projects/{Index,Show,Edit,Create}.tsx` |
 | 3 | 申請画面のファイルアップロード | **✅ 2026-05-11 実装完了**（計画は §3.1）。新規申請・編集から添付・保存、案件詳細で一覧・ダウンロード。編集時のみ既存削除（`remove_attachment_ids`）。DL は `ProjectAttachmentPolicy` + 親案件の `view` | 同上 |
 | 4 | タスク完了入力時のエラー修正 | 「タスク完了」（例: `resolved` / `closed` 入力や進捗確定）で API／バリデーション／Policy 不整合があれば修正 | `resources/js/Components/Modals/ProjectTaskDialog.tsx`、`app/Http/Controllers`（タスク更新）、`TaskPolicy`、関連 Feature テスト |
 | 5 | 予算ダッシュボード | ✅ 2026-05-08 実装済み（`/dashboard`）。KPI / 部門別進捗 / 月次予算推移 / 70%超案件リストを実装、サイドバー導線追加 | `resources/js/Pages/Dashboard/Index.tsx`、`app/Http/Controllers/DashboardController.php`、`resources/js/Components/Dashboard/*` |
@@ -95,7 +95,8 @@
 
 ### 手動確認チェックリスト（作業中に使用）
 
-- [ ] マスト #1〜2: サイドバー・パンくずの名称がセクション意図と一致
+- [x] マスト #1: サイドバー各セクションのリンク・ラベル情報設計（ライト化＋色分け反映）
+- [x] マスト #2: 一覧名称がセクション意図と一致（申請状況一覧／開発進捗一覧／予算状況一覧）
 - [x] マスト #3: 添付ファイルの保存・再表示・権限（2026-05-11 実装。手動確認: 新規申請/編集の multipart、詳細の DL、他ユーザー DL 不可）
 - [ ] マスト #4: タスク完了フローが 3 ロールでエラーにならない
 - [ ] マスト #5: 予算ダッシュボード（または同等UI）がデータと一致
