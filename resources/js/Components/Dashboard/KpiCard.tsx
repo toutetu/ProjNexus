@@ -43,7 +43,7 @@ export default function KpiCard({
     return (
         <div
             className={cn(
-                'relative overflow-hidden rounded-xl border bg-white p-5 shadow-sm transition-all duration-150',
+                'relative overflow-hidden rounded-lg border bg-white p-4 shadow-sm transition-all duration-150',
                 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md',
                 isDanger ? 'border-2 border-brand-red/20' : 'border-brand-border',
             )}
@@ -51,30 +51,30 @@ export default function KpiCard({
             <div className={cn('absolute left-0 right-0 top-0 h-1', accentClassMap[accent])} />
             <div
                 className={cn(
-                    'mb-2 flex items-center gap-2 text-sm font-medium',
+                    'mb-1.5 flex items-center gap-1.5 text-xs font-medium',
                     isDanger ? 'text-brand-red' : 'text-brand-muted',
                 )}
             >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
                 <span>{label}</span>
             </div>
 
-            <div className="mb-3 flex items-end justify-between">
+            <div className="mb-2 flex items-end justify-between gap-2">
                 <div className="flex items-baseline gap-1">
                     <span
                         className={cn(
-                            'font-mono text-4xl font-bold tracking-tight',
+                            'font-mono text-3xl font-bold tracking-tight',
                             isDanger ? 'text-brand-red' : 'text-brand-dark',
                         )}
                     >
                         {value}
                     </span>
-                    {unit && <span className="ml-1 text-sm text-brand-muted">{unit}</span>}
+                    {unit && <span className="ml-0.5 text-xs text-brand-muted">{unit}</span>}
                 </div>
                 {badge && (
                     <span
                         className={cn(
-                            'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
+                            'inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
                             badgeClassMap[badge.tone ?? 'default'],
                         )}
                     >
@@ -84,7 +84,7 @@ export default function KpiCard({
             </div>
 
             {typeof progress === 'number' && (
-                <div className="mb-1 h-2 overflow-hidden rounded-full bg-brand-bg">
+                <div className="mb-0.5 h-1.5 overflow-hidden rounded-full bg-brand-bg">
                     <div
                         className={cn(
                             'h-full rounded-full',
@@ -96,7 +96,7 @@ export default function KpiCard({
             )}
 
             {footer && (
-                <div className={cn('mt-1 text-xs', isDanger ? 'text-brand-red' : 'text-brand-muted')}>
+                <div className={cn('mt-0.5 text-[11px]', isDanger ? 'text-brand-red' : 'text-brand-muted')}>
                     {footer}
                 </div>
             )}

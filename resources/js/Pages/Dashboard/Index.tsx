@@ -23,6 +23,7 @@ interface DashboardProps {
     budgetTrend: Array<{
         month: string;
         rate: number;
+        amount: number;
     }>;
     budgetAlerts: Array<{
         id: number;
@@ -54,53 +55,52 @@ export default function DashboardIndex({
                 <div className="text-xs text-brand-muted">最終更新: {updatedAt}</div>
             </div>
 
-            <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <KpiCard
-                    icon={FolderOpen}
-                    label="進行中案件"
-                    value={String(kpi.activeProjects)}
-                    unit="件"
-                    accent="cyan-blue"
-                    badge={{ text: `+${kpi.activeDelta}`, tone: 'default' }}
-                    footer="前週比"
-                />
-                <KpiCard
-                    icon={Clock3}
-                    label="承認待ち"
-                    value={String(kpi.pendingApprovals)}
-                    unit="件"
-                    accent="yellow"
-                    badge={{ text: '要対応', tone: 'warn' }}
-                    footer="承認待ち一覧から対応可能"
-                />
-                <KpiCard
-                    icon={TrendingUp}
-                    label="平均進捗率"
-                    value={kpi.averageProgressRate.toFixed(1)}
-                    unit="%"
-                    accent="blue-purple"
-                    badge={{ text: '順調', tone: 'default' }}
-                    progress={kpi.averageProgressRate}
-                    footer={`目標まで残り ${(100 - kpi.averageProgressRate).toFixed(1)}%`}
-                />
-                <KpiCard
-                    icon={AlertTriangle}
-                    label="予算消費率"
-                    value={kpi.budgetConsumptionRate.toFixed(1)}
-                    unit="%"
-                    accent="red"
-                    badge={{
-                        text: kpi.budgetConsumptionRate >= 70 ? '超過リスク' : '監視中',
-                        tone: 'danger',
-                    }}
-                    progress={kpi.budgetConsumptionRate}
-                    footer="警告ライン 70%"
-                />
-            </section>
-
-            <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
                 <DeptProgressChart data={departmentProgress} />
                 <BudgetTrendChart data={budgetTrend} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
+                    <KpiCard
+                        icon={FolderOpen}
+                        label="進行中案件"
+                        value={String(kpi.activeProjects)}
+                        unit="件"
+                        accent="cyan-blue"
+                        badge={{ text: `+${kpi.activeDelta}`, tone: 'default' }}
+                        footer="前週比"
+                    />
+                    <KpiCard
+                        icon={Clock3}
+                        label="承認待ち"
+                        value={String(kpi.pendingApprovals)}
+                        unit="件"
+                        accent="yellow"
+                        badge={{ text: '要対応', tone: 'warn' }}
+                        footer="承認待ち一覧から対応可能"
+                    />
+                    <KpiCard
+                        icon={TrendingUp}
+                        label="平均進捗率"
+                        value={kpi.averageProgressRate.toFixed(1)}
+                        unit="%"
+                        accent="blue-purple"
+                        badge={{ text: '順調', tone: 'default' }}
+                        progress={kpi.averageProgressRate}
+                        footer={`目標まで残り ${(100 - kpi.averageProgressRate).toFixed(1)}%`}
+                    />
+                    <KpiCard
+                        icon={AlertTriangle}
+                        label="予算消費率"
+                        value={kpi.budgetConsumptionRate.toFixed(1)}
+                        unit="%"
+                        accent="red"
+                        badge={{
+                            text: kpi.budgetConsumptionRate >= 70 ? '超過リスク' : '監視中',
+                            tone: 'danger',
+                        }}
+                        progress={kpi.budgetConsumptionRate}
+                        footer="警告ライン 70%"
+                    />
+                </div>
             </section>
 
             <BudgetAlertTable rows={budgetAlerts} />
