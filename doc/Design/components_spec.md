@@ -523,6 +523,37 @@ interface AmountInputProps {
 ```
 **内部**: 内部stateで表示用の文字列（カンマ区切り）を持ち、onChangeでは数値を返す。
 
+### ProjectAttachmentField
+**役割**: 案件申請・編集・詳細のファイル添付（複数選択・既存一覧・削除予定トグル・閲覧専用）。
+**配置**: `resources/js/Components/Form/ProjectAttachmentField.tsx`
+**使用モック**: s05（新規申請）、S-04（案件詳細の申請情報タブ）
+**Props（要点）**:
+```ts
+interface ExistingAttachmentItem {
+  id: number;
+  originalFilename: string;
+  sizeBytes: number;
+  downloadUrl: string;
+}
+interface ProjectAttachmentFieldProps {
+  id: string;
+  label?: string;
+  infotipAriaLabel?: string;
+  infotipContent?: ReactNode;
+  disabled?: boolean;
+  error?: string;
+  remainingSlots: number; // 案件あたり10件上限との兼ね合いで算出
+  selectedNewFiles: File[];
+  onNewFilesChange: (files: File[]) => void;
+  existingAttachments?: ExistingAttachmentItem[];
+  removeExistingIds?: number[];
+  onToggleRemoveExisting?: (id: number) => void;
+  processing?: boolean;
+  readOnly?: boolean; // true のとき一覧＋ダウンロードのみ（詳細画面）
+}
+```
+**運用**: 送信は Inertia の `forceFormData: true` とセット。サーバー側は `ProjectAttachmentService` で `storage/app/project_attachments/{project_id}/` に保存。
+
 ### Input / Textarea / Select
 shadcn/ui の部品をそのまま使う。**プロジェクト固有のラッパーは作らない**（直接 shadcn/ui の `Input` 等を import）。スタイル調整が必要なら shadcn/ui の components.json 側で一括設定。
 
