@@ -24,7 +24,7 @@ import {
 import ApprovalStepperFull, {
     type ApprovalTimelineItem,
 } from '@/Components/Approval/ApprovalStepperFull';
-import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
+import ProjectAttachmentField from '@/Components/Form/ProjectAttachmentField';
 import ApprovalDialog from '@/Components/Modals/ApprovalDialog';
 import BudgetActualDialog from '@/Components/Modals/BudgetActualDialog';
 import ProjectTaskDialog, { type TaskListItem } from '@/Components/Modals/ProjectTaskDialog';
@@ -63,6 +63,13 @@ interface ProjectShowData {
         oldActualAmount: number | null;
         newActualAmount: number;
         createdAt: string | null;
+    }>;
+    attachments: Array<{
+        id: number;
+        originalFilename: string;
+        sizeBytes: number;
+        createdAt: string | null;
+        downloadUrl: string;
     }>;
 }
 
@@ -875,21 +882,18 @@ export default function ProjectsShow({
                             </div>
                         </div>
 
-                        <div className="rounded-md border border-dashed border-slate-300 bg-slate-100/70 px-4 py-3">
-                            <div className="flex items-center gap-2">
-                                <InputLabel htmlFor="attachments" value="ファイル添付" />
-                                <Challenge2Badge />
-                            </div>
-                            <Input
-                                id="attachments"
-                                type="file"
-                                className="mt-1.5 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-                                disabled
-                            />
-                            <p className="mt-1 text-xs text-slate-500">
-                                課題2で実装予定のため、現在は準備中です。
-                            </p>
-                        </div>
+                        <ProjectAttachmentField
+                            id="attachments-readonly"
+                            readOnly
+                            existingAttachments={project.attachments ?? []}
+                            selectedNewFiles={[]}
+                            onNewFilesChange={() => undefined}
+                            remainingSlots={0}
+                            infotipAriaLabel="ファイル添付の説明"
+                            infotipContent={
+                                <span>申請時に登録された添付です。リンクからダウンロードできます。</span>
+                            }
+                        />
 
                     </div>
                         </>
