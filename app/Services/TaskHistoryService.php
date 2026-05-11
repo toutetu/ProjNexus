@@ -17,17 +17,13 @@ class TaskHistoryService
     public function recordCreation(ProjectWorkItem $task, User $actor): void
     {
         $this->runInTransaction(function () use ($task, $actor): void {
-            $task->loadMissing('assignee', 'reviewer');
-
-            foreach (self::TRACKED_FIELDS as $field) {
-                ProjectTaskHistory::query()->create([
-                    'task_id' => $task->id,
-                    'user_id' => $actor->id,
-                    'field_name' => $field,
-                    'old_value' => null,
-                    'new_value' => $this->formatField($task, $field),
-                ]);
-            }
+            ProjectTaskHistory::query()->create([
+                'task_id' => $task->id,
+                'user_id' => $actor->id,
+                'field_name' => 'created',
+                'old_value' => null,
+                'new_value' => 'タスクを新規作成',
+            ]);
         });
     }
 

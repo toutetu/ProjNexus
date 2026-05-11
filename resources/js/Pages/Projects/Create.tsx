@@ -14,12 +14,14 @@ import {
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
+import ProjectAttachmentField from '@/Components/Form/ProjectAttachmentField';
 import ApprovalStepperFull from '@/Components/Approval/ApprovalStepperFull';
 import StatusPill from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
 import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
 import type { PageProps, RoleName } from '@/types';
 
 interface CreateProjectForm {
@@ -30,6 +32,7 @@ interface CreateProjectForm {
     estimated_amount: string;
     estimated_days: string;
     submit_action: 'draft' | 'submit';
+    attachments: File[];
 }
 
 interface Props {
@@ -74,11 +77,14 @@ export default function ProjectsCreate({
         estimated_amount: '',
         estimated_days: '',
         submit_action: 'draft',
+        attachments: [],
     });
 
     const submitWithAction = (action: 'draft' | 'submit') => {
         transform((form) => ({ ...form, submit_action: action }));
         post(route('projects.store'), {
+            // ファイルが無いときは JSON のまま送る（常時 multipart にすると環境によって title 等が空扱いになることがある）
+            forceFormData: data.attachments.length > 0,
             onError: () => {
                 if (action === 'draft') {
                     window.alert('保存できませんでした！\n入力内容を確認してください。');
@@ -309,21 +315,24 @@ export default function ProjectsCreate({
                             </div>
                         </div>
 
-                        <div className="rounded-md border border-dashed border-slate-300 bg-slate-100/70 px-4 py-3">
-                            <div className="flex items-center gap-2">
-                                <InputLabel htmlFor="attachments" value="ファイル添付" />
-                                <Challenge2Badge />
-                            </div>
-                            <Input
-                                id="attachments"
-                                type="file"
-                                className="mt-1.5 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-                                disabled
-                            />
-                            <p className="mt-1 text-xs text-slate-500">
-                                課題2で実装予定のため、現在は準備中です。
-                            </p>
-                        </div>
+                        <ProjectAttachmentField
+                            id="attachments"
+                            selectedNewFiles={data.attachments}
+                            onNewFilesChange={(files) => setData('attachments', files)}
+                            remainingSlots={10}
+                            error={
+                                typeof errors.attachments === 'string'
+                                    ? errors.attachments
+                                    : errors['attachments.0']
+                            }
+                            infotipAriaLabel="ファイル添付の説明"
+                            infotipContent={
+                                <span>
+                                    仕様書や見積関連資料がある場合は添付してください。承認後は案件情報の編集ができません。
+                                </span>
+                            }
+                            processing={processing}
+                        />
 
                         {draftCount > 0 && (
                             <div className="flex items-start gap-3 rounded-lg border border-dashed border-[#EDB100] bg-[#FFF9E6] px-4 py-3">
@@ -342,7 +351,7 @@ export default function ProjectsCreate({
                                             })}
                                             className="ml-1 font-medium text-brand-blue hover:underline"
                                         >
-                                            案件一覧から再編集できます。
+                                            {PROJECT_LIST_PAGE_TITLE.approval}から再編集できます。
                                         </Link>
                                     </p>
                                 </div>

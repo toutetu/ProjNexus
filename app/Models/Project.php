@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Project extends Model
 {
@@ -33,6 +34,20 @@ class Project extends Model
         'approved_at',
         'rejected_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Project $project): void {
+            $paths = ProjectAttachment::query()
+                ->where('project_id', $project->id)
+                ->pluck('stored_path');
+            foreach ($paths as $path) {
+                if (Storage::disk('local')->exists($path)) {
+                    Storage::disk('local')->delete($path);
+                }
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -80,12 +95,17 @@ class Project extends Model
 
     public function tasks(): HasMany
     {
-        return $this->hasMany(\App\Models\ProjectWorkItem::class, 'project_id');
+        return $this->hasMany(ProjectWorkItem::class, 'project_id');
     }
 
     public function budgetHistories(): HasMany
     {
         return $this->hasMany(ProjectBudgetHistory::class, 'project_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ProjectAttachment::class);
     }
 
     public function scopeForTab(Builder $query, string $tab): Builder

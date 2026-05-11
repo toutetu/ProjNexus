@@ -12,6 +12,7 @@ import {
 interface BudgetTrendPoint {
     month: string;
     rate: number;
+    amount: number;
 }
 
 interface BudgetTrendChartProps {
@@ -19,8 +20,10 @@ interface BudgetTrendChartProps {
 }
 
 export default function BudgetTrendChart({ data }: BudgetTrendChartProps) {
+    const formatYen = (value: number): string => `¥${Math.round(value).toLocaleString('ja-JP')}`;
+
     return (
-        <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+        <div className="relative rounded-lg border border-brand-border bg-white p-5 shadow-sm">
             <div className="mb-4">
                 <h2 className="text-lg font-semibold text-brand-dark">月次 予算消費推移</h2>
                 <p className="mt-0.5 text-xs text-brand-muted">70%ラインで警告</p>
@@ -35,10 +38,18 @@ export default function BudgetTrendChart({ data }: BudgetTrendChartProps) {
                             tick={{ fill: '#6C757D', fontSize: 12 }}
                         />
                         <Tooltip
-                            formatter={(value) => [
-                                `${Number(value ?? 0).toFixed(1)}%`,
-                                '消費率',
-                            ]}
+                            content={({ active, payload, label }) => {
+                                if (!active || !payload || payload.length === 0) return null;
+                                const point = payload[0]?.payload as BudgetTrendPoint | undefined;
+                                if (!point) return null;
+                                return (
+                                    <div className="rounded border border-brand-border bg-white px-3 py-2 text-sm shadow-sm">
+                                        <p className="font-semibold text-brand-dark">{label}</p>
+                                        <p className="mt-1 text-brand-red">消費率: {point.rate.toFixed(1)}%</p>
+                                        <p className="text-brand-red">消費額: {formatYen(point.amount)}</p>
+                                    </div>
+                                );
+                            }}
                         />
                         <ReferenceLine
                             y={70}
@@ -57,6 +68,11 @@ export default function BudgetTrendChart({ data }: BudgetTrendChartProps) {
                         />
                     </ComposedChart>
                 </ResponsiveContainer>
+            </div>
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-sky-100/70">
+                <span className="select-none text-5xl font-extrabold tracking-widest text-sky-800/75">
+                    未実装
+                </span>
             </div>
         </div>
     );

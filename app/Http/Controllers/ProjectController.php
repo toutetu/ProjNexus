@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Enums\ApprovalAction;
 use App\Enums\ProjectStatus;
 use App\Enums\Role;
@@ -10,12 +9,18 @@ use App\Enums\TaskStatus;
 use App\Models\Approval;
 use App\Models\Department;
 use App\Models\Project;
+use App\Models\ProjectAttachment;
 use App\Models\ProjectWorkItem;
 use App\Models\User;
 use App\Services\ApprovalService;
+use App\Services\ProjectAttachmentService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,6 +39,7 @@ class ProjectController extends Controller
             'min' => ':attribute は :min 以上で入力してください。',
             'exists' => '選択した :attribute は無効です。',
             'in' => ':attribute の値が不正です。',
+            'prohibited' => ':attribute は送信できません。',
         ];
     }
 
@@ -51,7 +57,43 @@ class ProjectController extends Controller
             'estimated_days' => '概算工数',
             'primary_assignee_id' => '主担当',
             'submit_action' => '保存方法',
+            'attachments' => '添付ファイル',
+            'attachments.*' => '添付ファイル',
+            'remove_attachment_ids' => '削除する添付',
+            'remove_attachment_ids.*' => '削除する添付',
         ];
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    private function attachmentValidationRules(?Project $project = null): array
+    {
+        $removeItemRules = ['integer'];
+        if ($project !== null) {
+            $removeItemRules[] = Rule::exists('project_attachments', 'id')->where('project_id', $project->id);
+        }
+
+        return [
+            'attachments' => ['nullable', 'array', 'max:5'],
+            'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif,txt,zip'],
+            'remove_attachment_ids' => ['sometimes', 'array'],
+            'remove_attachment_ids.*' => $removeItemRules,
+        ];
+    }
+
+    /**
+     * @return array<int, UploadedFile>
+     */
+    private function normalizedUploadFiles(Request $request): array
+    {
+        $raw = $request->file('attachments', []);
+        $list = is_array($raw) ? $raw : ($raw !== null ? [$raw] : []);
+
+        return array_values(array_filter(
+            $list,
+            static fn ($file): bool => $file instanceof UploadedFile && $file->isValid(),
+        ));
     }
 
     public function create(): Response
@@ -338,6 +380,9 @@ class ProjectController extends Controller
             'budgetHistories' => static function ($q): void {
                 $q->with('user:id,name')->latest('created_at');
             },
+            'attachments' => static function ($q): void {
+                $q->latest('id');
+            },
         ]);
 
         $rejectedAt = null;
@@ -455,6 +500,13 @@ class ProjectController extends Controller
                     'newActualAmount' => $history->new_actual_amount,
                     'createdAt' => $history->created_at?->toIso8601String(),
                 ])->values(),
+                'attachments' => $project->attachments->map(fn (ProjectAttachment $attachment) => [
+                    'id' => $attachment->id,
+                    'originalFilename' => $attachment->original_filename,
+                    'sizeBytes' => $attachment->size_bytes,
+                    'createdAt' => $attachment->created_at?->toIso8601String(),
+                    'downloadUrl' => route('project-attachments.download', $attachment, false),
+                ])->values(),
             ],
         ]);
     }
@@ -462,6 +514,10 @@ class ProjectController extends Controller
     public function edit(Project $project): Response
     {
         $this->authorize('update', $project);
+
+        $project->load(['attachments' => static function ($q): void {
+            $q->latest('id');
+        }]);
 
         return Inertia::render('Projects/Edit', [
             'departments' => Department::query()
@@ -476,42 +532,69 @@ class ProjectController extends Controller
                 'description' => $project->description,
                 'estimatedAmount' => $project->estimated_amount,
                 'estimatedDays' => $project->estimated_days,
+                'attachments' => $project->attachments->map(fn (ProjectAttachment $attachment) => [
+                    'id' => $attachment->id,
+                    'originalFilename' => $attachment->original_filename,
+                    'sizeBytes' => $attachment->size_bytes,
+                    'createdAt' => $attachment->created_at?->toIso8601String(),
+                    'downloadUrl' => route('project-attachments.download', $attachment, false),
+                ])->values(),
             ],
         ]);
     }
 
-    public function store(Request $request, ApprovalService $approvalService): RedirectResponse
+    public function store(Request $request, ApprovalService $approvalService, ProjectAttachmentService $attachmentService): RedirectResponse
     {
         $this->authorize('create', Project::class);
 
         $submitAction = $request->input('submit_action', 'draft');
         $isSubmit = $submitAction === 'submit';
         $validated = $request->validate(
-            [
-                'title' => ['required', 'string', 'max:80'],
-                'department_id' => [$isSubmit ? 'required' : 'nullable', 'integer', 'exists:departments,id'],
-                'purpose' => [$isSubmit ? 'required' : 'nullable', 'string', 'max:2000'],
-                'description' => ['nullable', 'string', 'max:5000'],
-                'estimated_amount' => [$isSubmit ? 'required' : 'nullable', 'numeric', 'min:0'],
-                'estimated_days' => ['nullable', 'integer', 'min:0'],
-                'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
-                'submit_action' => ['nullable', 'in:draft,submit'],
-            ],
+            array_merge(
+                [
+                    'title' => ['required', 'string', 'max:80'],
+                    'department_id' => [$isSubmit ? 'required' : 'nullable', 'integer', 'exists:departments,id'],
+                    'purpose' => [$isSubmit ? 'required' : 'nullable', 'string', 'max:2000'],
+                    'description' => ['nullable', 'string', 'max:5000'],
+                    'estimated_amount' => [$isSubmit ? 'required' : 'nullable', 'numeric', 'min:0'],
+                    'estimated_days' => ['nullable', 'integer', 'min:0'],
+                    'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+                    'submit_action' => ['nullable', 'in:draft,submit'],
+                ],
+                $this->attachmentValidationRules(),
+                [
+                    'remove_attachment_ids' => ['prohibited'],
+                ],
+            ),
             $this->validationMessages(),
             $this->validationAttributes(),
         );
         $submitAction = $validated['submit_action'] ?? $submitAction;
-        unset($validated['submit_action']);
+        unset($validated['submit_action'], $validated['remove_attachment_ids']);
         $validated['primary_assignee_id'] = $request->user()->id;
         if (($validated['estimated_amount'] ?? null) === null) {
             $validated['estimated_amount'] = 0;
         }
 
-        $project = $request->user()->appliedProjects()->create([
-            'status' => ProjectStatus::Draft,
-            'revision' => 1,
-            ...$validated,
-        ]);
+        $newFiles = $this->normalizedUploadFiles($request);
+        if (count($newFiles) > 10) {
+            throw ValidationException::withMessages([
+                'attachments' => '添付ファイルは1案件あたり最大10件までです。',
+            ]);
+        }
+
+        $project = DB::transaction(function () use ($request, $validated, $attachmentService, $newFiles) {
+            $created = $request->user()->appliedProjects()->create([
+                'status' => ProjectStatus::Draft,
+                'revision' => 1,
+                ...$validated,
+            ]);
+            if ($newFiles !== []) {
+                $attachmentService->storeMany($created, $request->user(), $newFiles);
+            }
+
+            return $created;
+        });
 
         if ($submitAction === 'submit') {
             try {
@@ -526,33 +609,63 @@ class ProjectController extends Controller
         return redirect()->route('projects.index', ['tab' => 'approval']);
     }
 
-    public function update(Request $request, Project $project, ApprovalService $approvalService): RedirectResponse
+    public function update(Request $request, Project $project, ApprovalService $approvalService, ProjectAttachmentService $attachmentService): RedirectResponse
     {
         $this->authorize('update', $project);
 
         $submitAction = $request->input('submit_action', 'draft');
         $isSubmit = $submitAction === 'submit';
         $validated = $request->validate(
-            [
-                'title' => ['required', 'string', 'max:80'],
-                'department_id' => [$isSubmit ? 'required' : 'nullable', 'integer', 'exists:departments,id'],
-                'purpose' => [$isSubmit ? 'required' : 'nullable', 'string', 'max:2000'],
-                'description' => ['nullable', 'string', 'max:5000'],
-                'estimated_amount' => [$isSubmit ? 'required' : 'nullable', 'numeric', 'min:0'],
-                'estimated_days' => ['nullable', 'integer', 'min:0'],
-                'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
-                'submit_action' => ['nullable', 'in:draft,submit'],
-            ],
+            array_merge(
+                [
+                    'title' => ['required', 'string', 'max:80'],
+                    'department_id' => [$isSubmit ? 'required' : 'nullable', 'integer', 'exists:departments,id'],
+                    'purpose' => [$isSubmit ? 'required' : 'nullable', 'string', 'max:2000'],
+                    'description' => ['nullable', 'string', 'max:5000'],
+                    'estimated_amount' => [$isSubmit ? 'required' : 'nullable', 'numeric', 'min:0'],
+                    'estimated_days' => ['nullable', 'integer', 'min:0'],
+                    'primary_assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+                    'submit_action' => ['nullable', 'in:draft,submit'],
+                ],
+                $this->attachmentValidationRules($project),
+            ),
             $this->validationMessages(),
             $this->validationAttributes(),
         );
         $submitAction = $validated['submit_action'] ?? $submitAction;
-        unset($validated['submit_action']);
+        $removeIds = array_values(array_unique($validated['remove_attachment_ids'] ?? []));
+        unset($validated['submit_action'], $validated['remove_attachment_ids']);
         if (($validated['estimated_amount'] ?? null) === null) {
             $validated['estimated_amount'] = 0;
         }
 
-        $project->update($validated);
+        $newFiles = $this->normalizedUploadFiles($request);
+        $currentCount = $project->attachments()->count();
+        if ($currentCount - count($removeIds) + count($newFiles) > 10) {
+            throw ValidationException::withMessages([
+                'attachments' => '添付ファイルは1案件あたり最大10件までです。',
+            ]);
+        }
+
+        DB::transaction(function () use ($request, $project, $validated, $removeIds, $newFiles, $attachmentService): void {
+            $project->update($validated);
+
+            foreach ($removeIds as $attachmentId) {
+                $attachment = ProjectAttachment::query()
+                    ->where('project_id', $project->id)
+                    ->whereKey($attachmentId)
+                    ->first();
+                if ($attachment === null) {
+                    continue;
+                }
+                $this->authorize('delete', $attachment);
+                $attachmentService->deleteRecord($attachment);
+            }
+
+            if ($newFiles !== []) {
+                $attachmentService->storeMany($project->fresh(), $request->user(), $newFiles);
+            }
+        });
 
         if ($submitAction === 'submit') {
             try {

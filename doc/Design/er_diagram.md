@@ -1,6 +1,6 @@
 # ER図（v6） - 開発管理統合アプリケーション
 
-## テーブル一覧（PoC：9テーブル）
+## テーブル一覧（PoC：10テーブル）
 
 | # | テーブル名 | 説明 |
 |---|--------|------|
@@ -13,6 +13,7 @@
 | 7 | task_histories | タスク変更履歴 |
 | 8 | project_budget_histories | 予算実績更新履歴 |
 | 9 | notifications | 通知 |
+| 10 | project_attachments | 案件申請のファイル添付（`storage/app/project_attachments/`） |
 
 > 補足: 上記は業務ドメインの主要テーブル。実DBにはフレームワーク標準テーブル（`cache` / `jobs` / `sessions` / `password_reset_tokens`）および権限管理テーブル（Spatie Permission）も存在する。
 
@@ -33,7 +34,6 @@
 | budget_items | 費目別予算管理（`budget_actuals` と組み合わせて費目ごとの予算・実績管理） | project_id で参照 |
 | task_attachments | タスクへのファイル添付 | task_id で参照 |
 | project_comments | 案件レベルのコメント | project_id で参照 |
-| project_attachments | 案件へのファイル添付 | project_id で参照 |
 
 > **課題1 の方針**：予算実績は `projects.actual_amount` の **上書き方式** で運用する（最小要件「案件単位の総額で可」に準拠）。  
 > **課題2 の拡張**：`budget_actuals` テーブルを追加し、支出ごとに履歴を積み上げる **追加方式** に拡張。監査証跡・カテゴリ別内訳・誤入力耐性を獲得する。
@@ -141,6 +141,17 @@ erDiagram
     timestamp created_at
     timestamp updated_at
   }
+  project_attachments {
+    bigint id PK
+    bigint project_id FK "対象案件"
+    string original_filename "元ファイル名"
+    string stored_path "保存パス"
+    string mime_type "MIME(nullable)"
+    bigint size_bytes "バイト数"
+    bigint uploaded_by FK "アップロードユーザー(nullable)"
+    timestamp created_at
+    timestamp updated_at
+  }
   notifications {
     bigint id PK
     bigint user_id FK "通知先ユーザー"
@@ -167,10 +178,12 @@ erDiagram
   users ||--o{ task_comments : "投稿"
   users ||--o{ task_histories : "変更"
   users ||--o{ project_budget_histories : "予算更新"
+  users ||--o{ project_attachments : "添付アップロード"
   users ||--o{ notifications : "受信"
   projects ||--o{ approvals : "承認履歴"
   projects ||--o{ tasks : "タスク"
   projects ||--o{ project_budget_histories : "予算実績履歴"
+  projects ||--o{ project_attachments : "ファイル添付"
   projects ||--o{ notifications : "通知"
   projects o|--o{ projects : "再申請"
   tasks ||--o{ tasks : "親子"

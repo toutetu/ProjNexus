@@ -1,6 +1,5 @@
 <?php
 
-
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\DashboardController;
@@ -8,6 +7,7 @@ use App\Http\Controllers\ManualController;
 use App\Http\Controllers\MemberTaskController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectAttachmentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectTaskController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +31,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
     Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::get('/project-attachments/{project_attachment}/download', [ProjectAttachmentController::class, 'download'])
+        ->name('project-attachments.download');
     Route::get('/projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
@@ -43,10 +45,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/projects/{project}/budget', [BudgetController::class, 'update'])->name('projects.budget.update');
     Route::post('/projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
     Route::put('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');
+    Route::put('/projects/{project}/tasks/{task}/status', [ProjectTaskController::class, 'updateStatus'])->name(
+        'projects.tasks.status.update',
+    );
     Route::delete('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'destroy'])->name('projects.tasks.destroy');
     Route::post('/projects/{project}/tasks/{task}/comments', [ProjectTaskController::class, 'storeComment'])->name('projects.tasks.comments.store');
 
     Route::get('/member-tasks', [MemberTaskController::class, 'index'])->name('member-tasks.index');
+    Route::put('/member-tasks/{task}/status', [MemberTaskController::class, 'updateStatus'])->name('member-tasks.status.update');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');

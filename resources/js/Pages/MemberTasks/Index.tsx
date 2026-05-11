@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { AlertCircle, GitBranch, Search } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import KanbanBoard from '@/Components/MemberTasks/KanbanBoard';
 import MemberMatrix from '@/Components/MemberTasks/MemberMatrix';
@@ -158,6 +158,8 @@ export default function MemberTasksIndex({
 }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [activeTask, setActiveTask] = useState<MemberTaskItem | null>(null);
+    const [boardTasks, setBoardTasks] = useState<MemberTaskItem[]>(tasks);
+    const [movingTaskId, setMovingTaskId] = useState<number | null>(null);
 
     const queryParams = useMemo(() => {
         const q: Record<string, string | number> = { view };
@@ -217,10 +219,45 @@ export default function MemberTasksIndex({
         `メンバー${memberCount}名`,
         `全${taskTotalCount}件`,
     ];
+    const memberTasksReturnTo = route('member-tasks.index', queryParams);
+
+    useEffect(() => {
+        setBoardTasks(tasks);
+    }, [tasks]);
 
     const openTask = (task: MemberTaskItem) => {
         setActiveTask(task);
         setDialogOpen(true);
+    };
+
+    const moveTaskStatus = (task: MemberTaskItem, nextStatus: MemberTaskItem['status']) => {
+        if (task.status === nextStatus || movingTaskId !== null) {
+            return;
+        }
+
+        const prevTasks = boardTasks;
+        const optimisticTasks = boardTasks.map((row) =>
+            row.id === task.id ? { ...row, status: nextStatus } : row,
+        );
+        setBoardTasks(optimisticTasks);
+        setMovingTaskId(task.id);
+
+        router.put(
+            route('member-tasks.status.update', task.id),
+            {
+                status: nextStatus,
+                return_to: memberTasksReturnTo,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onError: () => {
+                    setBoardTasks(prevTasks);
+                    window.alert('ステータス更新に失敗しました。権限または遷移条件を確認してください。');
+                },
+                onFinish: () => setMovingTaskId(null),
+            },
+        );
     };
 
     const sortButtons: { id: string; label: string }[] = [
@@ -400,7 +437,11 @@ export default function MemberTasksIndex({
                                     </span>
                                     カンバンビュー — ステータス別にタスクを俯瞰できます。
                                 </p>
-                                <KanbanBoard tasks={tasks} onOpenTask={openTask} />
+                                <KanbanBoard
+                                    tasks={boardTasks}
+                                    onOpenTask={openTask}
+                                    onDropStatus={moveTaskStatus}
+                                />
                             </>
                         )}
 
@@ -544,9 +585,11 @@ export default function MemberTasksIndex({
                                 <div className="overflow-x-auto pb-2">
                                     <div className="min-w-[920px]">
                                         <MemberMatrix
+                                            tasks={boardTasks}
                                             members={matrixMembers}
                                             columnCounts={matrixColumnCounts}
                                             onOpenTask={openTask}
+                                            onDropStatus={moveTaskStatus}
                                         />
                                     </div>
                                 </div>
@@ -588,6 +631,7 @@ export default function MemberTasksIndex({
                     task={toTaskListItem(activeTask)}
                     assignees={assigneesForDept}
                     readOnly={!activeTask.canUpdate}
+                    returnTo={memberTasksReturnTo}
                 />
             )}
         </AuthenticatedLayout>

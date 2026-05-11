@@ -1,16 +1,18 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { ArrowLeft, FileCheck2, FilePenLine, Save, Send } from 'lucide-react';
 
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Challenge2Badge from '@/Components/Badge/Challenge2Badge';
+import ProjectAttachmentField from '@/Components/Form/ProjectAttachmentField';
 import ApprovalStepperFull from '@/Components/Approval/ApprovalStepperFull';
 import StatusPill from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
 import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
 import type { PageProps, RoleName } from '@/types';
 
 interface ProjectEditData {
@@ -21,6 +23,13 @@ interface ProjectEditData {
     description: string | null;
     estimatedAmount: number | null;
     estimatedDays: number | null;
+    attachments: Array<{
+        id: number;
+        originalFilename: string;
+        sizeBytes: number;
+        createdAt: string | null;
+        downloadUrl: string;
+    }>;
 }
 
 interface Props {
@@ -39,6 +48,8 @@ interface EditProjectForm {
     estimated_amount: string;
     estimated_days: string;
     submit_action: 'draft' | 'submit';
+    attachments: File[];
+    remove_attachment_ids: number[];
 }
 
 const toIntegerAmountString = (value: string): string =>
@@ -57,7 +68,7 @@ export default function ProjectsEdit({ departments, project }: Props) {
     const roles = auth.user.roles ?? [];
     const submitsToHqDirect = roles.includes('dept_manager' as RoleName);
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const { data, setData, processing, errors } = useForm<EditProjectForm>({
+    const { data, setData, processing, errors, transform, put } = useForm<EditProjectForm>({
         title: project.title ?? '',
         department_id: String(project.departmentId ?? ''),
         purpose: project.purpose ?? '',
@@ -71,14 +82,34 @@ export default function ProjectsEdit({ departments, project }: Props) {
                 ? String(Math.trunc(project.estimatedDays))
                 : '',
         submit_action: 'draft',
+        attachments: [],
+        remove_attachment_ids: [],
     });
 
+    const keptExistingCount = (project.attachments ?? []).filter(
+        (item) => !data.remove_attachment_ids.includes(item.id),
+    ).length;
+    const attachmentSlotsLeft = 10 - keptExistingCount - data.attachments.length;
+
     const submitWithAction = (action: 'draft' | 'submit') => {
-        router.put(
-            route('projects.update', project.id),
-            { ...data, submit_action: action },
-            { preserveScroll: true },
-        );
+        transform((form) => ({ ...form, submit_action: action }));
+        put(route('projects.update', project.id), {
+            forceFormData: data.attachments.length > 0,
+            preserveScroll: true,
+            onError: () => {
+                if (action === 'draft') {
+                    window.alert('保存できませんでした！\n入力内容を確認してください。');
+                    return;
+                }
+                window.alert('申請できませんでした！\n入力内容を確認してください。');
+            },
+            onFinish: () => {
+                transform((form) => ({ ...form, submit_action: 'draft' }));
+                if (action === 'submit') {
+                    setConfirmOpen(false);
+                }
+            },
+        });
     };
 
     return (
@@ -86,7 +117,10 @@ export default function ProjectsEdit({ departments, project }: Props) {
             activeKey="projects-approval"
             breadcrumb={[
                 { label: '申請・承認', icon: FileCheck2 },
-                { label: '案件一覧', href: route('projects.index', { tab: 'approval' }) },
+                {
+                    label: PROJECT_LIST_PAGE_TITLE.approval,
+                    href: route('projects.index', { tab: 'approval' }),
+                },
                 { label: '案件編集', icon: FilePenLine },
             ]}
         >
@@ -288,21 +322,34 @@ export default function ProjectsEdit({ departments, project }: Props) {
                             </div>
                         </div>
 
-                        <div className="rounded-md border border-dashed border-slate-300 bg-slate-100/70 px-4 py-3">
-                            <div className="flex items-center gap-2">
-                                <InputLabel htmlFor="attachments" value="ファイル添付" />
-                                <Challenge2Badge />
-                            </div>
-                            <Input
-                                id="attachments"
-                                type="file"
-                                className="mt-1.5 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-                                disabled
-                            />
-                            <p className="mt-1 text-xs text-slate-500">
-                                課題2で実装予定のため、現在は準備中です。
-                            </p>
-                        </div>
+                        <ProjectAttachmentField
+                            id="attachments"
+                            existingAttachments={project.attachments ?? []}
+                            removeExistingIds={data.remove_attachment_ids}
+                            onToggleRemoveExisting={(id) =>
+                                setData(
+                                    'remove_attachment_ids',
+                                    data.remove_attachment_ids.includes(id)
+                                        ? data.remove_attachment_ids.filter((x) => x !== id)
+                                        : [...data.remove_attachment_ids, id],
+                                )
+                            }
+                            selectedNewFiles={data.attachments}
+                            onNewFilesChange={(files) => setData('attachments', files)}
+                            remainingSlots={Math.max(0, attachmentSlotsLeft)}
+                            error={
+                                typeof errors.attachments === 'string'
+                                    ? errors.attachments
+                                    : errors['attachments.0']
+                            }
+                            infotipAriaLabel="ファイル添付の説明"
+                            infotipContent={
+                                <span>
+                                    仕様書や見積関連資料がある場合は添付してください。承認後は案件情報の編集ができません。
+                                </span>
+                            }
+                            processing={processing}
+                        />
                     </div>
 
                     <div className="flex items-center justify-between rounded-b-lg border-t border-brand-border bg-brand-bg px-6 py-4">

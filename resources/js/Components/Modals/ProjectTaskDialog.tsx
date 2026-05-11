@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     Activity,
     Calendar,
@@ -25,6 +25,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
+import { Infotip } from '@/Components/ui/infotip';
 import { cn } from '@/lib/utils';
 
 export type TaskStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -76,6 +77,7 @@ interface ProjectTaskDialogProps {
     task: TaskListItem | null;
     assignees: Array<{ id: number; name: string }>;
     readOnly?: boolean;
+    returnTo?: string;
 }
 
 type ChipOption<T extends string> = {
@@ -174,6 +176,7 @@ const avatarText = (name: string): string => {
 
 const historyFieldLabel = (fieldName: string): string => {
     const map: Record<string, string> = {
+        created: '新規作成',
         title: 'タイトル',
         task_type: '種類',
         priority: '優先度',
@@ -198,6 +201,7 @@ export default function ProjectTaskDialog({
     task,
     assignees,
     readOnly = false,
+    returnTo,
 }: ProjectTaskDialogProps) {
     const [title, setTitle] = useState('');
     const [taskType, setTaskType] = useState<TaskType>('task');
@@ -303,6 +307,7 @@ export default function ProjectTaskDialog({
             description: description.trim() === '' ? null : description,
             estimated_days: estimatedLabor,
             actual_days: actualLabor,
+            return_to: returnTo ?? null,
         };
 
         const options = {
@@ -324,6 +329,7 @@ export default function ProjectTaskDialog({
 
         setProcessing(true);
         router.delete(route('projects.tasks.destroy', [projectId, task.id]), {
+            data: { return_to: returnTo ?? null },
             preserveScroll: true,
             onSuccess: onClose,
             onFinish: () => setProcessing(false),
@@ -336,7 +342,7 @@ export default function ProjectTaskDialog({
         setPendingCommentScroll(true);
         router.post(
             route('projects.tasks.comments.store', [projectId, task.id]),
-            { body: commentBody.trim() },
+            { body: commentBody.trim(), return_to: returnTo ?? null },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -363,23 +369,25 @@ export default function ProjectTaskDialog({
         <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
             <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden p-0 sm:max-w-2xl">
                 <DialogHeader className="border-b border-brand-border px-6 py-4">
-                    <DialogDescription className="flex items-center gap-1.5 text-xs text-brand-muted">
-                        <Folder className="h-3.5 w-3.5" />
-                        <span>{projectTitle}</span>
-                        {taskCode && (
-                            <>
-                                <span>/</span>
-                                <span className="font-mono">{taskCode}</span>
-                            </>
-                        )}
-                    </DialogDescription>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Edit3 className="h-4.5 w-4.5 text-brand-blue" />
+                    <DialogTitle className="flex items-center gap-1.5 text-xs font-medium text-brand-muted">
+                        <Edit3 className="h-3.5 w-3.5 text-brand-blue" />
                         {task ? 'タスクを編集' : 'タスクを追加'}
                     </DialogTitle>
+                    <DialogDescription className="flex items-center gap-1.5 text-base font-semibold text-brand-dark">
+                        <Folder className="h-4 w-4 text-brand-muted" />
+                        <Link
+                            href={route('projects.show', { project: projectId, detailTab: 'tasks' })}
+                            className="max-w-[22rem] truncate text-brand-dark hover:text-brand-blue hover:underline"
+                        >
+                            {projectTitle}
+                        </Link>
+                        {taskCode && (
+                            <span className="font-mono text-xs font-medium text-brand-muted">/ {taskCode}</span>
+                        )}
+                    </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+                <div className="flex-1 space-y-5 overflow-y-auto px-6 pb-5 pt-0">
                     <div>
                         <label className="mb-1.5 block text-xs font-semibold text-brand-dark">
                             タイトル <span className="text-brand-red">*</span>
@@ -530,9 +538,14 @@ export default function ProjectTaskDialog({
 
                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                         <div>
-                            <label className="mb-1.5 block text-xs font-semibold text-brand-dark">
-                                計画工数（人日）
-                            </label>
+                            <div className="mb-1.5 flex items-center gap-1.5">
+                                <label className="block text-xs font-semibold text-brand-dark">
+                                    計画工数（人日）
+                                </label>
+                                <Infotip ariaLabel="計画工数の説明">
+                                    タスク単位の見込み工数です。空欄は未設定として集計から除外されます。
+                                </Infotip>
+                            </div>
                             <input
                                 type="text"
                                 inputMode="decimal"
@@ -542,14 +555,16 @@ export default function ProjectTaskDialog({
                                 placeholder="例: 3 または 2.5"
                                 className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
                             />
-                            <p className="mt-1 text-[10px] text-brand-muted">
-                                タスク単位の見込み工数です。空欄は未設定として集計から除外されます。
-                            </p>
                         </div>
                         <div>
-                            <label className="mb-1.5 block text-xs font-semibold text-brand-dark">
-                                実績工数（人日）
-                            </label>
+                            <div className="mb-1.5 flex items-center gap-1.5">
+                                <label className="block text-xs font-semibold text-brand-dark">
+                                    実績工数（人日）
+                                </label>
+                                <Infotip ariaLabel="実績工数の説明">
+                                    実際に投入した工数の目安です。
+                                </Infotip>
+                            </div>
                             <input
                                 type="text"
                                 inputMode="decimal"
@@ -559,9 +574,6 @@ export default function ProjectTaskDialog({
                                 placeholder="例: 0"
                                 className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
                             />
-                            <p className="mt-1 text-[10px] text-brand-muted">
-                                実際に投入した工数の目安です。
-                            </p>
                         </div>
                     </div>
 
@@ -641,7 +653,7 @@ export default function ProjectTaskDialog({
                                             placeholder="コメントを追加..."
                                             className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 disabled:cursor-not-allowed disabled:bg-brand-bg"
                                         />
-                                        <div className="mt-2 flex items-center justify-between">
+                                        <div className="mt-2 flex items-center justify-end gap-2">
                                             <p className="text-[10px] text-brand-muted">
                                                 Windows: Ctrl + Enter で送信
                                             </p>
@@ -707,8 +719,9 @@ export default function ProjectTaskDialog({
                                                 </span>
                                             </div>
                                             <p className="mt-1 text-brand-dark">
-                                                {historyFieldLabel(history.fieldName)}: {history.oldValue ?? '—'} →{' '}
-                                                {history.newValue ?? '—'}
+                                                {history.fieldName === 'created'
+                                                    ? history.newValue ?? 'タスクを新規作成'
+                                                    : `${historyFieldLabel(history.fieldName)}: ${history.oldValue ?? '—'} → ${history.newValue ?? '—'}`}
                                             </p>
                                         </div>
                                     ))

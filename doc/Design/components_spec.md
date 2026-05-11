@@ -35,19 +35,25 @@ interface AuthenticatedLayoutProps {
 **構成**: `<Sidebar />` + 右側に `<Header breadcrumb={...} />` + `<main>{children}</main>`
 
 ### Sidebar
-**役割**: 3セクション構造のダークナビゲーション。
+**役割**: 3セクション構造の**ライト**ナビゲーション（白背景・右ボーダー `#DEE2E6`）。申請→開発→予算でセクション色が**深くなる**トーン（指示: `cursor_sidebar_redesign.md` / `design_system.md` §2）。
 **配置**: `resources/js/Components/Layout/Sidebar.tsx`
-**使用モック**: s02, s03a, s05 すべて
+**使用モック**: s02, s03a, s05 すべて（モックはダークの場合あり — 実装はライトが正）
 **Props**: 基本なし（Inertia の `usePage()` で現在ルート取得してアクティブ判定）
 **内部構造**:
-- ロゴ（開発管理アプリ + グラデーションJ）
-- セクション「申請・承認」: 新規申請 / 承認待ち一覧(バッジ) / 案件一覧
-- セクション「開発管理」: 案件一覧 / タスク一覧(dim表示・課題2ラベル)
-- セクション「予算管理」: 案件一覧 / 予算実績入力
-- セクション下部: 通知(バッジ) / プロフィール
-- 最下部: ユーザーカード（アバター + 氏名 + ロール + ログアウトアイコン）
+- ロゴ（**アイコン背景 `#E60013`**、ProjNexus `#212429` / サブ「開発管理アプリ」`#6C757D`）
+- セクション「申請・承認」: ラベル `#0099c4` + 右ライン `#BAF1FF` / アクティブ pill `#E0F7FF` + 文字 `#0369a1`
+- セクション「開発管理」: ラベル `#106EBE` + 右ライン `#BFDBFE` / アクティブ pill `#EFF6FF` + 文字 `#1D4ED8`
+- セクション「予算管理」: ラベル `#7c3aed` + 右ライン `#DDD6FE` / アクティブ pill `#F5F3FF` + 文字 `#6D28D9`
+- 各 `SidebarLink`: 非アクティブは `text-gray-500` + **アイコンボックス**（`bg-gray-100 text-gray-400`）+ hover `bg-gray-100`。アクティブは左ボーダー無しの **pill型**（`mx-2 rounded-lg`）を使用
+- セクション「申請・承認」配下: 新規申請 / 承認待ち一覧(バッジ) / **申請状況一覧**（`/projects?tab=approval`）
+- セクション「開発管理」: **開発進捗一覧**（`/projects?tab=dev`） / タスク一覧(dim表示・課題2ラベル)
+- セクション「予算管理」: **予算状況一覧**（`/projects?tab=budget`） / 予算実績入力
+- セクション下部（Context `variant=null`）: 通知(バッジ `#E60013`) / マニュアル / プロフィール / ログアウト — `text-[#6C757D]`・hover `bg-gray-100`・アクティブは `border-[#106EBE]` + `bg-gray-100`
+- 最下部: ユーザーカード（アバター `#E60013`、氏名 `#212429`、ロール行 `#6C757D`）
 
-**サブ部品**: `<SidebarSection label>`, `<SidebarLink href icon badge active>`
+**サブ部品**:
+- `<SidebarSection label variant>` — React Context で子の `SidebarLink` に `variant` を伝える。
+- `<SidebarLink href icon badge active>` — アイコンは lucide を `18x18` の角丸ボックスに配置。アクティブ時はセクション色、非アクティブ時はグレー。
 
 ### Header
 **役割**: 上部固定のヘッダーバー。
@@ -522,6 +528,37 @@ interface AmountInputProps {
 }
 ```
 **内部**: 内部stateで表示用の文字列（カンマ区切り）を持ち、onChangeでは数値を返す。
+
+### ProjectAttachmentField
+**役割**: 案件申請・編集・詳細のファイル添付（複数選択・既存一覧・削除予定トグル・閲覧専用）。
+**配置**: `resources/js/Components/Form/ProjectAttachmentField.tsx`
+**使用モック**: s05（新規申請）、S-04（案件詳細の申請情報タブ）
+**Props（要点）**:
+```ts
+interface ExistingAttachmentItem {
+  id: number;
+  originalFilename: string;
+  sizeBytes: number;
+  downloadUrl: string;
+}
+interface ProjectAttachmentFieldProps {
+  id: string;
+  label?: string;
+  infotipAriaLabel?: string;
+  infotipContent?: ReactNode;
+  disabled?: boolean;
+  error?: string;
+  remainingSlots: number; // 案件あたり10件上限との兼ね合いで算出
+  selectedNewFiles: File[];
+  onNewFilesChange: (files: File[]) => void;
+  existingAttachments?: ExistingAttachmentItem[];
+  removeExistingIds?: number[];
+  onToggleRemoveExisting?: (id: number) => void;
+  processing?: boolean;
+  readOnly?: boolean; // true のとき一覧＋ダウンロードのみ（詳細画面）
+}
+```
+**運用**: 送信は Inertia の `forceFormData: true` とセット。サーバー側は `ProjectAttachmentService` で `storage/app/project_attachments/{project_id}/` に保存。
 
 ### Input / Textarea / Select
 shadcn/ui の部品をそのまま使う。**プロジェクト固有のラッパーは作らない**（直接 shadcn/ui の `Input` 等を import）。スタイル調整が必要なら shadcn/ui の components.json 側で一括設定。
