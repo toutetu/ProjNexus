@@ -155,7 +155,7 @@ class MemberTaskController extends Controller
             ->with([
                 'assignee:id,name,department_id',
                 'reviewer:id,name,department_id',
-                'project:id,title,department_id',
+                'project:id,title,department_id,status',
                 'comments' => static function ($commentQuery): void {
                     $commentQuery->with('user:id,name')->orderBy('created_at');
                 },

@@ -217,6 +217,7 @@ export default function MemberTasksIndex({
         `メンバー${memberCount}名`,
         `全${taskTotalCount}件`,
     ];
+    const memberTasksReturnTo = route('member-tasks.index', queryParams);
 
     const openTask = (task: MemberTaskItem) => {
         setActiveTask(task);
@@ -588,6 +589,7 @@ export default function MemberTasksIndex({
                     task={toTaskListItem(activeTask)}
                     assignees={assigneesForDept}
                     readOnly={!activeTask.canUpdate}
+                    returnTo={memberTasksReturnTo}
                 />
             )}
         </AuthenticatedLayout>

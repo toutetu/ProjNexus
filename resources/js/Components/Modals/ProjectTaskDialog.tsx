@@ -76,6 +76,7 @@ interface ProjectTaskDialogProps {
     task: TaskListItem | null;
     assignees: Array<{ id: number; name: string }>;
     readOnly?: boolean;
+    returnTo?: string;
 }
 
 type ChipOption<T extends string> = {
@@ -198,6 +199,7 @@ export default function ProjectTaskDialog({
     task,
     assignees,
     readOnly = false,
+    returnTo,
 }: ProjectTaskDialogProps) {
     const [title, setTitle] = useState('');
     const [taskType, setTaskType] = useState<TaskType>('task');
@@ -303,6 +305,7 @@ export default function ProjectTaskDialog({
             description: description.trim() === '' ? null : description,
             estimated_days: estimatedLabor,
             actual_days: actualLabor,
+            return_to: returnTo ?? null,
         };
 
         const options = {
@@ -324,6 +327,7 @@ export default function ProjectTaskDialog({
 
         setProcessing(true);
         router.delete(route('projects.tasks.destroy', [projectId, task.id]), {
+            data: { return_to: returnTo ?? null },
             preserveScroll: true,
             onSuccess: onClose,
             onFinish: () => setProcessing(false),
@@ -336,7 +340,7 @@ export default function ProjectTaskDialog({
         setPendingCommentScroll(true);
         router.post(
             route('projects.tasks.comments.store', [projectId, task.id]),
-            { body: commentBody.trim() },
+            { body: commentBody.trim(), return_to: returnTo ?? null },
             {
                 preserveScroll: true,
                 preserveState: true,

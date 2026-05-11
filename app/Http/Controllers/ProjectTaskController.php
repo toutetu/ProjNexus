@@ -56,7 +56,7 @@ class ProjectTaskController extends Controller
         $this->dispatchResolvedNotifications($project, $task, null, $task->status, $request->user());
 
         return redirect()
-            ->route('projects.show', $project)
+            ->to($this->resolveTaskRedirectUrl($request, $project))
             ->with('success', 'タスクを追加しました。');
     }
 
@@ -119,7 +119,7 @@ class ProjectTaskController extends Controller
         $this->dispatchResolvedNotifications($project, $task, $oldStatus, $task->status, $request->user());
 
         return redirect()
-            ->route('projects.show', $project)
+            ->to($this->resolveTaskRedirectUrl($request, $project))
             ->with('success', 'タスクを更新しました。');
     }
 
@@ -131,7 +131,7 @@ class ProjectTaskController extends Controller
         $task->delete();
 
         return redirect()
-            ->route('projects.show', $project)
+            ->to($this->resolveTaskRedirectUrl($request, $project))
             ->with('success', 'タスクを削除しました。');
     }
 
@@ -162,8 +162,22 @@ class ProjectTaskController extends Controller
         ]);
 
         return redirect()
-            ->route('projects.show', $project)
+            ->to($this->resolveTaskRedirectUrl($request, $project))
             ->with('success', 'コメントを投稿しました。');
+    }
+
+    private function resolveTaskRedirectUrl(Request $request, Project $project): string
+    {
+        $returnTo = $request->input('return_to');
+
+        if (is_string($returnTo) && $returnTo !== '') {
+            $path = parse_url($returnTo, PHP_URL_PATH);
+            if (is_string($path) && str_starts_with($path, '/member-tasks')) {
+                return $returnTo;
+            }
+        }
+
+        return route('projects.show', $project);
     }
 
     private function assertStatusTransition(User $user, ProjectWorkItem $task, TaskStatus $newStatus): void
