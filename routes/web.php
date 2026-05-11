@@ -45,10 +45,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/projects/{project}/budget', [BudgetController::class, 'update'])->name('projects.budget.update');
     Route::post('/projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
     Route::put('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');
+    Route::put('/projects/{project}/tasks/{task}/status', [ProjectTaskController::class, 'updateStatus'])->name(
+        'projects.tasks.status.update',
+    );
     Route::delete('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'destroy'])->name('projects.tasks.destroy');
     Route::post('/projects/{project}/tasks/{task}/comments', [ProjectTaskController::class, 'storeComment'])->name('projects.tasks.comments.store');
 
     Route::get('/member-tasks', [MemberTaskController::class, 'index'])->name('member-tasks.index');
+    Route::put('/member-tasks/{task}/status', [MemberTaskController::class, 'updateStatus'])->name('member-tasks.status.update');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');

@@ -10,8 +10,10 @@ use App\Models\Department;
 use App\Models\Project;
 use App\Models\ProjectWorkItem;
 use App\Models\User;
+use App\Services\TaskHistoryService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -22,6 +24,10 @@ class MemberTaskController extends Controller
     private const CLOSED_VISIBLE_DAYS = 30;
 
     private const LOAD_BAR_CAP = 8;
+
+    public function __construct(
+        private readonly TaskHistoryService $taskHistoryService,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -138,6 +144,39 @@ class MemberTaskController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, ProjectWorkItem $task): RedirectResponse
+    {
+        $this->authorize('update', $task);
+
+        $validated = $request->validate(
+            [
+                'status' => ['required', 'in:'.implode(',', TaskStatus::phase4Values())],
+                'return_to' => ['nullable', 'string'],
+            ],
+            [
+                'required' => ':attribute は必須です。',
+                'in' => ':attribute の値が不正です。',
+            ],
+            [
+                'status' => 'ステータス',
+            ],
+        );
+
+        $newStatus = TaskStatus::from($validated['status']);
+        $this->assertStatusTransition($request->user(), $task, $newStatus);
+
+        $beforeDisplay = $this->taskHistoryService->displaySnapshot($task);
+        $task->update([
+            'status' => $newStatus,
+            'progress_rate' => $this->normalizedProgressRate($newStatus, (int) $task->progress_rate),
+        ]);
+        $this->taskHistoryService->recordChanges($task, $beforeDisplay, $request->user());
+
+        return redirect()
+            ->to($this->resolveReturnTo($request))
+            ->with('success', 'タスクのステータスを更新しました。');
+    }
+
     private function resolveDepartmentId(Request $request, User $user): ?int
     {
         if ($user->hasRole(Role::HqManager->value)) {
@@ -147,6 +186,73 @@ class MemberTaskController extends Controller
         }
 
         return $user->department_id;
+    }
+
+    private function resolveReturnTo(Request $request): string
+    {
+        $returnTo = $request->input('return_to');
+        if (is_string($returnTo) && $returnTo !== '') {
+            $path = parse_url($returnTo, PHP_URL_PATH);
+            if (is_string($path) && str_starts_with($path, '/member-tasks')) {
+                return $returnTo;
+            }
+        }
+
+        return route('member-tasks.index');
+    }
+
+    private function normalizedProgressRate(TaskStatus $status, int $progressRate): int
+    {
+        return match ($status) {
+            TaskStatus::Open => 0,
+            TaskStatus::Closed => 100,
+            default => $progressRate,
+        };
+    }
+
+    private function assertStatusTransition(User $user, ProjectWorkItem $task, TaskStatus $newStatus): void
+    {
+        $oldStatus = $task->status;
+        if ($oldStatus === $newStatus) {
+            return;
+        }
+
+        $isManager = $user->hasRole(Role::DeptManager->value) || $user->hasRole(Role::HqManager->value);
+        if ($isManager) {
+            return;
+        }
+
+        if ($oldStatus === TaskStatus::Closed && $newStatus !== TaskStatus::Closed) {
+            abort(403, '完了タスクの再開は管理者のみです。');
+        }
+
+        if ($newStatus === TaskStatus::Closed && $oldStatus !== TaskStatus::Resolved) {
+            abort(403, '確認OKへは確認待ちからのみ遷移できます。');
+        }
+
+        if ($oldStatus === TaskStatus::InProgress && $newStatus === TaskStatus::Resolved) {
+            abort_unless($task->assignee_id === $user->id, 403, '完了報告は担当者のみが実行できます。');
+
+            return;
+        }
+
+        if ($oldStatus === TaskStatus::Resolved && $newStatus === TaskStatus::Closed) {
+            abort_unless($task->reviewer_id === $user->id, 403, '確認OKは確認者のみが実行できます。');
+
+            return;
+        }
+
+        if ($oldStatus === TaskStatus::Resolved) {
+            abort(403, '確認待ちからの変更は許可されていません。');
+        }
+
+        $task->loadMissing('project');
+        $project = $task->project;
+        $participant = $task->assignee_id === $user->id
+            || $task->reviewer_id === $user->id
+            || ($project !== null && $project->primary_assignee_id === $user->id);
+
+        abort_unless($participant, 403);
     }
 
     private function filteredTasksQuery(Request $request, User $user, int $departmentId, string $view): Builder

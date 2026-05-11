@@ -123,7 +123,73 @@ class ProjectTaskController extends Controller
             ->with('success', 'タスクを更新しました。');
     }
 
-    public function destroy(Project $project, ProjectWorkItem $task): RedirectResponse
+    public function updateStatus(Request $request, Project $project, ProjectWorkItem $task): RedirectResponse
+    {
+        abort_unless($task->project_id === $project->id, 404);
+        $this->authorize('update', $task);
+
+        $validated = $request->validate(
+            [
+                'status' => ['required', 'in:'.implode(',', TaskStatus::phase4Values())],
+                'tasks_view' => ['nullable', 'in:list,board'],
+            ],
+            [
+                'required' => ':attribute は必須です。',
+                'in' => ':attribute の値が不正です。',
+            ],
+            [
+                'status' => 'ステータス',
+                'tasks_view' => 'タスク表示',
+            ],
+        );
+
+        $newStatus = TaskStatus::from($validated['status']);
+        $this->assertStatusTransition($request->user(), $task, $newStatus);
+
+        $task->refresh();
+        $task->loadMissing('assignee', 'reviewer');
+        $beforeDisplay = $this->taskHistoryService->displaySnapshot($task);
+        $oldStatus = $task->status;
+
+        $task->update([
+            'status' => $newStatus,
+            'progress_rate' => $this->normalizedProgressRate($newStatus->value, (int) $task->progress_rate),
+        ]);
+        $task->loadMissing('assignee', 'reviewer', 'project.applicant');
+
+        $this->taskHistoryService->recordChanges($task, $beforeDisplay, $request->user());
+
+        if (
+            $oldStatus !== TaskStatus::Closed
+            && $task->status === TaskStatus::Closed
+            && $project->applicant !== null
+            && $project->applicant->id !== $request->user()->id
+        ) {
+            $this->notificationService->notifyTaskCompleted(
+                $project,
+                $task,
+                $request->user(),
+                $project->applicant,
+            );
+        }
+
+        $this->dispatchResolvedNotifications($project, $task, $oldStatus, $task->status, $request->user());
+
+        $tasksView = $validated['tasks_view'] ?? 'board';
+        if (! in_array($tasksView, ['list', 'board'], true)) {
+            $tasksView = 'board';
+        }
+
+        return redirect()
+            ->route('projects.show', [
+                'project' => $project,
+                'detailTab' => 'tasks',
+                'tasksView' => $tasksView,
+            ])
+            ->with('success', 'タスクのステータスを更新しました。');
+    }
+
+    public function destroy(Request $request, Project $project, ProjectWorkItem $task): RedirectResponse
     {
         abort_unless($task->project_id === $project->id, 404);
         $this->authorize('delete', $task);

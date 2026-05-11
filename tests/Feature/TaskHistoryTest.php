@@ -49,7 +49,7 @@ class TaskHistoryTest extends TestCase
         return [$user, $project];
     }
 
-    public function test_task_store_records_initial_histories_for_tracked_fields(): void
+    public function test_task_store_records_single_creation_history(): void
     {
         [$user, $project] = $this->applicantWithApprovedProject();
 
@@ -71,15 +71,14 @@ class TaskHistoryTest extends TestCase
 
         $task = ProjectWorkItem::query()->where('project_id', $project->id)->firstOrFail();
 
-        foreach (['status', 'progress_rate', 'assignee_id', 'reviewer_id', 'due_date', 'priority', 'estimated_days', 'actual_days'] as $field) {
-            $this->assertDatabaseHas('task_histories', [
-                'task_id' => $task->id,
-                'user_id' => $user->id,
-                'field_name' => $field,
-            ]);
-        }
-
-        $this->assertSame(8, ProjectTaskHistory::query()->where('task_id', $task->id)->count());
+        $this->assertDatabaseHas('task_histories', [
+            'task_id' => $task->id,
+            'user_id' => $user->id,
+            'field_name' => 'created',
+            'old_value' => null,
+            'new_value' => 'タスクを新規作成',
+        ]);
+        $this->assertSame(1, ProjectTaskHistory::query()->where('task_id', $task->id)->count());
     }
 
     public function test_task_update_writes_history_when_tracked_fields_change(): void

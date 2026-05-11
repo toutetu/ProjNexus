@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     CalendarDays,
     CheckCircle2,
@@ -9,12 +9,12 @@ import {
     Clock3,
     Edit3,
     FileCheck2,
-    FileText,
     FolderSearch,
     GitBranch,
-    History,
+    LayoutDashboard,
     ListChecks,
     Plus,
+    Rows3,
     Search,
     Send,
     Wallet,
@@ -27,6 +27,11 @@ import ApprovalStepperFull, {
 import ProjectAttachmentField from '@/Components/Form/ProjectAttachmentField';
 import ApprovalDialog from '@/Components/Modals/ApprovalDialog';
 import BudgetActualDialog from '@/Components/Modals/BudgetActualDialog';
+import KanbanBoard from '@/Components/MemberTasks/KanbanBoard';
+import ProjectDetailTabBar, {
+    PROJECT_DETAIL_TAB_CONTENT_CLASS,
+    type ProjectDetailTab,
+} from '@/Components/Projects/ProjectDetailTabBar';
 import ProjectTaskDialog, { type TaskListItem } from '@/Components/Modals/ProjectTaskDialog';
 import InputLabel from '@/Components/InputLabel';
 import StatusPill, { type ProjectStatus } from '@/Components/StatusPill';
@@ -35,6 +40,9 @@ import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
+import { sectionNavTheme, sidebarHistoryTabTheme } from '@/lib/sidebarNavTheme';
+import { cn } from '@/lib/utils';
+import type { MemberTaskItem } from '@/types/memberTasks';
 
 interface ProjectShowData {
     id: number;
@@ -86,7 +94,40 @@ interface Props {
     taskAssignees: Array<{ id: number; name: string }>;
 }
 
-type DetailTab = 'apply' | 'history' | 'tasks' | 'budget';
+type DetailTab = ProjectDetailTab;
+
+/** URLクエリ tasksView と対応（一覧ビュー / カンバンビュー） */
+type TasksViewMode = 'list' | 'board';
+
+const parseTasksView = (raw: string | null): TasksViewMode =>
+    raw === 'board' ? 'board' : 'list';
+
+function taskListItemToMemberTaskItem(
+    task: TaskListItem,
+    projectId: number,
+    projectTitle: string,
+): MemberTaskItem {
+    return {
+        id: task.id,
+        projectId,
+        projectTitle,
+        title: task.title,
+        description: task.description,
+        taskType: task.taskType,
+        priority: task.priority,
+        status: task.status,
+        progressRate: task.progressRate,
+        assigneeId: task.assigneeId,
+        assignee: task.assignee,
+        reviewerId: task.reviewerId ?? null,
+        reviewer: task.reviewer ?? null,
+        dueDate: task.dueDate,
+        updatedAt: task.updatedAt,
+        canUpdate: task.canUpdate ?? false,
+        comments: task.comments,
+        histories: task.histories,
+    };
+}
 
 type HistoryEvent = {
     id: string;
@@ -169,6 +210,48 @@ const approvalActionLabel: Record<ApprovalTimelineItem['action'], string> = {
     approved: '承認',
     rejected: '却下',
 };
+
+function ProjectTasksViewToggle({
+    value,
+    onChange,
+}: {
+    value: TasksViewMode;
+    onChange: (mode: TasksViewMode) => void;
+}) {
+    return (
+        <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs text-brand-muted">タスク一覧</span>
+            <div className="inline-flex rounded-lg border border-brand-border bg-white p-0.5">
+                <button
+                    type="button"
+                    onClick={() => onChange('list')}
+                    className={cn(
+                        'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition',
+                        value === 'list'
+                            ? 'bg-brand-dark text-white'
+                            : 'text-brand-muted hover:text-brand-dark',
+                    )}
+                >
+                    <Rows3 className="h-4 w-4" />
+                    一覧ビュー
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onChange('board')}
+                    className={cn(
+                        'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition',
+                        value === 'board'
+                            ? 'bg-brand-dark text-white'
+                            : 'text-brand-muted hover:text-brand-dark',
+                    )}
+                >
+                    <LayoutDashboard className="h-4 w-4" />
+                    カンバンビュー
+                </button>
+            </div>
+        </div>
+    );
+}
 
 type TaskSortKey =
     | 'title'
@@ -303,6 +386,7 @@ const formatDateTime = (value: string | null): string => {
 
 const historyFieldLabel = (fieldName: string): string => {
     const map: Record<string, string> = {
+        created: '新規作成',
         title: 'タイトル',
         task_type: '種類',
         priority: '優先度',
@@ -395,6 +479,11 @@ export default function ProjectsShow({
         key: null,
         dir: 'asc',
     });
+    const [tasksViewMode, setTasksViewMode] = useState<TasksViewMode>(() => {
+        if (typeof window === 'undefined') return 'list';
+        return parseTasksView(new URLSearchParams(window.location.search).get('tasksView'));
+    });
+    const [movingProjectTaskId, setMovingProjectTaskId] = useState<number | null>(null);
     const laborTotals = useMemo(() => {
         let planned = 0;
         let actual = 0;
@@ -529,6 +618,21 @@ export default function ProjectsShow({
             compareTasksForSort(a, b, taskSort.key!, taskSort.dir),
         );
     }, [filteredTasks, taskSort]);
+
+    const sortedTasksAsMemberItems = useMemo(
+        () =>
+            sortedTasks.map((task) =>
+                taskListItemToMemberTaskItem(task, project.id, project.title),
+            ),
+        [sortedTasks, project.id, project.title],
+    );
+
+    const [boardTasks, setBoardTasks] = useState<MemberTaskItem[]>(sortedTasksAsMemberItems);
+
+    useEffect(() => {
+        setBoardTasks(sortedTasksAsMemberItems);
+    }, [sortedTasksAsMemberItems]);
+
     const toggleTaskSort = (nextKey: TaskSortKey) => {
         setTaskSort((prev) =>
             prev.key !== nextKey
@@ -544,11 +648,16 @@ export default function ProjectsShow({
     const budgetRate = consumptionRate(project.actualAmount, project.budgetAmount);
     const editingTask =
         editingTaskId === null ? null : project.tasks.find((task) => task.id === editingTaskId) ?? null;
-    const initialTab =
-        typeof window === 'undefined'
-            ? 'apply'
-            : parseDetailTab(new URLSearchParams(window.location.search).get('detailTab'));
-    const [activeTab, setActiveTab] = useState<DetailTab>(initialTab);
+    const [activeTab, setActiveTab] = useState<DetailTab>(() => {
+        const raw =
+            typeof window === 'undefined'
+                ? 'apply'
+                : parseDetailTab(new URLSearchParams(window.location.search).get('detailTab'));
+        if (project.status !== 'approved' && (raw === 'tasks' || raw === 'budget')) {
+            return 'apply';
+        }
+        return raw;
+    });
     const activeSidebarKey =
         activeTab === 'tasks'
             ? 'projects-dev'
@@ -576,6 +685,8 @@ export default function ProjectsShow({
                 };
     const isRejectedProject =
         project.status === 'rejected' || !!project.rejectedAt || !!project.rejectedComment;
+    /** 未承認フローでは申請・履歴のみ。開発・予算タブは承認済み案件のみ表示 */
+    const showDevBudgetTabs = project.status === 'approved';
     const pageTitle = project.status === 'approved' ? project.title : '承認画面';
     const displayProjectCode =
         project.projectCode ?? `PRJ-${String(project.id).padStart(4, '0')}`;
@@ -609,7 +720,10 @@ export default function ProjectsShow({
                 id: `task-history-${task.id}-${history.id}`,
                 occurredAt: history.createdAt,
                 actor: history.user,
-                title: `タスク「${task.title}」の${historyFieldLabel(history.fieldName)}を更新`,
+                title:
+                    history.fieldName === 'created'
+                        ? `タスク「${task.title}」を新規作成`
+                        : `タスク「${task.title}」の${historyFieldLabel(history.fieldName)}を更新`,
                 fromValue: historyValueLabel(history.fieldName, history.oldValue),
                 toValue: historyValueLabel(history.fieldName, history.newValue),
                 kind: 'change',
@@ -652,15 +766,71 @@ export default function ProjectsShow({
         window.history.replaceState({}, '', url.toString());
     };
 
-    useEffect(() => {
-        if (!isRejectedProject) return;
-        if (activeTab !== 'tasks' && activeTab !== 'budget') return;
-        setActiveTab('apply');
+    const updateTasksViewMode = useCallback((mode: TasksViewMode) => {
+        setTasksViewMode(mode);
         if (typeof window === 'undefined') return;
         const url = new URL(window.location.href);
-        url.searchParams.set('detailTab', 'apply');
+        url.searchParams.set('tasksView', mode);
         window.history.replaceState({}, '', url.toString());
-    }, [activeTab, isRejectedProject]);
+    }, []);
+
+    const openKanbanTask = useCallback(
+        (t: MemberTaskItem) => {
+            const full = project.tasks.find((x) => x.id === t.id);
+            if (!full) return;
+            setEditingTaskId(full.id);
+            setTaskDialogOpen(true);
+        },
+        [project.tasks],
+    );
+
+    const moveProjectTaskStatus = useCallback(
+        (task: MemberTaskItem, nextStatus: MemberTaskItem['status']) => {
+            if (task.status === nextStatus || movingProjectTaskId !== null) return;
+
+            const prevTasks = boardTasks;
+            const optimisticTasks = boardTasks.map((row) =>
+                row.id === task.id ? { ...row, status: nextStatus } : row,
+            );
+            setBoardTasks(optimisticTasks);
+            setMovingProjectTaskId(task.id);
+
+            router.put(
+                route('projects.tasks.status.update', [project.id, task.id]),
+                {
+                    status: nextStatus,
+                    tasks_view: tasksViewMode,
+                },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onError: () => {
+                        setBoardTasks(prevTasks);
+                        window.alert(
+                            'ステータス更新に失敗しました。権限または遷移条件を確認してください。',
+                        );
+                    },
+                    onFinish: () => setMovingProjectTaskId(null),
+                },
+            );
+        },
+        [boardTasks, movingProjectTaskId, project.id, tasksViewMode],
+    );
+
+    useEffect(() => {
+        if (project.status === 'approved') return;
+        if (typeof window === 'undefined') return;
+        const url = new URL(window.location.href);
+        const urlTab = parseDetailTab(url.searchParams.get('detailTab'));
+        const urlNeedsFix = urlTab === 'tasks' || urlTab === 'budget';
+        const stateNeedsFix = activeTab === 'tasks' || activeTab === 'budget';
+        if (!urlNeedsFix && !stateNeedsFix) return;
+        if (stateNeedsFix) setActiveTab('apply');
+        if (urlNeedsFix) {
+            url.searchParams.set('detailTab', 'apply');
+            window.history.replaceState({}, '', url.toString());
+        }
+    }, [activeTab, project.status]);
 
     return (
         <AuthenticatedLayout
@@ -680,13 +850,31 @@ export default function ProjectsShow({
             <div className="space-y-6">
                 <section className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                        <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-2xl font-bold tracking-tight text-brand-dark">
-                            <span>{pageTitle}</span>
+                        <h1 className="flex flex-wrap items-center gap-x-3 gap-y-2 text-2xl font-bold tracking-tight text-brand-dark">
+                            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                {pageTitle}
+                                <StatusPill status={project.status} size="sm" />
+                                {project.applicantSubmitsToHqDirect &&
+                                    (project.status === 'pending_hq' ||
+                                        project.status === 'approved' ||
+                                        (project.status === 'rejected' &&
+                                            project.rejectedAt === 'hq')) && (
+                                        <span className="rounded-full bg-[#E0F2FE] px-2 py-0.5 text-[10px] font-semibold text-[#0369A1]">
+                                            本部直行
+                                        </span>
+                                    )}
+                            </span>
                             <span className="text-sm font-normal">
                                 <span className="text-brand-muted">案件ID</span>{' '}
                                 <span className="font-mono font-medium tabular-nums text-brand-dark">
                                     {displayProjectCode}
                                 </span>
+                                {project.revision > 1 && (
+                                    <span className="text-brand-dark">
+                                        {' '}
+                                        / 改訂{project.revision}回目
+                                    </span>
+                                )}
                             </span>
                         </h1>
                         {pageDescription && (
@@ -716,98 +904,44 @@ export default function ProjectsShow({
                     </div>
                 </section>
 
-                <section className="rounded-lg border border-brand-border bg-white shadow-sm">
-                    <div className="border-b border-brand-border px-2">
-                        <div className="flex items-center gap-1">
-                            <button
-                                type="button"
-                                className={`relative px-4 py-3 text-sm font-medium transition ${activeTab === 'apply' ? 'text-brand-red' : 'text-brand-muted hover:text-brand-dark'}`}
-                                onClick={() => switchTab('apply')}
-                            >
-                                <span className="inline-flex items-center gap-1.5">
-                                    <FileText className="h-4 w-4" />
-                                    申請
-                                </span>
-                                {activeTab === 'apply' && (
-                                    <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-t bg-brand-red" />
-                                )}
-                            </button>
-                            <button
-                                type="button"
-                                className={`relative px-4 py-3 text-sm font-medium transition ${activeTab === 'history' ? 'text-brand-red' : 'text-brand-muted hover:text-brand-dark'}`}
-                                onClick={() => switchTab('history')}
-                            >
-                                <span className="inline-flex items-center gap-1.5">
-                                    <History className="h-4 w-4" />
-                                    履歴
-                                </span>
-                                {activeTab === 'history' && (
-                                    <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-t bg-brand-red" />
-                                )}
-                            </button>
-                            {!isRejectedProject && (
-                                <button
-                                    type="button"
-                                    className={`relative px-4 py-3 text-sm font-medium transition ${activeTab === 'tasks' ? 'text-brand-red' : 'text-brand-muted hover:text-brand-dark'}`}
-                                    onClick={() => switchTab('tasks')}
-                                >
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <ListChecks className="h-4 w-4" />
-                                        進捗管理
-                                        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">
-                                            {taskCount}
-                                        </span>
-                                    </span>
-                                    {activeTab === 'tasks' && (
-                                        <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-t bg-brand-red" />
-                                    )}
-                                </button>
-                            )}
-                            {!isRejectedProject && (
-                                <button
-                                    type="button"
-                                    className={`relative px-4 py-3 text-sm font-medium transition ${activeTab === 'budget' ? 'text-brand-red' : 'text-brand-muted hover:text-brand-dark'}`}
-                                    onClick={() => switchTab('budget')}
-                                >
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <Wallet className="h-4 w-4" />
-                                        予算
-                                    </span>
-                                    {activeTab === 'budget' && (
-                                        <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-t bg-brand-red" />
-                                    )}
-                                </button>
-                            )}
-                        </div>
-                    </div>
+                <section className="overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm">
+                    <ProjectDetailTabBar
+                        activeTab={activeTab}
+                        onTabChange={switchTab}
+                        showDevBudgetTabs={showDevBudgetTabs}
+                        taskCount={taskCount}
+                    />
+                    <div
+                        className={cn(
+                            !(
+                                (showDevBudgetTabs && activeTab === 'budget') ||
+                                activeTab === 'history'
+                            ) && PROJECT_DETAIL_TAB_CONTENT_CLASS,
+                        )}
+                        style={
+                            showDevBudgetTabs && activeTab === 'budget'
+                                ? {
+                                      backgroundColor:
+                                          sectionNavTheme.budget.tabActiveSurfaceHex,
+                                  }
+                                : activeTab === 'history'
+                                  ? {
+                                        backgroundColor:
+                                            sidebarHistoryTabTheme.tabActiveSurfaceHex,
+                                    }
+                                  : undefined
+                        }
+                    >
                     {activeTab === 'apply' && (
                         <>
-                    <div className="border-b border-brand-border px-6 py-5">
-                        <h2 className="flex items-center gap-2 text-base font-semibold">
-                            <FileCheck2 className="h-4 w-4 text-brand-blue" />
-                            申請情報
-                        </h2>
-                        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-brand-muted">
-                            <span>
-                                案件ID:{' '}
-                                <span className="font-mono text-brand-dark">{displayProjectCode}</span>
-                                {project.revision > 1 && (
-                                    <span className="text-brand-dark"> / 改訂{project.revision}回目</span>
-                                )}
-                            </span>
-                            <span className="text-brand-muted">·</span>
-                            <StatusPill status={project.status} />
-                            {project.applicantSubmitsToHqDirect &&
-                                (project.status === 'pending_hq' ||
-                                    project.status === 'approved' ||
-                                    (project.status === 'rejected' && project.rejectedAt === 'hq')) && (
-                                    <span className="rounded-full bg-[#E0F2FE] px-2 py-0.5 text-[10px] font-semibold text-[#0369A1]">
-                                        本部直行
-                                    </span>
-                                )}
-                        </p>
+                    <div
+                        className="space-y-4 border-b border-brand-border px-6 py-5"
+                        style={{
+                            backgroundColor: sectionNavTheme.approval.tabActiveSurfaceHex,
+                        }}
+                    >
                         {project.parentProjectId != null && (
-                            <p className="mt-2 flex items-center gap-1.5 text-sm text-brand-muted">
+                            <p className="flex items-center gap-1.5 text-sm text-brand-muted">
                                 <GitBranch className="h-4 w-4 shrink-0" />
                                 再申請チェイン:
                                 <Link
@@ -818,9 +952,6 @@ export default function ProjectsShow({
                                 </Link>
                             </p>
                         )}
-                    </div>
-
-                    <div className="space-y-6 p-6">
                         <ApprovalStepperFull
                             status={project.status}
                             approvals={project.approvals}
@@ -830,14 +961,16 @@ export default function ProjectsShow({
                             skipsDeptStep={skipsDeptStep}
                         />
                         {project.status === 'rejected' && project.rejectedComment && (
-                                <div className="rounded-md border border-brand-red/20 bg-[#FEE2E2] px-4 py-3 text-sm text-[#991B1B]">
-                                    <p className="font-semibold">却下コメント</p>
-                                    <p className="mt-1 whitespace-pre-wrap leading-relaxed">
-                                        {project.rejectedComment}
-                                    </p>
-                                </div>
+                            <div className="rounded-md border border-brand-red/20 bg-[#FEE2E2] px-4 py-3 text-sm text-[#991B1B]">
+                                <p className="font-semibold">却下コメント</p>
+                                <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+                                    {project.rejectedComment}
+                                </p>
+                            </div>
                         )}
+                    </div>
 
+                    <div className="space-y-6 p-6">
                         <div>
                             <InputLabel htmlFor="title" value="案件名" />
                             <Input id="title" value={project.title} readOnly className="mt-1.5 bg-brand-bg" />
@@ -931,7 +1064,7 @@ export default function ProjectsShow({
                         <div className="space-y-4 p-6">
                             <h2 className="text-base font-semibold text-brand-dark">履歴（承認・変更の時系列）</h2>
                             {historyEvents.length === 0 ? (
-                                <div className="rounded-md border border-brand-border bg-brand-bg px-4 py-6 text-sm text-brand-muted">
+                                <div className="rounded-lg border border-brand-border bg-white px-4 py-6 text-sm text-brand-muted">
                                     表示できる履歴がありません。
                                 </div>
                             ) : (
@@ -986,11 +1119,11 @@ export default function ProjectsShow({
                             )}
                         </div>
                     )}
-                    {!isRejectedProject && activeTab === 'tasks' && (
+                    {showDevBudgetTabs && activeTab === 'tasks' && (
                         <section className="rounded-lg bg-white">
                             {project.tasks.length === 0 ? (
                                 <>
-                                    <div className="flex items-center justify-between border-b border-brand-border px-6 py-4">
+                                    <div className="flex flex-col gap-3 border-b border-brand-border px-6 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                                         <div>
                                             <h2 className="flex items-center gap-2 text-base font-semibold text-brand-dark">
                                                 <ListChecks className="h-4 w-4 text-brand-blue" />
@@ -1000,19 +1133,25 @@ export default function ProjectsShow({
                                                 承認済案件のみタスク作成・進捗入力ができます。
                                             </p>
                                         </div>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            className="gap-1.5"
-                                            disabled={!canManageTasks}
-                                            onClick={() => {
-                                                setEditingTaskId(null);
-                                                setTaskDialogOpen(true);
-                                            }}
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                            タスク追加
-                                        </Button>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <ProjectTasksViewToggle
+                                                value={tasksViewMode}
+                                                onChange={updateTasksViewMode}
+                                            />
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="gap-1.5"
+                                                disabled={!canManageTasks}
+                                                onClick={() => {
+                                                    setEditingTaskId(null);
+                                                    setTaskDialogOpen(true);
+                                                }}
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                タスク追加
+                                            </Button>
+                                        </div>
                                     </div>
                                     <div className="px-6 py-10 text-center text-sm text-brand-muted">
                                         まだタスクはありません。承認後にタスクを追加できます。
@@ -1020,7 +1159,13 @@ export default function ProjectsShow({
                                 </>
                             ) : (
                                 <>
-                                    <div className="space-y-4 border-b border-brand-border bg-brand-bg/40 px-6 py-4">
+                                    <div
+                                        className="space-y-4 border-b border-brand-border px-6 py-4"
+                                        style={{
+                                            backgroundColor:
+                                                sectionNavTheme.dev.tabActiveSurfaceHex,
+                                        }}
+                                    >
                                         <div className="grid gap-4 lg:grid-cols-2">
                                             <div className="rounded-lg border border-brand-border bg-white p-4 shadow-sm">
                                                 <div className="flex items-start justify-between gap-2">
@@ -1079,7 +1224,7 @@ export default function ProjectsShow({
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-3 border-b border-brand-border px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+                                    <div className="flex flex-col gap-3 border-b border-brand-border px-4 py-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:px-6">
                                         <div className="min-w-0 flex-1">
                                             <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-semibold text-brand-dark">
                                                 <span className="inline-flex items-center gap-2">
@@ -1097,19 +1242,25 @@ export default function ProjectsShow({
                                                 承認済案件のみタスク作成・進捗入力ができます。
                                             </p>
                                         </div>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            className="shrink-0 gap-1.5 self-start sm:self-auto"
-                                            disabled={!canManageTasks}
-                                            onClick={() => {
-                                                setEditingTaskId(null);
-                                                setTaskDialogOpen(true);
-                                            }}
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                            タスク追加
-                                        </Button>
+                                        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                                            <ProjectTasksViewToggle
+                                                value={tasksViewMode}
+                                                onChange={updateTasksViewMode}
+                                            />
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="shrink-0 gap-1.5 self-start sm:self-auto"
+                                                disabled={!canManageTasks}
+                                                onClick={() => {
+                                                    setEditingTaskId(null);
+                                                    setTaskDialogOpen(true);
+                                                }}
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                タスク追加
+                                            </Button>
+                                        </div>
                                     </div>
                                     <div className="space-y-2 border-b border-brand-border bg-brand-bg/30 px-4 py-2 sm:px-6">
                                         <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
@@ -1224,8 +1375,15 @@ export default function ProjectsShow({
                                             </p>
                                         )}
                                     </div>
-                                    {sortedTasks.length > 0 ? (
-                                        <div className="overflow-x-auto">
+                                    {tasksViewMode === 'list' && sortedTasks.length > 0 ? (
+                                        <>
+                                            <p className="mb-2 px-4 text-xs text-brand-muted sm:px-6">
+                                                <span className="rounded bg-brand-dark px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                    表示中
+                                                </span>{' '}
+                                                一覧ビュー — 列ヘッダーで並べ替えできます。
+                                            </p>
+                                            <div className="overflow-x-auto">
                                             <table className="min-w-full text-sm">
                                                 <thead className="bg-brand-bg text-xs uppercase tracking-wider text-brand-muted">
                                                     <tr>
@@ -1356,15 +1514,34 @@ export default function ProjectsShow({
                                                     })}
                                                 </tbody>
                                             </table>
-                                        </div>
+                                            </div>
+                                        </>
                                     ) : null}
+                                    {tasksViewMode === 'board' && (
+                                        <>
+                                            <p className="mb-2 px-4 text-xs text-brand-muted sm:px-6">
+                                                <span className="rounded bg-brand-dark px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                    表示中
+                                                </span>{' '}
+                                                カンバンビュー — ステータス列へドラッグして更新できます（権限のあるタスクのみ）。
+                                            </p>
+                                            <div className="border-t border-brand-border px-4 pb-4 pt-2 sm:px-6">
+                                                <KanbanBoard
+                                                    tasks={boardTasks}
+                                                    onOpenTask={openKanbanTask}
+                                                    onDropStatus={moveProjectTaskStatus}
+                                                    closedColumnExtra=""
+                                                    isTaskDraggable={(t) => t.canUpdate}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </section>
                     )}
-                    {!isRejectedProject && activeTab === 'budget' && (
+                    {showDevBudgetTabs && activeTab === 'budget' && (
                         <div className="space-y-4 p-6">
-                            <h2 className="text-base font-semibold text-brand-dark">予算</h2>
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="rounded-lg border border-brand-border bg-white p-4">
                                     <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
@@ -1415,6 +1592,7 @@ export default function ProjectsShow({
                             </div>
                         </div>
                     )}
+                    </div>
                 </section>
 
                 {(canApproveDept || canApproveHq) && (

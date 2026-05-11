@@ -157,4 +157,25 @@
 ### 検証
 - `php artisan config:clear` 実行成功
 - `/dashboard` の「最終更新」および履歴系時刻が JST 基準になる設定を確認
+
+---
+
+## 2026-05-11（月）追記 — 案件詳細タブ配色・サイドバー親子アクティブ・履歴パネル背景
+
+### 実装概要
+- **ナビ色トークンの共通化:** `resources/js/lib/sidebarNavTheme.ts` に `sectionNavTheme`（申請/開発/予算）と履歴用 `sidebarHistoryTabTheme` を定義し、サイドバーと案件詳細のフォルダ型タブで同色を参照
+- **`ProjectDetailTabBar.tsx`:** 予算タブのアクティブ面／ラベル色を `sectionNavTheme.budget` に統一（旧 `budgetStrip` で開発色を流用していた箇所を廃止）
+- **`Projects/Show.tsx`:** 予算タブ本文ラッパーを `sectionNavTheme.budget.tabActiveSurfaceHex` に合わせる。履歴タブ時は `sidebarHistoryTabTheme.tabActiveSurfaceHex`（薄グレー）を領域背景にし、タイムラインカードは白維持。開発タブの工数サマリー帯を `sectionNavTheme.dev.tabActiveSurfaceHex` に統一。申請タブ上部の承認周り帯を `sectionNavTheme.approval.tabActiveSurfaceHex` に統一
+- **`ApprovalStepperFull.tsx`:** 承認フローカードは白地（帯のみ水色）
+- **`Sidebar.tsx`:** 案件詳細で `detailTab` が `history.replaceState` により Inertia の `page.url` と不一致になる場合、`projects-*` の **`activeKey` を優先**して一覧行のアクティブを決定。親（申請状況一覧等）と子（↳ 案件詳細）が**両方アクティブ**のときは `mx-2 overflow-hidden rounded-lg` ＋ `sectionNavTheme.*.activeClass` の**単一ラッパー**で包み、内側リンク／子ラベルは `insideMergedActive` で背景透明・継ぎ目なしの一体角丸にする
+
+### 主要変更ファイル
+- `resources/js/lib/sidebarNavTheme.ts`
+- `resources/js/Components/Projects/ProjectDetailTabBar.tsx`
+- `resources/js/Pages/Projects/Show.tsx`
+- `resources/js/Components/Approval/ApprovalStepperFull.tsx`
+- `resources/js/Components/Layout/Sidebar.tsx`
+
+### 検証
+- `npx tsc --noEmit` 成功（サイドバー統合後の型チェック）
 /**更新完了**/

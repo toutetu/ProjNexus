@@ -5,6 +5,7 @@ import {
     User,
     UserCheck,
 } from 'lucide-react';
+import { type DragEvent, useState } from 'react';
 
 import type { MemberTaskItem } from '@/types/memberTasks';
 import { cn } from '@/lib/utils';
@@ -36,9 +37,11 @@ interface MatrixMemberRow {
 }
 
 interface MemberMatrixProps {
+    tasks: MemberTaskItem[];
     members: MatrixMemberRow[];
     columnCounts: { open: number; in_progress: number; done: number };
     onOpenTask: (task: MemberTaskItem) => void;
+    onDropStatus: (task: MemberTaskItem, nextStatus: MemberTaskItem['status']) => void;
 }
 
 function roleLabel(roles: string[]): string {
@@ -57,7 +60,13 @@ function loadBarColor(loadCount: number): string {
     return 'bg-[#16A34A]';
 }
 
-export default function MemberMatrix({ members, columnCounts, onOpenTask }: MemberMatrixProps) {
+export default function MemberMatrix({
+    tasks,
+    members,
+    columnCounts,
+    onOpenTask,
+    onDropStatus,
+}: MemberMatrixProps) {
     return (
         <div
             className="grid overflow-hidden rounded-[10px] border border-brand-border bg-white"
@@ -82,7 +91,13 @@ export default function MemberMatrix({ members, columnCounts, onOpenTask }: Memb
             </div>
 
             {members.map((row, idx) => (
-                <MemberMatrixRow key={row.user.id || idx} row={row} onOpenTask={onOpenTask} />
+                <MemberMatrixRow
+                    key={row.user.id || idx}
+                    row={row}
+                    allTasks={tasks}
+                    onOpenTask={onOpenTask}
+                    onDropStatus={onDropStatus}
+                />
             ))}
         </div>
     );
@@ -117,10 +132,14 @@ function MatrixHead({
 
 function MemberMatrixRow({
     row,
+    allTasks,
     onOpenTask,
+    onDropStatus,
 }: {
     row: MatrixMemberRow;
+    allTasks: MemberTaskItem[];
     onOpenTask: (task: MemberTaskItem) => void;
+    onDropStatus: (task: MemberTaskItem, nextStatus: MemberTaskItem['status']) => void;
 }) {
     const { user, stats, buckets } = row;
     const showOkBadge =
@@ -199,9 +218,28 @@ function MemberMatrixRow({
                 </div>
             </div>
 
-            <MatrixCell tasks={buckets.open} onOpenTask={onOpenTask} />
-            <MatrixCell tasks={buckets.in_progress} onOpenTask={onOpenTask} />
-            <MatrixCell tasks={buckets.done} onOpenTask={onOpenTask} resolvedMixed />
+            <MatrixCell
+                tasks={buckets.open}
+                allTasks={allTasks}
+                onOpenTask={onOpenTask}
+                onDropStatus={onDropStatus}
+                targetStatus="open"
+            />
+            <MatrixCell
+                tasks={buckets.in_progress}
+                allTasks={allTasks}
+                onOpenTask={onOpenTask}
+                onDropStatus={onDropStatus}
+                targetStatus="in_progress"
+            />
+            <MatrixCell
+                tasks={buckets.done}
+                allTasks={allTasks}
+                onOpenTask={onOpenTask}
+                onDropStatus={onDropStatus}
+                targetStatus="closed"
+                resolvedMixed
+            />
             <div className="flex items-center justify-center border-b border-l border-brand-border bg-[#FAFBFC] p-2">
                 <div className="text-center">
                     <div className="font-mono text-lg font-bold text-brand-dark">{stats.totalCount}</div>
@@ -214,23 +252,65 @@ function MemberMatrixRow({
 
 function MatrixCell({
     tasks,
+    allTasks,
     onOpenTask,
+    onDropStatus,
+    targetStatus,
     resolvedMixed,
 }: {
     tasks: MemberTaskItem[];
+    allTasks: MemberTaskItem[];
     onOpenTask: (task: MemberTaskItem) => void;
+    onDropStatus: (task: MemberTaskItem, nextStatus: MemberTaskItem['status']) => void;
+    targetStatus: MemberTaskItem['status'];
     resolvedMixed?: boolean;
 }) {
+    const [isOver, setIsOver] = useState(false);
+
+    const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        setIsOver(false);
+        const rawId = event.dataTransfer.getData('text/plain');
+        const droppedId = Number(rawId);
+        if (Number.isNaN(droppedId)) return;
+        const droppedTask = allTasks.find((task) => task.id === droppedId);
+        if (!droppedTask) return;
+        if (droppedTask.status === targetStatus) return;
+        onDropStatus(droppedTask, targetStatus);
+    };
+
     if (tasks.length === 0) {
         return (
-            <div className="flex min-h-[80px] items-center justify-center border-b border-l border-dashed border-gray-200 p-2 text-[11px] text-slate-300">
+            <div
+                className={cn(
+                    'flex min-h-[80px] items-center justify-center border-b border-l border-dashed border-gray-200 p-2 text-[11px] text-slate-300',
+                    isOver && 'bg-brand-blue/5 ring-1 ring-inset ring-brand-blue/30',
+                )}
+                onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsOver(true);
+                }}
+                onDragLeave={() => setIsOver(false)}
+                onDrop={handleDrop}
+            >
                 —
             </div>
         );
     }
 
     return (
-        <div className="space-y-1.5 border-b border-l border-dashed border-gray-200 p-2">
+        <div
+            className={cn(
+                'space-y-1.5 border-b border-l border-dashed border-gray-200 p-2',
+                isOver && 'bg-brand-blue/5 ring-1 ring-inset ring-brand-blue/30',
+            )}
+            onDragOver={(event) => {
+                event.preventDefault();
+                setIsOver(true);
+            }}
+            onDragLeave={() => setIsOver(false)}
+            onDrop={handleDrop}
+        >
             {tasks.map((task) => (
                 <div
                     key={task.id}
@@ -238,7 +318,7 @@ function MatrixCell({
                         resolvedMixed && task.status === 'resolved' && 'rounded-md ring-1 ring-[#7C3AED]/30',
                     )}
                 >
-                    <TaskCard task={task} variant="matrix" onOpenTask={onOpenTask} />
+                    <TaskCard task={task} variant="matrix" onOpenTask={onOpenTask} draggable />
                     {resolvedMixed && task.status === 'resolved' && (
                         <p className="mt-0.5 flex items-center justify-end gap-0.5 text-[9px] font-medium text-[#7C3AED]">
                             <UserCheck className="h-2.5 w-2.5" />

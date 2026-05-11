@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { useRef } from 'react';
 import {
     Bug,
     CheckCircle2,
@@ -67,9 +68,20 @@ interface TaskCardProps {
     task: MemberTaskItem;
     variant: 'kanban' | 'matrix';
     onOpenTask: (task: MemberTaskItem) => void;
+    draggable?: boolean;
+    onDragStart?: (task: MemberTaskItem) => void;
+    onDragEnd?: () => void;
 }
 
-export default function TaskCard({ task, variant, onOpenTask }: TaskCardProps) {
+export default function TaskCard({
+    task,
+    variant,
+    onOpenTask,
+    draggable = false,
+    onDragStart,
+    onDragEnd,
+}: TaskCardProps) {
+    const draggingRef = useRef(false);
     const TypeIcon = TYPE_ICON[task.taskType];
     const dueMeta = formatDueMeta(task.dueDate);
     const isOverdue = dueMeta?.tone === 'overdue' && task.status !== 'closed';
@@ -93,6 +105,7 @@ export default function TaskCard({ task, variant, onOpenTask }: TaskCardProps) {
         <div
             role="button"
             tabIndex={0}
+            draggable={draggable}
             className={cn(
                 wrapperClass,
                 'cursor-pointer text-left',
@@ -101,7 +114,21 @@ export default function TaskCard({ task, variant, onOpenTask }: TaskCardProps) {
                 isResolved && 'border-[#7C3AED] shadow-[0_0_0_1px_rgba(124,58,237,.10)]',
                 isClosed && 'opacity-[0.85]',
             )}
-            onClick={() => onOpenTask(task)}
+            onClick={() => {
+                if (draggingRef.current) {
+                    draggingRef.current = false;
+                    return;
+                }
+                onOpenTask(task);
+            }}
+            onDragStart={(e) => {
+                if (!draggable) return;
+                draggingRef.current = true;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', String(task.id));
+                onDragStart?.(task);
+            }}
+            onDragEnd={() => onDragEnd?.()}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
