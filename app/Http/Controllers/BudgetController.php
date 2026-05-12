@@ -8,9 +8,19 @@ use App\Models\ProjectBudgetHistory;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-
 class BudgetController extends Controller
 {
+    public function edit(Request $request, Project $project): RedirectResponse
+    {
+        abort_unless($this->canUpdateBudget($request, $project), 403);
+
+        return redirect()->route('projects.show', [
+            'project' => $project->id,
+            'detailTab' => 'budget',
+            'budgetInput' => 1,
+        ]);
+    }
+
     public function update(Request $request, Project $project): RedirectResponse
     {
         abort_unless($this->canUpdateBudget($request, $project), 403);
@@ -48,6 +58,22 @@ class BudgetController extends Controller
                 'old_actual_amount' => $oldActualAmount,
                 'new_actual_amount' => $newActualAmount,
             ]);
+        }
+
+        $source = $request->string('source')->toString();
+        if ($source === 'show-budget') {
+            return redirect()
+                ->route('projects.show', [
+                    'project' => $project->id,
+                    'detailTab' => 'budget',
+                ])
+                ->with('success', '予算実績を更新しました。');
+        }
+
+        if ($source === 'budget-input') {
+            return redirect()
+                ->route('projects.budget-input', $project)
+                ->with('success', '予算実績を更新しました。');
         }
 
         return redirect()

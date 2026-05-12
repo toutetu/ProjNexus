@@ -4,7 +4,6 @@ import {
     BookOpen,
     CheckSquare,
     Clock,
-    Coins,
     FilePlus,
     FolderSearch,
     Inbox,
@@ -82,16 +81,31 @@ interface SidebarChildLabelProps {
     active?: boolean;
     /** 親ラッパーが activeClass を持つときの内側行 */
     insideMergedActive?: boolean;
+    className?: string;
 }
 
-function SidebarChildLabel({ label, active = false, insideMergedActive = false }: SidebarChildLabelProps) {
+function SidebarChildLabel({
+    label,
+    active = false,
+    insideMergedActive = false,
+    className,
+}: SidebarChildLabelProps) {
     const variant = useContext(SidebarSectionVariantContext);
     const mergedInner = insideMergedActive && active && variant !== null;
+    const activeStyle =
+        !mergedInner && active && variant !== null
+            ? {
+                  backgroundColor: sectionNavTheme[variant].activeBgHex,
+                  color: sectionNavTheme[variant].activeTextHex,
+                  borderColor: sectionNavTheme[variant].activeBorderHex,
+              }
+            : undefined;
 
     return (
         <div
             className={cn(
                 'py-1 pl-11 pr-3 text-xs transition-colors',
+                className,
                 mergedInner
                     ? 'mx-0 w-full rounded-none bg-transparent font-medium text-inherit'
                     : 'mx-2 rounded-lg',
@@ -103,6 +117,7 @@ function SidebarChildLabel({ label, active = false, insideMergedActive = false }
                         ? 'bg-gray-100 font-medium text-brand-dark'
                         : 'text-[#9CA3AF] hover:bg-gray-100',
             )}
+            style={activeStyle}
         >
             {label}
         </div>
@@ -144,6 +159,22 @@ function SidebarLink({
               ? 'bg-gray-100 font-medium text-brand-dark'
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700';
 
+    const activeStyle =
+        !mergedInner && active && theme !== null
+            ? {
+                  backgroundColor: theme.activeBgHex,
+                  color: theme.activeTextHex,
+                  borderColor: theme.activeBorderHex,
+              }
+            : undefined;
+    const activeIconStyle =
+        active && theme !== null
+            ? {
+                  backgroundColor: theme.activeIconBgHex,
+                  color: theme.activeTextHex,
+              }
+            : undefined;
+
     const content = (
         <>
             <span className="flex min-w-0 flex-1 items-center gap-2">
@@ -154,6 +185,7 @@ function SidebarLink({
                             ? theme.activeIconClass
                             : inactiveIconClass,
                     )}
+                    style={activeIconStyle}
                     aria-hidden="true"
                 >
                     <Icon size={11} />
@@ -196,7 +228,7 @@ function SidebarLink({
 
     if (target === '_blank') {
         return (
-            <a href={href} target={target} rel={rel} className={composedClass}>
+            <a href={href} target={target} rel={rel} className={composedClass} style={activeStyle}>
                 {content}
             </a>
         );
@@ -210,6 +242,7 @@ function SidebarLink({
             target={target}
             rel={rel}
             className={composedClass}
+            style={activeStyle}
         >
             {content}
         </Link>
@@ -265,16 +298,36 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
     const roleLabel = primaryRole ? ROLE_LABEL[primaryRole] : 'ゲスト';
     const deptLabel = user.department?.name ?? '未所属';
     const pageUrl = page.url ?? '';
-    const [path, query = ''] = pageUrl.split('?');
-    const isProjectDetailPage = /^\/projects\/\d+$/.test(path ?? '');
-    const detailTab = new URLSearchParams(query).get('detailTab');
-    const detailSection = !isProjectDetailPage
+    const resolvedUrl = (() => {
+        try {
+            return new URL(pageUrl, 'http://cursor.local');
+        } catch {
+            return null;
+        }
+    })();
+    const path = resolvedUrl?.pathname ?? pageUrl.split('?')[0] ?? '';
+    const query = resolvedUrl?.search.slice(1) ?? pageUrl.split('?')[1] ?? '';
+    const livePath = typeof window !== 'undefined' ? window.location.pathname : '';
+    const liveQuery = typeof window !== 'undefined' ? window.location.search.slice(1) : '';
+    const effectivePath = livePath || path;
+    const effectiveQuery = liveQuery || query;
+    const effectiveTab = new URLSearchParams(effectiveQuery).get('tab');
+    const isProjectsIndexPage = /\/projects\/?$/.test(effectivePath);
+    const memberTasksActive =
+        activeKey === 'tasks' || /\/member-tasks\/?$/.test(effectivePath);
+    const isProjectDetailPage = /^\/projects\/\d+\/?$/.test(effectivePath ?? '');
+    const budgetInputMatch = (effectivePath ?? '').match(/^\/projects\/(\d+)\/budget-input\/?$/);
+    const isBudgetInputPage = budgetInputMatch !== null;
+    const detailTab = new URLSearchParams(effectiveQuery).get('detailTab');
+    const detailSection = !(isProjectDetailPage || isBudgetInputPage)
         ? null
-        : detailTab === 'tasks'
-          ? 'dev'
-          : detailTab === 'budget'
-            ? 'budget'
-            : 'approval';
+        : isBudgetInputPage
+          ? 'budget'
+          : detailTab === 'tasks'
+            ? 'dev'
+            : detailTab === 'budget'
+              ? 'budget'
+              : 'approval';
 
     /** 案件詳細でタブ切替が replaceState のとき、Inertia の page.url と detailTab がずれるため activeKey を優先する */
     const projectNavFromActiveKey: 'approval' | 'dev' | 'budget' | null =
@@ -286,27 +339,42 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                 ? 'budget'
                 : null;
 
-    const approvalActive =
+    const isProjectsCreatePage = /\/projects\/create\/?$/.test(effectivePath);
+    const newActive = activeKey === 'new' || isProjectsCreatePage;
+    const pendingActive = activeKey === 'pending';
+
+    const isProjectsApprovalListPage = isProjectsIndexPage && effectiveTab === 'approval';
+    const isProjectsDevListPage = isProjectsIndexPage && effectiveTab === 'dev';
+    const isProjectsBudgetListPage = isProjectsIndexPage && effectiveTab === 'budget';
+
+    const approvalListActive =
         activeKey === 'projects-approval' ||
+        ((activeKey === null || activeKey === undefined) && isProjectsApprovalListPage) ||
         (projectNavFromActiveKey === null && detailSection === 'approval');
-    const devActive =
+    const devListActive =
         activeKey === 'projects-dev' ||
+        ((activeKey === null || activeKey === undefined) && isProjectsDevListPage) ||
         (projectNavFromActiveKey === null && detailSection === 'dev');
-    const budgetActive =
+    const budgetListActive =
         activeKey === 'projects-budget' ||
+        activeKey === 'budget-input' ||
+        ((activeKey === null || activeKey === undefined) && isProjectsBudgetListPage) ||
         (projectNavFromActiveKey === null && detailSection === 'budget');
+    const budgetInputActive = activeKey === 'budget-input' || isBudgetInputPage;
 
     const effectiveDetailSection = projectNavFromActiveKey ?? detailSection;
 
     /** 一覧行と「↳ 案件詳細」の両方がアクティブなとき、角丸を 1 つのブロックに見せる */
     const approvalListDetailMerged =
-        approvalActive &&
+        approvalListActive &&
         isProjectDetailPage &&
         effectiveDetailSection === 'approval';
     const devListDetailMerged =
-        devActive && isProjectDetailPage && effectiveDetailSection === 'dev';
+        devListActive && isProjectDetailPage && effectiveDetailSection === 'dev';
     const budgetListDetailMerged =
-        budgetActive && isProjectDetailPage && effectiveDetailSection === 'budget';
+        budgetListActive && isProjectDetailPage && effectiveDetailSection === 'budget';
+    const budgetListDetailInputMerged =
+        budgetInputActive && isBudgetInputPage && effectiveDetailSection === 'budget';
 
     return (
         <aside className="flex h-screen w-64 shrink-0 flex-col overflow-hidden border-r border-brand-border bg-white text-brand-dark">
@@ -346,7 +414,7 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                             href={route('projects.create')}
                             icon={FilePlus}
                             label="新規申請"
-                            active={activeKey === 'new'}
+                            active={newActive}
                         />
                     )}
                     {canSeePendingList && (
@@ -354,7 +422,7 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                             href="/projects?tab=approval&filter=pending"
                             icon={Clock}
                             label="承認待ち一覧"
-                            active={activeKey === 'pending'}
+                            active={pendingActive}
                             badge={
                                 pendingApprovalCount > 0
                                     ? pendingApprovalCount > 99
@@ -370,6 +438,11 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                                 'mx-2 overflow-hidden rounded-lg',
                                 sectionNavTheme.approval.activeClass,
                             )}
+                            style={{
+                                backgroundColor: sectionNavTheme.approval.activeBgHex,
+                                color: sectionNavTheme.approval.activeTextHex,
+                                borderColor: sectionNavTheme.approval.activeBorderHex,
+                            }}
                         >
                             <SidebarLink
                                 href="/projects?tab=approval"
@@ -390,7 +463,7 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                                 href="/projects?tab=approval"
                                 icon={List}
                                 label={PROJECT_LIST_PAGE_TITLE.approval}
-                                active={approvalActive}
+                                active={approvalListActive}
                             />
                             <SidebarChildLabel
                                 label="↳ 案件詳細"
@@ -408,7 +481,7 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                         href={route('member-tasks.index')}
                         icon={CheckSquare}
                         label="タスク一覧"
-                        active={activeKey === 'tasks'}
+                        active={memberTasksActive}
                     />
                     {devListDetailMerged ? (
                         <div
@@ -416,6 +489,11 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                                 'mx-2 overflow-hidden rounded-lg',
                                 sectionNavTheme.dev.activeClass,
                             )}
+                            style={{
+                                backgroundColor: sectionNavTheme.dev.activeBgHex,
+                                color: sectionNavTheme.dev.activeTextHex,
+                                borderColor: sectionNavTheme.dev.activeBorderHex,
+                            }}
                         >
                             <SidebarLink
                                 href="/projects?tab=dev"
@@ -436,7 +514,7 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                                 href="/projects?tab=dev"
                                 icon={LayoutList}
                                 label={PROJECT_LIST_PAGE_TITLE.dev}
-                                active={devActive}
+                                active={devListActive}
                             />
                             <SidebarChildLabel
                                 label="↳ 案件詳細"
@@ -455,12 +533,48 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                         label="ダッシュボード"
                         active={activeKey === 'dashboard'}
                     />
-                    {budgetListDetailMerged ? (
+                    {budgetListDetailInputMerged ? (
                         <div
                             className={cn(
                                 'mx-2 overflow-hidden rounded-lg',
                                 sectionNavTheme.budget.activeClass,
                             )}
+                            style={{
+                                backgroundColor: sectionNavTheme.budget.activeBgHex,
+                                color: sectionNavTheme.budget.activeTextHex,
+                                borderColor: sectionNavTheme.budget.activeBorderHex,
+                            }}
+                        >
+                            <SidebarLink
+                                href="/projects?tab=budget"
+                                icon={Wallet}
+                                label={PROJECT_LIST_PAGE_TITLE.budget}
+                                active
+                                insideMergedActive
+                            />
+                            <SidebarChildLabel
+                                label="↳ 案件詳細"
+                                active
+                                insideMergedActive
+                            />
+                            <SidebarChildLabel
+                                label="↳ 予算実績入力"
+                                active
+                                insideMergedActive
+                                className="pl-14"
+                            />
+                        </div>
+                    ) : budgetListDetailMerged ? (
+                        <div
+                            className={cn(
+                                'mx-2 overflow-hidden rounded-lg',
+                                sectionNavTheme.budget.activeClass,
+                            )}
+                            style={{
+                                backgroundColor: sectionNavTheme.budget.activeBgHex,
+                                color: sectionNavTheme.budget.activeTextHex,
+                                borderColor: sectionNavTheme.budget.activeBorderHex,
+                            }}
                         >
                             <SidebarLink
                                 href="/projects?tab=budget"
@@ -481,23 +595,27 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                                 href="/projects?tab=budget"
                                 icon={Wallet}
                                 label={PROJECT_LIST_PAGE_TITLE.budget}
-                                active={budgetActive}
+                                active={budgetListActive}
                             />
                             <SidebarChildLabel
                                 label="↳ 案件詳細"
                                 active={
-                                    isProjectDetailPage &&
+                                    (isProjectDetailPage || isBudgetInputPage) &&
                                     effectiveDetailSection === 'budget'
                                 }
                             />
+                            <SidebarChildLabel
+                                label="↳ 予算実績入力"
+                                active={budgetInputActive}
+                                className="pl-14"
+                            />
                         </>
                     )}
-                    {isApplicant && (
-                        <SidebarLink
-                            href="#"
-                            icon={Coins}
-                            label="予算実績入力"
-                            active={activeKey === 'budget-input'}
+                    {budgetListDetailMerged && (
+                        <SidebarChildLabel
+                            label="↳ 予算実績入力"
+                            active={false}
+                            className="pl-14"
                         />
                     )}
                 </SidebarSection>

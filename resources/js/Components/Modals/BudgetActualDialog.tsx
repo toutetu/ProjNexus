@@ -25,6 +25,7 @@ interface BudgetActualDialogProps {
     open: boolean;
     onClose: () => void;
     project: BudgetProject;
+    source?: 'show-budget' | 'budget-input';
 }
 
 const formatCurrency = (value: number): string =>
@@ -47,6 +48,7 @@ export default function BudgetActualDialog({
     open,
     onClose,
     project,
+    source = 'show-budget',
 }: BudgetActualDialogProps) {
     const [amount, setAmount] = useState('');
     const [processing, setProcessing] = useState(false);
@@ -73,7 +75,7 @@ export default function BudgetActualDialog({
         setProcessing(true);
         router.put(
             route('projects.budget.update', project.id),
-            { actual_amount: nextActual },
+            { actual_amount: nextActual, source },
             {
                 preserveScroll: true,
                 onSuccess: onClose,

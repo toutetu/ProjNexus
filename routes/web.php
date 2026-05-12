@@ -42,6 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/projects/{project}/take-back', [ApprovalController::class, 'takeBack'])->name('projects.takeBack');
     Route::post('/projects/{project}/approve', [ApprovalController::class, 'approve'])->name('projects.approve');
     Route::post('/projects/{project}/reject', [ApprovalController::class, 'reject'])->name('projects.reject');
+    Route::get('/projects/{project}/budget-input', [BudgetController::class, 'edit'])->name('projects.budget-input');
     Route::put('/projects/{project}/budget', [BudgetController::class, 'update'])->name('projects.budget.update');
     Route::post('/projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
     Route::put('/projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');

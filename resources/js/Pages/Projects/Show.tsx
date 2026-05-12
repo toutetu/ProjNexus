@@ -371,6 +371,9 @@ const parseDetailTab = (raw: string | null): DetailTab => {
     return 'apply';
 };
 
+const parseBudgetInputOpen = (raw: string | null): boolean =>
+    raw === '1' || raw === 'true';
+
 
 const formatDateTime = (value: string | null): string => {
     if (!value) return '日時不明';
@@ -466,7 +469,12 @@ export default function ProjectsShow({
     });
     const [taskDialogOpen, setTaskDialogOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
+    const [budgetDialogOpen, setBudgetDialogOpen] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return parseBudgetInputOpen(
+            new URLSearchParams(window.location.search).get('budgetInput'),
+        );
+    });
     const [taskFilterKeyword, setTaskFilterKeyword] = useState('');
     const [taskFilterType, setTaskFilterType] = useState<string>('');
     const [taskFilterPriority, setTaskFilterPriority] = useState<string>('');
@@ -661,7 +669,9 @@ export default function ProjectsShow({
     const activeSidebarKey =
         activeTab === 'tasks'
             ? 'projects-dev'
-            : activeTab === 'budget'
+            : activeTab === 'budget' && budgetDialogOpen
+              ? 'budget-input'
+              : activeTab === 'budget'
               ? 'projects-budget'
               : 'projects-approval';
 
@@ -760,11 +770,29 @@ export default function ProjectsShow({
 
     const switchTab = (nextTab: DetailTab) => {
         setActiveTab(nextTab);
+        if (nextTab !== 'budget') {
+            setBudgetDialogOpen(false);
+        }
         if (typeof window === 'undefined') return;
         const url = new URL(window.location.href);
         url.searchParams.set('detailTab', nextTab);
+        if (nextTab !== 'budget') {
+            url.searchParams.delete('budgetInput');
+        }
         window.history.replaceState({}, '', url.toString());
     };
+
+    const syncBudgetInputQuery = useCallback((open: boolean) => {
+        if (typeof window === 'undefined') return;
+        const url = new URL(window.location.href);
+        if (open) {
+            url.searchParams.set('detailTab', 'budget');
+            url.searchParams.set('budgetInput', '1');
+        } else {
+            url.searchParams.delete('budgetInput');
+        }
+        window.history.replaceState({}, '', url.toString());
+    }, []);
 
     const updateTasksViewMode = useCallback((mode: TasksViewMode) => {
         setTasksViewMode(mode);
@@ -788,11 +816,6 @@ export default function ProjectsShow({
         (task: MemberTaskItem, nextStatus: MemberTaskItem['status']) => {
             if (!task.canUpdate || task.status === nextStatus || movingProjectTaskId !== null) return;
 
-            const prevTasks = boardTasks;
-            const optimisticTasks = boardTasks.map((row) =>
-                row.id === task.id ? { ...row, status: nextStatus } : row,
-            );
-            setBoardTasks(optimisticTasks);
             setMovingProjectTaskId(task.id);
 
             router.put(
@@ -805,7 +828,6 @@ export default function ProjectsShow({
                     preserveScroll: true,
                     preserveState: true,
                     onError: () => {
-                        setBoardTasks(prevTasks);
                         window.alert(
                             'ステータス更新に失敗しました。権限または遷移条件を確認してください。',
                         );
@@ -814,7 +836,7 @@ export default function ProjectsShow({
                 },
             );
         },
-        [boardTasks, movingProjectTaskId, project.id, tasksViewMode],
+        [movingProjectTaskId, project.id, tasksViewMode],
     );
 
     useEffect(() => {
@@ -1577,7 +1599,11 @@ export default function ProjectsShow({
                                         size="sm"
                                         className="mt-3 w-full gap-1.5"
                                         disabled={!canUpdateBudget}
-                                        onClick={() => setBudgetDialogOpen(true)}
+                                        onClick={() => {
+                                            setBudgetDialogOpen(true);
+                                            setActiveTab('budget');
+                                            syncBudgetInputQuery(true);
+                                        }}
                                     >
                                         <Wallet className="h-4 w-4" />
                                         実績を入力
@@ -1660,7 +1686,11 @@ export default function ProjectsShow({
             />
             <BudgetActualDialog
                 open={budgetDialogOpen}
-                onClose={() => setBudgetDialogOpen(false)}
+                onClose={() => {
+                    setBudgetDialogOpen(false);
+                    syncBudgetInputQuery(false);
+                }}
+                source="show-budget"
                 project={{
                     id: project.id,
                     title: project.title,

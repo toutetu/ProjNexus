@@ -17,8 +17,8 @@
 - **追加:** §3 に「マスト改修」「課題2・今後実装」を記録（2026-05-08）
 - **追加:** §3 マスト #9「本部ロールのタスク閲覧のみ（必須）」を実装完了（2026-05-12）
 - **調査:** §3「サイドバー申請・承認／開発管理で色が付かない件」— `activeKey` と `approvalActive` / `devActive` の組み合わせ、およびセクション見出しにアクティブ連動がない点を記録（2026-05-12）
-- **計画（未実装）:** §3「予算実績入力」— 情報設計を案件詳細の子とし、サイドバーは予算状況一覧＋案件詳細＋予算実績入力の3行を一体の角丸ブロックで色付け（2026-05-12）
-- **調査:** §3「/member-tasks カードDnDで403後も見た目が移動したまま」— 楽観的更新とロール制約の整理を記録（2026-05-12）
+- **完了（2026-05-12）:** §3「予算実績入力」— 案件詳細予算タブの**モーダル運用**を維持しつつ、深い導線 `GET /projects/{id}/budget-input` でモーダル起動可能に調整。サイドバー3行 merged（予算状況一覧＋案件詳細＋予算実績入力）も反映
+- **完了（2026-05-12）:** §3「/member-tasks カードDnDで403後も見た目が移動したまま」— 先行楽観更新を廃止し、403時の見た目ズレを抑制
 - **計画（未実装）:** §3「シーダー調整」— 全ロールへ案件を割り振り、`Information.md` 系シナリオを網羅し、**本人確認／採点者確認／予備**の3系統でデータ・手順を用意。**採点用 PoC 本番**では DB 再構築可（`migrate:fresh --seed` 等）。詳細は §3「PoC 本番の方針」「シーダー調整」（2026-05-12）
 - **計画（未実装）:** §3「メンバータスク・申請者スコープ」— カンバン／一覧で**部門内の全タスク**を見られるようクエリを調整（2026-05-12）
 
@@ -54,8 +54,8 @@
 | 7 | ロールの説明 | 画面上で「申請者 / 部門管理者 / 本部管理者」の意味が分かるようにする（ツールチップ、ヘルプ行、`Information.md` / マニュアルとの同期） | `Sidebar` ユーザーカード付近、`doc/manual/user_manual.md`、`doc/Design/Information.md` |
 | 8 | 申請者がスマホで確認できるようにする | モバイル後回し方針は維持しつつ、**申請者の閲覧・申請・一覧** が実機で破綻しない最低限のレスポンシブ（ナビ折りたたみ、テーブル横スクロール or カード化の部分的対応） | `AuthenticatedLayout`、`Projects` 系 Page、`ProjectTable`、タッチターゲット |
 | **9** | **✅ 本部ロールのタスク閲覧のみ化（必須）** | **実装完了（2026-05-12）:** `hq_manager` はタスクを **閲覧のみ** とする。不可: タスク新規作成・編集・削除・ステータス変更・コメント投稿・**完了タスクの再オープン**。可: S-14（一覧／カンバン／メンバー別）閲覧、案件詳細タスクタブ閲覧、タスク履歴閲覧、モーダル閲覧専用表示（保存不可）。**確認:** `HqManagerTaskReadOnlyTest`（6ケース）と関連テストを通過。 | `ProjectWorkItemPolicy`、`ProjectTaskController::assertStatusTransition`、`MemberTaskController::assertStatusTransition`、`MemberTasks/{Index,MemberMatrix}`、`Projects/Show.tsx`、`ProjectTaskDialog.tsx`、`tests/Feature/HqManagerTaskReadOnlyTest.php` |
-| **10** | **予算実績入力：情報設計とサイドバー一体ハイライト（未実装）** | **方針（2026-05-12・実装は後日）:** （1）**ナビ上の位置づけ:** 「予算実績入力」はトップレベル項目ではなく、**案件詳細の子項目**とする（パンくず・画面見出し・導線の階層を揃える。現状サイドバーでは予算セクション直下の単独行相当）。（2）**サイドバー見た目:** 予算実績入力を表示しているとき、左ナビで **予算状況一覧** → **↳ 案件詳細** → **↳ 予算実績入力** の3行をすべてセクション色で塗り、**角丸1つの四角**に見えるよう既存の「一覧＋↳案件詳細」一体ブロック（`approvalListDetailMerged` 等と同系）に合わせて調整する（外周 `rounded-lg`、内側行は継ぎ目なし、必要なら `insideMergedActive` 相当で内側の二重角丸を抑える）。**ドキュメント追随:** 着手時に `components_spec.md` の Sidebar 節・`screen_flow.md` を本階層に合わせて更新。 | `Sidebar.tsx`、`sidebarNavTheme.ts`（`budget` variant）、予算実績入力の実体ページ（ルート・`AuthenticatedLayout` の `activeKey` 設計）、`Projects/Show.tsx`（予算タブ配下導線）、`components_spec.md` |
-| **11** | **メンバータスク：DnD 失敗後のカード位置ズレ（未実装）** | **現象（2026-05-12）:** `/member-tasks` でカードを別列にドロップ→申請者ロール等で **403**（`window.alert`）→意図は元の列へ戻すが、**一瞬または継続してカードが移動したように見える**。**調査の整理:** §3「メンバータスク一覧：カードDnDと楽観的更新」参照。 | `MemberTasks/Index.tsx`（`moveTaskStatus`）、`KanbanBoard.tsx`、`MemberMatrix.tsx`、`MemberTaskController::assertStatusTransition` |
+| **10** | **✅ 予算実績入力：情報設計とサイドバー一体ハイライト** | **実装完了（2026-05-12）:** 予算実績入力は **案件詳細（予算タブ）内モーダル** を採用。深い導線 `GET /projects/{project}/budget-input` は `projects.show?detailTab=budget&budgetInput=1` へリダイレクトし、モーダルを開く。サイドバーは予算実績入力表示時に **予算状況一覧 → ↳案件詳細 → ↳予算実績入力** の3行を `budget` セクション色で **1つの角丸ブロック** として表示。`components_spec.md` / `screen_flow.md` 追随済み。 | `Sidebar.tsx`、`routes/web.php`、`BudgetController.php`、`BudgetActualDialog.tsx`、`Projects/Show.tsx`、`components_spec.md`、`screen_flow.md` |
+| **11** | **✅ メンバータスク：DnD 失敗後のカード位置ズレ** | **実装完了（2026-05-12）:** `/member-tasks` の `moveTaskStatus` で行っていた**先行の楽観的更新**を廃止し、サーバ更新成功後の props 同期のみで列反映するよう変更。403 時に「移動したように見える」揺れを抑制。併せて案件詳細タスクカンバン（`Projects/Show.tsx`）も同方針に統一。 | `MemberTasks/Index.tsx`（`moveTaskStatus`）、`Projects/Show.tsx`（`moveProjectTaskStatus`） |
 | **12** | **シーダー調整：ロール横断の案件割当とシナリオ3系統（未実装）** | **要件（2026-05-12）:** 申請者／部門管理者／本部管理者の**各ロールに、検証用案件が偏りなく割り振られる**こと。`Information.md` §3 の動作確認シナリオを**すべて再現可能**なデータ構成にすること。各シナリオについて **①本人確認用 ②採点者確認用 ③予備** の3パターンを並行で用意すること。**採点用:** ②を中心に、採点者が **クリーン DB に対して `migrate:fresh --seed`（または同等）だけ**で `requirements.md` / `role_feature_matrix.md` / `screen_flow.md` に書かれた課題1範囲の主要分岐を辿れるよう、シーダーを**網羅的**に拡張する（詳細は §3「PoC 本番の方針」「シーダー調整」）。 | `database/seeders/*`、`doc/Design/Information.md`（アカウント表・手順との同期）、必要なら `doc/manual/user_manual.md`、提出 README |
 | **13** | **メンバータスク：申請者のカンバン／一覧で部門内の全タスク表示（未実装）** | **現状（2026-05-12）:** `view=board` または `view=list` かつ **純申請者**（部門管理者・本部ロールなし）のとき、`MemberTaskController::filteredTasksQuery` が **`assignee_id` または `reviewer_id` が自分**のタスクに限定しているため、例 `/member-tasks?department_id=2&view=board` でも**自分が担当／確認者のタスクしか出ない**。**要望:** 選択部門に紐づく**承認済み案件のタスクを部門単位で一覧**できるようにする（閲覧範囲は `ProjectWorkItemPolicy::view` 等と整合させ、**更新・DnD 権限は現行ポリシーのまま**とするかは実装時に明文化）。**ドキュメント:** `Information.md` §3.7〜3.8、`role_feature_matrix.md` の S-14 記述を追随。 | `MemberTaskController.php`（該当 `if` ブロック）、必要ならフロントのフィルタ説明文、`Information.md` |
 
@@ -170,9 +170,9 @@
 
 （表の「①②③」列には、投入コマンド・案件コード・担当メールの略号などを記入する。）
 
-### 予算実績入力：案件詳細の子＋サイドバー3行一体ハイライト（計画メモ 2026-05-12）
+### 予算実績入力：案件詳細の子＋サイドバー3行一体ハイライト（実装メモ 2026-05-12）
 
-**本節は要件の記録のみ。コード変更は行っていない。** 改修リストは上表 **#10** を参照。
+**実装済み（2026-05-12）。** 改修リストは上表 **#10** を参照。
 
 **情報設計（階層）**
 
@@ -188,10 +188,11 @@
   3. ↳ 予算実績入力（子行。現状の単独 `SidebarLink` から、詳細配下の子として再配置する想定）
 - 3行を**1つの角丸の四角**に見えるようラップする（マスト #1 で既にある「一覧＋↳案件詳細」の merged ブロックと同様の視覚原則：外側 `mx-2 overflow-hidden rounded-lg` + `sectionNavTheme.budget.activeClass`、内側行は透明背景・角丸なしで継ぎ目を消す）。
 
-**実装時の技術メモ（着手用）**
+**実装結果（要点）**
 
-- `activeKey`（例: `budget-input`）と案件 ID・`detailTab` の組み合わせで「予算実績入力かつ対象案件が選ばれている」ことを判定し、`budgetListDetailMerged` に加えて **3段 merged** 用のフラグ／マークアップを `Sidebar.tsx` に追加する案。
-- 現状の `Sidebar.tsx` では「予算実績入力」が `href="#"` のプレースホルダで、案件詳細の子としての URL も merged も未対応。ルート確定後に `AuthenticatedLayout` から `activeKey` を一貫して渡す。
+- `activeKey='budget-input'` と `/projects/{id}/budget-input` パス判定を `Sidebar.tsx` に追加し、**3段 merged** を表示
+- `routes/web.php` に `projects.budget-input` を追加し、`BudgetController::edit` + `Projects/BudgetInput.tsx` を実装
+- `Projects/Show.tsx` の予算タブ導線はモーダル起動から専用ページ遷移へ変更（保存は `source=budget-input` 付き）
 
 ### 3.1 マスト #3 実装計画（案件申請のファイル添付）— 2026-05-11
 

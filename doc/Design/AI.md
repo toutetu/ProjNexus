@@ -96,11 +96,17 @@
 3. **main 上では実装しない**。ブランチ作成後に着手
 4. 再開時は `doc/daily/implementation_schedule.md` を先に確認
 
+
 ### 作業中（区切りごと）
 
-1. **`doc/Design/`** の該当ファイルを更新（**事実は `system_spec.md`**）
-2. **`mockups/`** を必要に応じて更新
-3. コミットは **コードと `doc/Design`+`mocks` を分ける**（別コミット）
+0.　作業区切りの動作確認は、手動でする
+1. **作業ブランチを切る**: `git checkout -b <branch-name>`（例: `feat/phase2-apply-form`, `docs/daily-YYYYMMDD`）
+2. **`doc/Design/`** の該当ファイルを更新（**事実は `system_spec.md`**）
+3. **`mockups/`** を必要に応じて更新
+4. コミットは **コードと `doc/Design`+`mocks` を分ける**（別コミット）
+5. **`doc/daily/`** を更新: `daily_report.md`（追記のみ）、`log/daily_technical_report.md`、`development_schedule.md`、`implementation_schedule.md`
+6. doc\daily\log\daily_technical_report.md を更新する。
+7. コミット・push
 
 ### 作業終了時（毎日）
 
@@ -174,7 +180,7 @@
 3. **方針**（Service / Policy / コンポーネント・クエリ）
 4. **影響**（マイグレ・シーダー）
 5. **スコープ外**
-
+6. ブランチ名　(fix/xxxx,feat/phasex-xxxx,doc/xxxxxなど)
 判断に迷ったら **`system_spec.md`** と本節を参照し、それでも不明なときだけ質問する。
 
 /**更新完了**/

@@ -754,4 +754,38 @@
 ---
 ---
 ---
+## 2026-05-12（火）追記 — #10 予算実績入力の階層化 / #11 DnD 403後の位置ズレ修正
+
+### 実装概要
+- **#10 予算実績入力の情報設計を「案件詳細の子」に統一**
+  - 新規ルート `GET /projects/{project}/budget-input`（`projects.budget-input`）を追加
+  - `BudgetController::edit` を追加し、Inertia ページ `Projects/BudgetInput` を表示
+  - `Projects/Show.tsx` の予算タブ「実績を入力」はモーダル起動から専用ページ遷移に変更
+  - 保存時は `projects.budget.update` に `source=budget-input` を渡し、更新後に同ページへリダイレクト
+- **サイドバーの3行一体ハイライトを実装**
+  - `Sidebar.tsx` で予算実績入力画面判定（`/projects/{id}/budget-input`）を追加
+  - 表示時に `予算状況一覧 → ↳ 案件詳細 → ↳ 予算実績入力` を `budget` セクション色で1つの merged ブロック表示
+  - 予算実績入力のトップレベル単独リンクは廃止し、階層表現へ統一
+- **#11 DnD 失敗後の見た目ズレを修正**
+  - `MemberTasks/Index.tsx` の `moveTaskStatus` で先行楽観更新を廃止
+  - 403 時にカードが移動して見える揺れを抑制
+  - 同系実装の `Projects/Show.tsx` 側 `moveProjectTaskStatus` も同方針へ統一
+
+### 主要変更ファイル
+- `app/Http/Controllers/BudgetController.php`
+- `routes/web.php`
+- `resources/js/Pages/Projects/BudgetInput.tsx`（新規）
+- `resources/js/Pages/Projects/Show.tsx`
+- `resources/js/Components/Layout/Sidebar.tsx`
+- `resources/js/Pages/MemberTasks/Index.tsx`
+- `doc/Design/components_spec.md`
+- `doc/Design/screen_flow.md`
+- `doc/daily/implementation_schedule.md`
+
+### 検証
+- `npx tsc --noEmit` 成功
+- `php -l app/Http/Controllers/BudgetController.php` 構文エラーなし
+- `ReadLints` で変更ファイルのエラーなし
+- `php artisan test` は **既存の `Tests\Feature\ExampleTest`（`/` が 200 前提）で 1件失敗**。今回修正起因ではなく、現行ルート仕様（`/` は 302 リダイレクト）との不一致
+
 /**更新完了**/

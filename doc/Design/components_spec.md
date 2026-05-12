@@ -48,7 +48,8 @@ interface AuthenticatedLayoutProps {
 - 各 `SidebarLink`: 非アクティブは `text-gray-500` + **アイコンボックス**（`bg-gray-100 text-gray-400`）+ hover `bg-gray-100`。アクティブは左ボーダー無しの **pill型**（`mx-2 rounded-lg`）を使用
 - セクション「申請・承認」配下: 新規申請 / 承認待ち一覧(バッジ) / **申請状況一覧**（`/projects?tab=approval`）
 - セクション「開発管理」: **開発進捗一覧**（`/projects?tab=dev`） / タスク一覧(dim表示・課題2ラベル)
-- セクション「予算管理」: **予算状況一覧**（`/projects?tab=budget`） / 予算実績入力
+- セクション「予算管理」: **予算状況一覧**（`/projects?tab=budget`） / ↳ 案件詳細 / ↳ 予算実績入力（深い導線: `/projects/{id}/budget-input`）
+- 予算実績入力表示中は、**予算状況一覧 → ↳案件詳細 → ↳予算実績入力** の3行を `mx-2 overflow-hidden rounded-lg` + セクション色で一体表示（内側行は `insideMergedActive` で継ぎ目なし）
 - セクション下部（Context `variant=null`）: 通知(バッジ `#E60013`) / マニュアル / プロフィール / ログアウト — `text-[#6C757D]`・hover `bg-gray-100`・アクティブは `border-[#106EBE]` + `bg-gray-100`
 - 最下部: ユーザーカード（アバター `#E60013`、氏名 `#212429`、ロール行 `#6C757D`）
 
@@ -730,13 +731,14 @@ interface ProjectTaskDialogProps {
 - **4 値は PoC の標準**。課題の「+α」との対応関係はプレゼン用ラベルであり、実装の状態機械は上記 4 値のみ
 
 ### BudgetActualDialog（S-11）
-**役割**: 予算実績入力モーダル。
+**役割**: 予算実績入力モーダル（案件詳細予算タブ上で表示）。
 **配置**: `resources/js/Components/Modals/BudgetActualDialog.tsx`
 **使用モック**: S-11
 **表示コンテキスト**:
-- 背景に S-04 風画面（予算タブ文脈）を dimmed で表示
-- モーダル本体は中央配置 `max-w-2xl`
-- 主担当のみ操作可。ヘッダー付近に権限バッジを表示して明示
+- 実体は `Projects/Show.tsx`（`detailTab=budget`）上のモーダル表示
+- 深い導線 `/projects/{id}/budget-input` は `projects.show?detailTab=budget&budgetInput=1` へリダイレクトし、モーダルを開いた状態にする
+- サイドバーは案件詳細の子階層として3行 merged ハイライト
+- 主担当（または同部門の部門管理者）のみ操作可。`BudgetController::canUpdateBudget` で制御
 
 > **実装方式の切替**：課題1（PoC・実装対象）は **上書き方式**、課題2（将来拡張）は **追加方式**。  
 > 詳細は `mockups/s11_policy.md` および `doc/Design/er_diagram.md §予算管理` を参照。
@@ -747,22 +749,14 @@ interface ProjectTaskDialogProps {
 interface BudgetActualDialogProps {
   open: boolean;
   onClose: () => void;
+  source?: 'show-budget' | 'budget-input';
   project: {
     id: number;
-    code: string;            // 例: 'PRJ-2026-0042'
     title: string;
-    budgetAmount: number;    // 確定予算
-    actualAmount: number;    // 現在実績（この値を上書き）
-    primaryAssignee: {
-      id: number;
-      name: string;
-      avatarUrl?: string;
-    };
+    primaryAssignee: string | null;
+    budgetAmount: number | null; // 確定予算
+    actualAmount: number | null; // 現在実績（この値を上書き）
   };
-  canEdit: boolean;          // 主担当のみ true
-  onSubmit: (payload: {
-    actualAmount: number;    // 新しい実績額（累計）
-  }) => void;
 }
 ```
 

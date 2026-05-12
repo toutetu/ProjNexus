@@ -235,11 +235,6 @@ export default function MemberTasksIndex({
             return;
         }
 
-        const prevTasks = boardTasks;
-        const optimisticTasks = boardTasks.map((row) =>
-            row.id === task.id ? { ...row, status: nextStatus } : row,
-        );
-        setBoardTasks(optimisticTasks);
         setMovingTaskId(task.id);
 
         router.put(
@@ -252,7 +247,6 @@ export default function MemberTasksIndex({
                 preserveScroll: true,
                 preserveState: true,
                 onError: () => {
-                    setBoardTasks(prevTasks);
                     window.alert('ステータス更新に失敗しました。権限または遷移条件を確認してください。');
                 },
                 onFinish: () => setMovingTaskId(null),
