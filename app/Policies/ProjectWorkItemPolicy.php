@@ -44,6 +44,10 @@ class ProjectWorkItemPolicy
 
     public function create(User $user, Project $project): bool
     {
+        if ($user->hasRole(Role::HqManager->value)) {
+            return false;
+        }
+
         return $project->status === ProjectStatus::Approved
             && $this->canAccessProject($user, $project);
     }
@@ -81,7 +85,7 @@ class ProjectWorkItemPolicy
     private function canEditTaskContent(User $user, ProjectWorkItem $task, Project $project): bool
     {
         if ($user->hasRole(Role::HqManager->value)) {
-            return true;
+            return false;
         }
 
         if ($user->hasRole(Role::DeptManager->value)) {
