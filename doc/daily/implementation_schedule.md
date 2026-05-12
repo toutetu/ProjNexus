@@ -19,8 +19,9 @@
 - **調査:** §3「サイドバー申請・承認／開発管理で色が付かない件」— `activeKey` と `approvalActive` / `devActive` の組み合わせ、およびセクション見出しにアクティブ連動がない点を記録（2026-05-12）
 - **完了（2026-05-12）:** §3「予算実績入力」— 案件詳細予算タブの**モーダル運用**を維持しつつ、深い導線 `GET /projects/{id}/budget-input` でモーダル起動可能に調整。サイドバー3行 merged（予算状況一覧＋案件詳細＋予算実績入力）も反映
 - **完了（2026-05-12）:** §3「/member-tasks カードDnDで403後も見た目が移動したまま」— 先行楽観更新を廃止し、403時の見た目ズレを抑制
-- **計画（未実装）:** §3「シーダー調整」— 全ロールへ案件を割り振り、`Information.md` 系シナリオを網羅し、**本人確認／採点者確認／予備**の3系統でデータ・手順を用意。**採点用 PoC 本番**では DB 再構築可（`migrate:fresh --seed` 等）。詳細は §3「PoC 本番の方針」「シーダー調整」（2026-05-12）
-- **計画（未実装）:** §3「メンバータスク・申請者スコープ」— カンバン／一覧で**部門内の全タスク**を見られるようクエリを調整（2026-05-12）
+- **完了（2026-05-12）:** §3「シーダー調整」— `ScenarioMirrorSeeder` と `track-b-*` / `track-c-*` ユーザーで **②採点／③予備** 系統を追加。`Information.md` §2.1・§4.1 参照
+- **完了（2026-05-12）:** §3「メンバータスク・申請者スコープ」— 純申請者の board/list で部門内承認済タスクを一覧（`ApplicantMemberTasksDeptScopeTest`）
+- **スコープ外（ユーザー方針 2026-05-12）:** マスト #8（申請者向けレスポンシブ最低限）— PC レイアウト悪化リスクのため実装しない
 - **完了（2026-05-12）:** マスト #7 追補 — `/profile` のアカウント情報に **ロール**（複数は ` / ` 連結）を読み取り専用で表示。設計正本（`system_spec.md` / `components_spec.md` / `screen_flow.md`）を同期。
 
 ---
@@ -57,8 +58,8 @@
 | **9** | **✅ 本部ロールのタスク閲覧のみ化（必須）** | **実装完了（2026-05-12）:** `hq_manager` はタスクを **閲覧のみ** とする。不可: タスク新規作成・編集・削除・ステータス変更・コメント投稿・**完了タスクの再オープン**。可: S-14（一覧／カンバン／メンバー別）閲覧、案件詳細タスクタブ閲覧、タスク履歴閲覧、モーダル閲覧専用表示（保存不可）。**確認:** `HqManagerTaskReadOnlyTest`（6ケース）と関連テストを通過。 | `ProjectWorkItemPolicy`、`ProjectTaskController::assertStatusTransition`、`MemberTaskController::assertStatusTransition`、`MemberTasks/{Index,MemberMatrix}`、`Projects/Show.tsx`、`ProjectTaskDialog.tsx`、`tests/Feature/HqManagerTaskReadOnlyTest.php` |
 | **10** | **✅ 予算実績入力：情報設計とサイドバー一体ハイライト** | **実装完了（2026-05-12）:** 予算実績入力は **案件詳細（予算タブ）内モーダル** を採用。深い導線 `GET /projects/{project}/budget-input` は `projects.show?detailTab=budget&budgetInput=1` へリダイレクトし、モーダルを開く。サイドバーは予算実績入力表示時に **予算状況一覧 → ↳案件詳細 → ↳予算実績入力** の3行を `budget` セクション色で **1つの角丸ブロック** として表示。`components_spec.md` / `screen_flow.md` 追随済み。 | `Sidebar.tsx`、`routes/web.php`、`BudgetController.php`、`BudgetActualDialog.tsx`、`Projects/Show.tsx`、`components_spec.md`、`screen_flow.md` |
 | **11** | **✅ メンバータスク：DnD 失敗後のカード位置ズレ** | **実装完了（2026-05-12）:** `/member-tasks` の `moveTaskStatus` で行っていた**先行の楽観的更新**を廃止し、サーバ更新成功後の props 同期のみで列反映するよう変更。403 時に「移動したように見える」揺れを抑制。併せて案件詳細タスクカンバン（`Projects/Show.tsx`）も同方針に統一。 | `MemberTasks/Index.tsx`（`moveTaskStatus`）、`Projects/Show.tsx`（`moveProjectTaskStatus`） |
-| **12** | **シーダー調整：ロール横断の案件割当とシナリオ3系統（未実装）** | **要件（2026-05-12）:** 申請者／部門管理者／本部管理者の**各ロールに、検証用案件が偏りなく割り振られる**こと。`Information.md` §3 の動作確認シナリオを**すべて再現可能**なデータ構成にすること。各シナリオについて **①本人確認用 ②採点者確認用 ③予備** の3パターンを並行で用意すること。**採点用:** ②を中心に、採点者が **クリーン DB に対して `migrate:fresh --seed`（または同等）だけ**で `requirements.md` / `role_feature_matrix.md` / `screen_flow.md` に書かれた課題1範囲の主要分岐を辿れるよう、シーダーを**網羅的**に拡張する（詳細は §3「PoC 本番の方針」「シーダー調整」）。 | `database/seeders/*`、`doc/Design/Information.md`（アカウント表・手順との同期）、必要なら `doc/manual/user_manual.md`、提出 README |
-| **13** | **メンバータスク：申請者のカンバン／一覧で部門内の全タスク表示（未実装）** | **現状（2026-05-12）:** `view=board` または `view=list` かつ **純申請者**（部門管理者・本部ロールなし）のとき、`MemberTaskController::filteredTasksQuery` が **`assignee_id` または `reviewer_id` が自分**のタスクに限定しているため、例 `/member-tasks?department_id=2&view=board` でも**自分が担当／確認者のタスクしか出ない**。**要望:** 選択部門に紐づく**承認済み案件のタスクを部門単位で一覧**できるようにする（閲覧範囲は `ProjectWorkItemPolicy::view` 等と整合させ、**更新・DnD 権限は現行ポリシーのまま**とするかは実装時に明文化）。**ドキュメント:** `Information.md` §3.7〜3.8、`role_feature_matrix.md` の S-14 記述を追随。 | `MemberTaskController.php`（該当 `if` ブロック）、必要ならフロントのフィルタ説明文、`Information.md` |
+| **12** | **シーダー調整：ロール横断の案件割当とシナリオ3系統** | **✅ 2026-05-12 実装完了:** `UserSeeder` に **②採点**（`track-b-*@example.com`）・**③予備**（`track-c-*@example.com`）を追加。`ScenarioMirrorSeeder` で `PRJ-TB-*` / `PRJ-TC-*` の並行案件（下書き〜承認済・却下・再申請子・本部却下・主担当外タスク付き承認済）を投入。`DatabaseSeeder` から自動実行。`Information.md` §2.1・§4.1 を正本に同期。①と共用する他部門アカウントは従来どおり。 | `database/seeders/{UserSeeder,ScenarioMirrorSeeder,DatabaseSeeder}.php`、`doc/Design/Information.md` |
+| **13** | **メンバータスク：申請者のカンバン／一覧で部門内タスク閲覧** | **✅ 2026-05-12 実装完了:** 純申請者の `view=board` / `view=list` で **選択部門の承認済み案件タスクを部門単位で一覧**（`MemberTaskController::filteredTasksQuery` の assignee/reviewer 限定を撤廃）。閲覧は `ProjectWorkItemPolicy::view`、更新・DnD は `update` / `assertStatusTransition` のまま。**確認:** `ApplicantMemberTasksDeptScopeTest`。 | `MemberTaskController.php`、`tests/Feature/ApplicantMemberTasksDeptScopeTest.php`、`doc/Design/{Information,system_spec,screen_flow}.md` |
 
 ### サイドバー「申請・承認」「開発管理」で色が付かない件（調査メモ 2026-05-12）
 
@@ -106,18 +107,22 @@
 - 不可視の遷移（確認者以外の `resolved` ドロップ）は **クライアントで事前判定**し DnD 自体を無効化（`isTaskDraggable` 拡張など）でサーバ往復を減らす。
 - `onError` 後に **`router.reload({ only: ['tasks'] })`** 等でサーバ真値と強制同期する案（副作用・負荷は要検討）。
 
-### メンバータスク一覧：申請者のカンバン／一覧で部門内の全タスク表示（計画メモ 2026-05-12）
+### メンバータスク一覧：申請者のカンバン／一覧で部門内タスク閲覧（実装メモ 2026-05-12）
 
-**本節は要件・現状整理のみ。コード変更は行っていない。** 改修トラッキングは上表 **#13**。
+**実装済み。** 改修トラッキングは上表 **#13**。
 
-- **再現 URL（ユーザー提示）:** `http://127.0.0.1:8000/member-tasks?department_id=2&view=board` — カンバンビューで、**自分が担当者（または確認者）のタスクに限定**されて見えている。
-- **原因（コード）:** `app/Http/Controllers/MemberTaskController.php` の `filteredTasksQuery` 内、`applicant` かつ `dept_manager` / `hq_manager` を持たず、`view` が `board` または `list` のときに追加している `where(assignee_id = uid OR reviewer_id = uid)` によるもの。
-- **調整ゴール:** 上記クエリを見直し、**同部門・承認済み案件に属するタスクを申請者でも一覧できる**ようにする（`view=members` の既存挙動との差分・説明文は UI / マニュアルで整理）。**権限:** 一覧に出すことと、編集・DnD・モーダル保存を許すことは分離し、`ProjectWorkItemPolicy` および `assertStatusTransition` と矛盾しないようにする。
-- **設計書:** 変更後は `Information.md` §3.7〜3.8（S-14 ロール別）と `role_feature_matrix.md` を更新し、**「申請者は部門内の全タスクを閲覧できる」**旨を明記する。
+- **変更:** `MemberTaskController::filteredTasksQuery` から純申請者の board/list 用 `assignee_id` / `reviewer_id` 限定を除去。クエリは従来どおり **選択部門かつ承認済み案件** にスコープ。
+- **閲覧:** `ProjectWorkItemPolicy::view` と整合（同部門の承認済みは閲覧可）。
+- **更新:** `canUpdate` / `update` / `assertStatusTransition` は従来どおり（主担当外は閲覧のみのケースあり）。
+- **テスト:** `tests/Feature/ApplicantMemberTasksDeptScopeTest.php`
 
-### シーダー調整：ロールへの案件割当・全ケースシナリオ・3系統データ（計画メモ 2026-05-12）
+### シーダー調整：ロールへの案件割当・全ケースシナリオ・3系統データ（実装メモ 2026-05-12）
 
-**本節は要件・作業計画のみ。シーダー本体の変更は行っていない。** 改修トラッキングは上表 **#12**。
+**実装済み（ミラー系統）。** 改修トラッキングは上表 **#12**。
+
+- **投入物:** `UserSeeder` の `track-b-*` / `track-c-*`（各3名）、`ScenarioMirrorSeeder` の `PRJ-TB-*` / `PRJ-TC-*`（各9案件・一部にタスク付き）。
+- **①本人:** 従来の `applicant@` 等 + `ProjectSeeder` + `DemoWorkloadSeeder` を正とする。
+- **詳細:** `doc/Design/Information.md` §2.1・§4.1。
 
 ### PoC 本番（課題採点用デプロイ）の方針（2026-05-12）
 

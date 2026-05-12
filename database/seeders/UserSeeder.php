@@ -77,5 +77,31 @@ class UserSeeder extends Seeder
 
             $user->syncRoles([$attrs['role']->value]);
         }
+
+        /**
+         * ②採点者確認用・③予備: `ScenarioMirrorSeeder` が参照する並行アカウント（開発1部／本部は①と同構造）。
+         * パスワードは上記と同じ `password`。手順は `doc/Design/Information.md` §2.1。
+         */
+        foreach (
+            [
+                ['track-b-applicant@example.com', '【採点】申請 花子', $dept1, RoleEnum::Applicant],
+                ['track-b-dept@example.com', '【採点】部門 次郎', $dept1, RoleEnum::DeptManager],
+                ['track-b-hq@example.com', '【採点】本部 三郎', $hq, RoleEnum::HqManager],
+                ['track-c-applicant@example.com', '【予備】申請 四郎', $dept1, RoleEnum::Applicant],
+                ['track-c-dept@example.com', '【予備】部門 五郎', $dept1, RoleEnum::DeptManager],
+                ['track-c-hq@example.com', '【予備】本部 六郎', $hq, RoleEnum::HqManager],
+            ] as $row
+        ) {
+            [$email, $name, $department, $role] = $row;
+            $u = User::updateOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $name,
+                    'password' => Hash::make('password'),
+                    'department_id' => $department->id,
+                ],
+            );
+            $u->syncRoles([$role->value]);
+        }
     }
 }

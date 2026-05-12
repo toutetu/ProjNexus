@@ -46,7 +46,19 @@
 テストアカウントの最新情報は、必ずシーダーを参照すること。
 
 - 参照先: `database/seeders/UserSeeder.php`
-- パスワード: `database/seeders/UserSeeder.php` の定義を正とする
+- パスワード: `database/seeders/UserSeeder.php` の定義を正とする（既定は `password`）
+
+### 2.1 シナリオ系統（①本人確認／②採点者確認／③予備）
+
+`php artisan migrate:fresh --seed` では **①②③すべてのユーザーが同一 DB に投入**される。①は従来どおり主要シナリオ用、②③は **同一手順を別アカウントで繰り返す**・採点後の DB を取り直すときの予備として使う。
+
+| 系統 | 申請者 | 部門管理者 | 本部管理者 | 備考 |
+|------|--------|------------|------------|------|
+| **①本人** | `applicant@example.com` | `dept@example.com` | `hq@example.com` | `ProjectSeeder` / `DemoWorkloadSeeder` の主参照 |
+| **②採点** | `track-b-applicant@example.com` | `track-b-dept@example.com` | `track-b-hq@example.com` | `ScenarioMirrorSeeder` の `PRJ-TB-*` 案件 |
+| **③予備** | `track-c-applicant@example.com` | `track-c-dept@example.com` | `track-c-hq@example.com` | `ScenarioMirrorSeeder` の `PRJ-TC-*` 案件 |
+
+§3 の手順で「ログイン」を書いている箇所は、②③を使う場合は **上表の同列アカウントに読み替える**（パスワードは同じ）。権限境界（§3.5）の他部門アカウントは①と共用（`applicant2@example.com` 等）。
 
 ---
 
@@ -94,7 +106,7 @@
 
 ### 3.8 S-14 ロール別表示差分
 1. `hq@example.com` で `/member-tasks` を開き、部門未選択時は一覧を出さず「部門選択が必要」の状態になることを確認
-2. `applicant@example.com` で `/member-tasks?view=board` を開き、自分が `assignee_id` または `reviewer_id` のタスクのみ表示されることを確認
+2. `applicant@example.com` で `/member-tasks?view=board` を開き、**自部門の承認済み案件に紐づくタスク**が表示されることを確認（主担当・担当・確認者以外の同部門案件のタスクも閲覧可。**編集・DnD** は `canUpdate` が真のカード／モーダルのみ）
 3. `dept@example.com` で `/member-tasks?view=members` を開き、同部門タスク全体が表示されることを確認
 
 ### 3.9 案件詳細（開発管理タブ）の確認
@@ -143,9 +155,15 @@
 php artisan migrate:fresh --seed
 ```
 
-上記で DB 初期化 + 部門 / ロール / ユーザーを再投入する。
+上記で DB 初期化 + 部門 / ロール / ユーザー / 案件（`ProjectSeeder`）/ デモ負荷（`DemoWorkloadSeeder`）/ **系統ミラー（`ScenarioMirrorSeeder`）** を再投入する。
 
-### 4.1 本番のみ 500 になりローカルでは再現しない場合
+### 4.1 系統ミラー案件（`PRJ-TB-*` / `PRJ-TC-*`）
+
+- **②採点**向け: 案件コード `PRJ-TB-001` … `PRJ-TB-009`。承認履歴の本部・部門は `track-b-*` アカウントが演者となる行を含む。
+- **③予備**向け: `PRJ-TC-001` …（同上）。①のデータを汚したあと `migrate:fresh --seed` で取り直すほか、手順検証の再実行に利用する。
+- **S-14 部門内閲覧の確認**: `track-b-applicant@example.com` で `/member-tasks?view=board` を開き、**主担当が自分でない**承認済案件（例: `PRJ-TB-005` に紐づく「井上担当」タスク）が一覧に含まれることを確認できる。
+
+### 4.2 本番のみ 500 になりローカルでは再現しない場合
 
 - **通知 INSERT と ENUM のずれ:** 本番 MySQL で `notifications.type` が ENUM のままだと、PHP の `NotificationType` と列定義が一致しないときに SQL 例外で 500 になることがある（PHPUnit の SQLite では再現しにくい）。対策として `2026_05_08_120000_notifications_type_to_varchar_mysql.php` で MySQL 上の `type` を `VARCHAR(64)` に変更する。**デプロイ後に `php artisan migrate` が成功しているか** Laravel Cloud のログとマイグレーション履歴で確認する。
 - **調査:** Laravel Cloud のアプリログで該当リクエスト時刻の `SQLSTATE` / スタックトレースを確認する。

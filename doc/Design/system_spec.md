@@ -180,7 +180,8 @@ Controller のクエリ分岐 + Spatie + Policy の多層防御。
 | 予算実績入力 | 自案件の主担当 | 自部門かつ承認済（`BudgetController`） | × |
 
 ※ 編集権は担当・確認者・主担当にも及ぶ（`ProjectWorkItemPolicy::canEditTaskContent`）。一覧は `Project::scopeVisibleTo` 参照。  
-※2 **本部のタスク書き込み禁止**（方針 2026-05-12）。実装状況は `implementation_schedule.md` §3 マスト #9 とコードを照合。
+※2 **本部のタスク書き込み禁止**（方針 2026-05-12）。実装状況は `implementation_schedule.md` §3 マスト #9 とコードを照合。  
+※3 **S-14（`MemberTaskController`）**: 純粋な `applicant`（部門管理者・本部ロールなし）の **`view=board` / `view=list`** でも、選択部門の **承認済み案件** に属するタスクを **部門単位で一覧**する。閲覧可否は `ProjectWorkItemPolicy::view`、更新・DnD は同 Policy の `update` と `assertStatusTransition` に従う（主担当外は閲覧のみのケースあり）。
 
 ---
 
