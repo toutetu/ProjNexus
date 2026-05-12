@@ -51,11 +51,21 @@ interface AuthenticatedLayoutProps {
 - セクション「予算管理」: **予算状況一覧**（`/projects?tab=budget`） / ↳ 案件詳細 / ↳ 予算実績入力（深い導線: `/projects/{id}/budget-input`）
 - 予算実績入力表示中は、**予算状況一覧 → ↳案件詳細 → ↳予算実績入力** の3行を `mx-2 overflow-hidden rounded-lg` + セクション色で一体表示（内側行は `insideMergedActive` で継ぎ目なし）
 - セクション下部（Context `variant=null`）: 通知(バッジ `#E60013`) / マニュアル / プロフィール / ログアウト — `text-[#6C757D]`・hover `bg-gray-100`・アクティブは `border-[#106EBE]` + `bg-gray-100`
-- 最下部: ユーザーカード（アバター `#E60013`、氏名 `#212429`、ロール行 `#6C757D`）
+- 最下部: ユーザーカード（アバター `#E60013`、氏名 `#212429`、**1行目** `ロール日本語 / 部門名` `#6C757D`、**2行目** ロールの役割説明 `#8A93A0`・`text-[10px]`）
 
 **サブ部品**:
 - `<SidebarSection label variant>` — React Context で子の `SidebarLink` に `variant` を伝える。
 - `<SidebarLink href icon badge active>` — アイコンは lucide を `18x18` の角丸ボックスに配置。アクティブ時はセクション色、非アクティブ時はグレー。
+
+### プロフィール（S-13）
+
+**配置**: `resources/js/Pages/Profile/Edit.tsx`  
+**URL**: `/profile`  
+**要点**:
+- 「アカウント情報（表示のみ）」: 氏名・部署・**ロール**（複数は ` / ` 連結の日本語ラベル）・メールアドレスは参照のみ（編集不可）
+- 「本人入力」: 生年月日・性別は任意編集可（既存どおり）
+- パスワード変更フォームは本画面には載せない（マスト #6 の簡素化方針。バックエンドに `password.update` ルートは残る場合がある）
+- アカウント削除導線は非表示（マスト #6 方針）
 
 ### Header
 **役割**: 上部固定のヘッダーバー。

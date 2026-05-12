@@ -18,3 +18,9 @@
 - `ProjectApprovalFlowTest` に本部承認の結合テストを追加。
 - `development_schedule.md` の現在地・今週の目標を同期。
 - `doc/Design/Information.md` §5 に `implementation_schedule.md` §3 への参照行を追加。
+
+## 2026-05-12（ロール説明・プロフィール）
+
+- サイドバー下部ユーザーカードにロールの役割説明文を追加（`Sidebar.tsx`）。
+- `/profile` のアカウント情報に **ロール** 行を追加（複数ロールは日本語ラベルを ` / ` 連結、`Profile/Edit.tsx`）。
+- `Information.md`（§1.3〜1.4）、`system_spec.md`、`components_spec.md`、`screen_flow.md`、`user_manual.md`、`implementation_schedule.md`、`development_schedule.md` を同期。

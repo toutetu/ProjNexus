@@ -226,4 +226,26 @@
   - `detailTab=budget` / `budget-input` で「予算実績入力」行表示と3行 merged を安定化
   - `↳ 予算実績入力` は1段深い字下げへ調整
 
+## 2026-05-12（ロール説明 UI・ドキュメント同期）
+
+### 概要
+- マスト #7 に沿い、ログイン中ユーザーのロール意味をサイドバーで常時表示。
+- ユーザー確認に基づき、`/profile` のアカウント情報にロール（複数は ` / ` 連結）を読み取り専用で追加。
+
+### 変更ファイル
+- `resources/js/Components/Layout/Sidebar.tsx`
+- `resources/js/Pages/Profile/Edit.tsx`
+- `doc/Design/Information.md`
+- `doc/Design/system_spec.md`
+- `doc/Design/components_spec.md`
+- `doc/Design/screen_flow.md`
+- `doc/manual/user_manual.md`
+- `doc/daily/implementation_schedule.md`
+- `doc/daily/development_schedule.md`
+- `doc/daily/log/implementation_schedule_log.md`
+
+### Git
+- ブランチ: `feat/role-display-profile-docs`
+- コミット: コードと `doc/Design`＋日次ログを分離（`feat:` / `docs:`）
+
 /**更新完了**/

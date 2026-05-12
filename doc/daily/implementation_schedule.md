@@ -21,6 +21,7 @@
 - **完了（2026-05-12）:** §3「/member-tasks カードDnDで403後も見た目が移動したまま」— 先行楽観更新を廃止し、403時の見た目ズレを抑制
 - **計画（未実装）:** §3「シーダー調整」— 全ロールへ案件を割り振り、`Information.md` 系シナリオを網羅し、**本人確認／採点者確認／予備**の3系統でデータ・手順を用意。**採点用 PoC 本番**では DB 再構築可（`migrate:fresh --seed` 等）。詳細は §3「PoC 本番の方針」「シーダー調整」（2026-05-12）
 - **計画（未実装）:** §3「メンバータスク・申請者スコープ」— カンバン／一覧で**部門内の全タスク**を見られるようクエリを調整（2026-05-12）
+- **完了（2026-05-12）:** マスト #7 追補 — `/profile` のアカウント情報に **ロール**（複数は ` / ` 連結）を読み取り専用で表示。設計正本（`system_spec.md` / `components_spec.md` / `screen_flow.md`）を同期。
 
 ---
 
@@ -51,7 +52,7 @@
 | 4 | タスク完了入力時のエラー修正 | **✅ 2026-05-11 完了**（`resolved` / `closed` 等の更新経路の整合・テスト追随を反映済み） | `ProjectTaskDialog.tsx`、`ProjectTaskController`、`TaskHistoryService`、`TaskHistoryTest` など |
 | 5 | 予算ダッシュボード | ✅ 2026-05-08 実装済み（`/dashboard`）。KPI / 部門別進捗 / 月次予算推移 / 70%超案件リストを実装、サイドバー導線追加 | `resources/js/Pages/Dashboard/Index.tsx`、`app/Http/Controllers/DashboardController.php`、`resources/js/Components/Dashboard/*` |
 | 6 | プロフィール画面の簡素化 | **✅ 2026-05-11 完了**。表示＋パスワード更新のみ、アカウント削除導線は非表示（または同等の運用） | `Profile/Edit.tsx`、`routes` 確認済み |
-| 7 | ロールの説明 | 画面上で「申請者 / 部門管理者 / 本部管理者」の意味が分かるようにする（ツールチップ、ヘルプ行、`Information.md` / マニュアルとの同期） | `Sidebar` ユーザーカード付近、`doc/manual/user_manual.md`、`doc/Design/Information.md` |
+| 7 | ロールの説明 | **✅ 2026-05-12 完了**。サイドバーのユーザーカードにロール説明（申請者/部門管理者/本部管理者の役割）を常時表示。**追補:** `/profile` の「アカウント情報」にロール（複数は ` / ` 連結）を読み取り専用で表示。 | `resources/js/Components/Layout/Sidebar.tsx`、`resources/js/Pages/Profile/Edit.tsx`、`doc/manual/user_manual.md`、`doc/Design/{Information,system_spec,components_spec,screen_flow}.md` |
 | 8 | 申請者がスマホで確認できるようにする | モバイル後回し方針は維持しつつ、**申請者の閲覧・申請・一覧** が実機で破綻しない最低限のレスポンシブ（ナビ折りたたみ、テーブル横スクロール or カード化の部分的対応） | `AuthenticatedLayout`、`Projects` 系 Page、`ProjectTable`、タッチターゲット |
 | **9** | **✅ 本部ロールのタスク閲覧のみ化（必須）** | **実装完了（2026-05-12）:** `hq_manager` はタスクを **閲覧のみ** とする。不可: タスク新規作成・編集・削除・ステータス変更・コメント投稿・**完了タスクの再オープン**。可: S-14（一覧／カンバン／メンバー別）閲覧、案件詳細タスクタブ閲覧、タスク履歴閲覧、モーダル閲覧専用表示（保存不可）。**確認:** `HqManagerTaskReadOnlyTest`（6ケース）と関連テストを通過。 | `ProjectWorkItemPolicy`、`ProjectTaskController::assertStatusTransition`、`MemberTaskController::assertStatusTransition`、`MemberTasks/{Index,MemberMatrix}`、`Projects/Show.tsx`、`ProjectTaskDialog.tsx`、`tests/Feature/HqManagerTaskReadOnlyTest.php` |
 | **10** | **✅ 予算実績入力：情報設計とサイドバー一体ハイライト** | **実装完了（2026-05-12）:** 予算実績入力は **案件詳細（予算タブ）内モーダル** を採用。深い導線 `GET /projects/{project}/budget-input` は `projects.show?detailTab=budget&budgetInput=1` へリダイレクトし、モーダルを開く。サイドバーは予算実績入力表示時に **予算状況一覧 → ↳案件詳細 → ↳予算実績入力** の3行を `budget` セクション色で **1つの角丸ブロック** として表示。`components_spec.md` / `screen_flow.md` 追随済み。 | `Sidebar.tsx`、`routes/web.php`、`BudgetController.php`、`BudgetActualDialog.tsx`、`Projects/Show.tsx`、`components_spec.md`、`screen_flow.md` |
@@ -251,7 +252,7 @@
 - [x] マスト #4: タスク完了フローが 3 ロールでエラーにならない（2026-05-11 完了）
 - [ ] マスト #5: 予算ダッシュボード（または同等UI）がデータと一致
 - [x] マスト #6: プロフィールに削除導線がなく、パスワード更新のみ編集可能（2026-05-11 完了）
-- [ ] マスト #7: ロール説明が画面上またはマニュアルで追える
+- [x] マスト #7: ロール説明が画面上またはマニュアルで追える（2026-05-12）
 - [ ] マスト #8: 狭い幅で申請者導線が利用可能
 - [x] **マスト #9:** 本部管理者がタスクを **閲覧のみ**（保存・再オープン・コメント投稿が不可）であること（2026-05-12）
 
