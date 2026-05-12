@@ -6,6 +6,7 @@
 > **このファイルをコンポーネント仕様の正本（Single Source of Truth）とする。**
 > `doc/Design/design_system.md` はデザイン原則・トークン中心のガイドとし、部品の詳細仕様は本書のみで管理する。
 
+
 ---
 
 ## 運用ルール
@@ -435,7 +436,7 @@ interface ViewToggleProps {
 
 **遷移ルール**:
 - URLクエリ `?view=` と同期（`router.get(..., { replace: true, preserveState: true })`）
-- 初期値はロール依存（applicant=board / dept_manager・hq_manager=members）
+- 初期値はロール依存（applicant=board / dept_manager・hq_manager=members）。**本部はタスク閲覧のみ**（方針・`implementation_schedule.md` §3 マスト #9）
 
 ### MemberTasksFilterBar（S-14 共通）
 **役割**: S-14 の3ビュー共通フィルタ行。

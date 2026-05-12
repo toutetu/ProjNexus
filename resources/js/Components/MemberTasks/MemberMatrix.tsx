@@ -318,7 +318,7 @@ function MatrixCell({
                         resolvedMixed && task.status === 'resolved' && 'rounded-md ring-1 ring-[#7C3AED]/30',
                     )}
                 >
-                    <TaskCard task={task} variant="matrix" onOpenTask={onOpenTask} draggable />
+                    <TaskCard task={task} variant="matrix" onOpenTask={onOpenTask} draggable={task.canUpdate} />
                     {resolvedMixed && task.status === 'resolved' && (
                         <p className="mt-0.5 flex items-center justify-end gap-0.5 text-[9px] font-medium text-[#7C3AED]">
                             <UserCheck className="h-2.5 w-2.5" />

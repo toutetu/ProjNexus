@@ -4,20 +4,18 @@
 > このファイルをコピーして `next_chat_handover_{{YYYYMMDD}}.md` として保存し、
 > `{{...}}` の変数部分を埋めて使用する。
 > 毎日書き換えるのは主に「現在地」「今日やること」「今日の作業向け追加読ファイル」の3セクション。
-
 ---
 
 開発管理アプリ（Laravel 11 + React + Inertia + TypeScript）の  
 **{{PHASE_NAME}}{{PHASE_GOAL_SHORT}}** を進めてください。
 
 ---
-
 ## 最優先ルール
 
 1. **main 上で作業しない**（作業ブランチで実装）
 2. 実装コミットと docs コミットは**同じ `feat/xxx` ブランチ内で別コミット**に分ける（`feat:` / `docs:` の prefix で区別）
 3. 作業まとまりごとに log/ 配下と development_schedule.md 実績時間を更新、1日の終わりに直下3ファイルを更新
-4. 詳細ルールは `doc/Design/AI.md` §9 日次ワークフロー参照（唯一の正本）
+4. 詳細ルールは `doc/Design/AI.md` の「日次ワークフロー」節参照（唯一の正本）
 5. Sonnet / Opus 切替判断時は必ず事前通知
 
 ### ドキュメント運用ルール
@@ -55,7 +53,8 @@
 ## 作業前に読むファイル
 
 ### 共通（毎回必読・固定）
-- `doc/Design/AI.md` — プロジェクト全体ルール
+- `doc/Design/AI.md` — 入口・日次ワークフロー・モック一覧
+- `doc/Design/system_spec.md` — スコープ・DB・権限・承認（事実の正本）
 - `doc/daily/development_schedule.md` — 現在の進捗・Phase 状態
 - `doc/daily/implementation_schedule.md` §3 — 次回作業予定
 - `doc/daily/log/implementation_schedule_log.md` — 前日の詳細ログ
@@ -66,7 +65,7 @@
 
 - Pages / UI 作業 → components_spec.md、design_system.md、screen_flow.md
 - DB / migration 作業 → er_diagram.md、requirements.md
-- 承認フロー関連 → design-philosophy.md §4（承認フロー設計）
+- 承認フロー関連 → system_spec.md §8、背景は design-philosophy.md §4
 - ルーティング追加 → routes/web.php、screen_flow.md §2
 -->
 - `{{READ_FILE_1}}` — {{READ_FILE_1_REASON}}

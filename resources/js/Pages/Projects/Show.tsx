@@ -786,7 +786,7 @@ export default function ProjectsShow({
 
     const moveProjectTaskStatus = useCallback(
         (task: MemberTaskItem, nextStatus: MemberTaskItem['status']) => {
-            if (task.status === nextStatus || movingProjectTaskId !== null) return;
+            if (!task.canUpdate || task.status === nextStatus || movingProjectTaskId !== null) return;
 
             const prevTasks = boardTasks;
             const optimisticTasks = boardTasks.map((row) =>

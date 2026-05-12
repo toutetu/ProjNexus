@@ -231,7 +231,7 @@ export default function MemberTasksIndex({
     };
 
     const moveTaskStatus = (task: MemberTaskItem, nextStatus: MemberTaskItem['status']) => {
-        if (task.status === nextStatus || movingTaskId !== null) {
+        if (!task.canUpdate || task.status === nextStatus || movingTaskId !== null) {
             return;
         }
 
@@ -441,6 +441,7 @@ export default function MemberTasksIndex({
                                     tasks={boardTasks}
                                     onOpenTask={openTask}
                                     onDropStatus={moveTaskStatus}
+                                    isTaskDraggable={(t) => t.canUpdate}
                                 />
                             </>
                         )}

@@ -253,9 +253,7 @@ class ProjectTaskController extends Controller
             return;
         }
 
-        $isManager = $user->hasRole(Role::DeptManager->value) || $user->hasRole(Role::HqManager->value);
-
-        if ($isManager) {
+        if ($user->hasRole(Role::DeptManager->value)) {
             return;
         }
 

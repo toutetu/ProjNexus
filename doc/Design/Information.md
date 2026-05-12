@@ -95,7 +95,7 @@
 1. 担当者で `in_progress -> resolved` が可能であることを確認
 2. 担当者で `resolved -> closed` は不可（確認者のみ可）であることを確認
 3. 確認者で `resolved -> closed` が可能であることを確認
-4. 一般ユーザーで `closed -> open` は不可、管理者（部門管理者/本部管理者）では可能であることを確認
+4. 一般ユーザーで `closed -> open` は不可であることを確認。再オープンは **部門管理者のみ** 可、**本部管理者は不可**（閲覧のみ）であることを確認
 5. `resolved` へ変更時、確認者未設定ならバリデーションエラーになることを確認
 
 ### 3.11 タスク通知（割当・完了報告・確認OK）
@@ -111,6 +111,17 @@
 ### 3.13 認証後導線
 1. 未ログインで `/` にアクセスすると `/login` へ遷移することを確認
 2. ログイン済みで `/dashboard` にアクセスすると `/projects?tab=approval` へリダイレクトされることを確認
+
+### 3.14 本部管理者のタスク閲覧のみ（実装済み）
+
+`hq_manager` はタスクの **閲覧のみ**（S-14・案件詳細タスクタブ・履歴の閲覧）。タスクの新規作成・編集・削除・ステータス変更・コメント投稿・完了タスクの再オープンは **不可**。
+
+確認手順（2026-05-12 実装反映後）:
+1. `hq@example.com` で承認済案件の詳細（`?detailTab=tasks`）を開き、タスクを閲覧できることを確認
+2. 同画面で「タスク追加」や既存タスク保存ができないことを確認（閲覧専用）
+3. `/member-tasks` でカードDnDによるステータス変更ができないことを確認
+4. タスクコメント投稿が不可（403）であることを確認
+5. `closed -> open` の再オープンが不可（403）であることを確認
 
 ---
 
@@ -133,12 +144,14 @@ php artisan migrate:fresh --seed
 
 | 資料 | パス |
 |---|---|
-| Cursor 実装指示書 | `doc/Design/AI.md` |
+| Cursor 向け入口（作業ルール・モック一覧） | `doc/Design/AI.md` |
+| **システム仕様（スコープ・DB・権限・承認の正本）** | **`doc/Design/system_spec.md`** |
 | 次回作業・優先改修リスト（運用） | `doc/daily/implementation_schedule.md` §3 |
 | 要件定義 | `doc/Design/requirements.md` |
 | 画面遷移 | `doc/Design/screen_flow.md` |
 | 設計思想 | `doc/Design/design-philosophy.md` |
 | ER 図 | `doc/Design/er_diagram.md` |
 | 共通コンポーネント仕様 | `doc/Design/components_spec.md` |
+| ロール別機能マトリクス（本部タスク閲覧のみの方針含む） | `doc/Design/role_feature_matrix_.md` |
 | 各画面 設計方針（詳細） | `mockups/*.md` |
 /**更新完了**/
