@@ -6,7 +6,6 @@
 - `resources/js/Components/Layout/Sidebar.tsx` 内の `SidebarSection` / `SidebarLink` サブコンポーネント
 
 ---
-
 ## 変更概要
 
 現在のサイドバーはダーク背景（`#212429`）だが、**ライト背景（白）に変更**する。
@@ -128,4 +127,4 @@ hover: bg-gray-100
 
 - `doc/Design/design_system.md` — カラートークン定義
 - `doc/Design/components_spec.md` §1 — Sidebar / SidebarSection / SidebarLink の仕様
-- `doc/Design/AI.md` §5 — ナビゲーション・画面構成
+- `doc/Design/system_spec.md` §6 — ナビゲーション・画面構成
