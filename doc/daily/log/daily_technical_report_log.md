@@ -623,6 +623,64 @@
 - モックとの差分を詰めつつ、フィルタ即時反映や主担当初期値など運用上の詰まりポイントを解消
 
 ---
+# 日報 2026-04-27（月）
+
+ ## 作業時間
+diff --git a/doc/daily/log/daily_technical_report.md b/doc/daily/log/daily_technical_report.md
+index 1d5d402e..6b538ed0 100644
+--- a/doc/daily/log/daily_technical_report.md
++++ b/doc/daily/log/daily_technical_report.md
+@@ -110,3 +110,46 @@ ### 検証
+ ### 成果
+ - Phase 3 MVP の中核（開発タブ/タスク管理/予算管理）の画面導線が実運用可能な形に到達
+ - モックとの差分を詰めつつ、フィルタ即時反映や主担当初期値など運用上の詰まりポイントを解消
++
++## 2026-04-28（火）— S-04 詳細タブ再編と権限制御の調整
++
++### 実装概要
++- **S-04 詳細ページのタブ再編**
++  - `Projects/Show.tsx` を「申請 / 履歴 / タスク / 予算」の4タブ構成へ変更
++  - `detailTab` クエリを保持しつつタブ切替を制御
++- **履歴タブの統合表示**
++  - 承認履歴と変更履歴を1本の時系列イベントとして統合
++  - イベント種別ごとにアイコン/色を付与（申請は送信アイコン）     
++  - `fieldName` / 値を日本語ラベルへ変換して可読性を向上
++- **タイトルとタブ表示制御**
++  - `status=approved` のときページタイトルを「案件詳細」に切替    
++  - 却下案件ではタスク/予算タブを非表示
++  - URL直指定（`?detailTab=tasks|budget`）時も `apply` へ自動補正 
++- **申請タブ/タスクタブ/予算タブの再配置**
++  - 申請タブの3カードを削除
++  - タスクタブに「進捗」カードを移設
++  - 予算タブに予算情報カードを配置
++- **予算実績入力の権限制御と入力制約**
++  - UI判定（`ProjectController@show`）を「主担当 + 同部門の部門長 
+」に拡張
++  - API更新（`BudgetController@update`）も同条件へ拡張
++  - `actual_amount` を整数のみ許可（`integer + regex:/^\d+$/`）   
++  - 予算表示は1円単位（小数表示なし）に統一
++
++### 主要変更ファイル
++- `resources/js/Pages/Projects/Show.tsx`
++- `app/Http/Controllers/ProjectController.php`
++- `app/Http/Controllers/BudgetController.php`
++- `doc/Design/design_system.md`
++- `doc/Design/components_spec.md`
++- `mockups/s04_policy.md`
++
++### 検証
++- `npm run build` 成功
++- 変更対象の lint エラーなし（`ReadLints`）
++- 手動確認:
++  - `/projects/9` で4タブ表示と各タブ内容を確認
++  - 却下案件 `/projects/12` でタスク/予算タブ非表示、およびURL補正を確認
++
++### 成果
++- S-04 の情報設計をモック方針に近づけつつ、既存ロジックとの整合を 
+維持
++- 却下案件と予算入力の権限境界を明確化し、誤操作リスクを低減      
+
+
 
 ## 2026-04-30（木）— 権限制御調整・通知拡張・承認後初期タスク自動化
 
