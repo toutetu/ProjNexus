@@ -55,9 +55,10 @@
 |---|---|---|---|---|
 | applicant | `board` | 自分が `assignee_id` または `reviewer_id` のタスク | 自部門の全メンバー × 全タスク（**閲覧のみ**）| 自分が `assignee_id` または `reviewer_id` のタスク |
 | dept_manager | `members` | 自部門の全タスク | 自部門の全メンバー × 全タスク | 自部門の全タスク |
-| hq_manager | `members` | 部門選択時、選択部門の全タスク（未選択時：EmptyState） | 同上 | 同上 |
+| hq_manager | `members` | 部門選択時、選択部門の全タスク（未選択時：EmptyState）（**閲覧のみ**） | 同上（**閲覧のみ**） | 同上（**閲覧のみ**） |
 
-> **方針変更**: members ビューは全ロール閲覧可とする。部門全員が「誰が忙しい／誰の助けが必要か」を相互に把握できることで、現場のセルフマネジメントを促進する。Policy で「閲覧 OK／編集 NG」を分けて制御。
+> **方針変更**: members ビューは全ロール閲覧可とする。部門全員が「誰が忙しい／誰の助けが必要か」を相互に把握できることで、現場のセルフマネジメントを促進する。Policy で「閲覧 OK／編集 NG」を分けて制御。  
+> **本部管理者（2026-05-12）:** タスクは **閲覧のみ**（モーダル保存・DnD・コメント投稿・再オープン等は不可）。実装は `doc/daily/implementation_schedule.md` §3 マスト #9。
 
 ### サイドバー表示
 - 全ロールで「タスク一覧」を表示（dim 解除）
@@ -261,4 +262,5 @@
 - **S-12（通知）**: `task_resolved` / `task_reviewed` の通知行追加
 - **`ApprovalService`**: 本部承認時の自動タスク（実装計画作成）に確認者初期値を設定
 - **タスク進捗率の自動算出**: `closed_count / total_count` を `(closed_count + resolved_count * 0.5) / total_count` に変更検討（課題2 拡張時）
+
 /**更新完了**/
