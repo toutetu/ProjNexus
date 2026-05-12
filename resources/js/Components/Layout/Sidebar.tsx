@@ -261,6 +261,12 @@ const ROLE_LABEL: Record<RoleName, string> = {
     hq_manager: '本部管理者',
 };
 
+const ROLE_DESCRIPTION: Record<RoleName, string> = {
+    applicant: '案件の申請・進捗/予算入力を担当',
+    dept_manager: '自部門案件の承認と運用を担当',
+    hq_manager: '全社案件の最終承認と全体閲覧を担当',
+};
+
 type ActiveKey =
     | 'dashboard'
     | 'new'
@@ -296,6 +302,7 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
 
     const primaryRole = roles[0];
     const roleLabel = primaryRole ? ROLE_LABEL[primaryRole] : 'ゲスト';
+    const roleDescription = primaryRole ? ROLE_DESCRIPTION[primaryRole] : '';
     const deptLabel = user.department?.name ?? '未所属';
     const pageUrl = page.url ?? '';
     const resolvedUrl = (() => {
@@ -675,6 +682,11 @@ export default function Sidebar({ activeKey = null, onToggleSidebar }: SidebarPr
                     <div className="truncate text-[11px] text-[#6C757D]">
                         {roleLabel} / {deptLabel}
                     </div>
+                    {roleDescription && (
+                        <div className="mt-0.5 truncate text-[10px] text-[#8A93A0]">
+                            {roleDescription}
+                        </div>
+                    )}
                 </div>
             </div>
         </aside>

@@ -5,14 +5,21 @@ import InputLabel from '@/Components/InputLabel';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import type { PageProps } from '@/types';
+import type { PageProps, RoleName } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 
 type GenderValue = 'male' | 'female' | 'other' | 'no_answer' | '';
 
+const ROLE_LABEL: Record<RoleName, string> = {
+    applicant: '申請者',
+    dept_manager: '部門管理者',
+    hq_manager: '本部管理者',
+};
+
 export default function Edit({ status }: PageProps<{ status?: string }>) {
     const user = usePage<PageProps>().props.auth.user;
     const departmentName = user.department?.name ?? '未所属';
+    const roleName = user.roles.map((role) => ROLE_LABEL[role]).join(' / ') || '未設定';
 
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm<{
         birthdate: string;
@@ -46,7 +53,7 @@ export default function Edit({ status }: PageProps<{ status?: string }>) {
                 <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
                     <h2 className="text-lg font-semibold text-brand-dark">アカウント情報（表示のみ）</h2>
                     <p className="mt-1 text-sm text-brand-muted">
-                        氏名・部署・メールアドレスは参照用です（この画面では編集できません）。
+                        氏名・部署・ロール・メールアドレスは参照用です（この画面では編集できません）。
                     </p>
 
                     <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -64,6 +71,15 @@ export default function Edit({ status }: PageProps<{ status?: string }>) {
                             <Input
                                 id="profile_department"
                                 value={departmentName}
+                                readOnly
+                                className="mt-1.5 bg-brand-bg"
+                            />
+                        </div>
+                        <div className="md:col-span-1">
+                            <InputLabel htmlFor="profile_role" value="ロール" />
+                            <Input
+                                id="profile_role"
+                                value={roleName}
                                 readOnly
                                 className="mt-1.5 bg-brand-bg"
                             />
