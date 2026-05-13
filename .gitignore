@@ -23,6 +23,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# MS Office ロックファイル
+~$*
 /doc/kadai/
 /.claude/
 # ローカルで再利用するユーティリティ（リポジトリには含めない）
