@@ -10,7 +10,7 @@ class ManualController extends Controller
 {
     public function show(): Response
     {
-        $path = base_path('doc/manual/user_manual.md');
+        $path = base_path('materials/manual/user_manual.md');
 
         $markdown = is_file($path)
             ? (string) file_get_contents($path)
@@ -25,7 +25,7 @@ class ManualController extends Controller
     public function asset(string $file): BinaryFileResponse
     {
         $safe = basename($file);
-        $path = base_path('doc/manual/images/'.$safe);
+        $path = base_path('materials/manual/images/'.$safe);
 
         abort_unless(is_file($path), 404);
 

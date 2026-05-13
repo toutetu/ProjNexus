@@ -25,3 +25,5 @@ Homestead.yaml
 Thumbs.db
 /doc/kadai/
 /.claude/
+# ローカルで再利用するユーティリティ（リポジトリには含めない）
+/scripts/
