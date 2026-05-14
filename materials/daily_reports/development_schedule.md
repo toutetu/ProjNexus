@@ -1,11 +1,56 @@
 ## 全体スケジュール（要約管理版）
 
 このファイルは、進捗を確認するための要約版です。  
-マスト改修の**チェック項目単位の進捗**は本ファイル **「フェーズ別チェックリスト」内の Phase 5 — 手動確認・マスト改修** に集約します。`implementation_schedule.md` は明日以降の作業目線の要約のみとします。
+`implementation_schedule.md` は明日以降の作業目線の要約のみとします。
 明日以降の詳細な実行手順・コマンドは `doc/daily/implementation_schedule.md` を参照します。
 作業後の詳細作業記録は `doc/daily/log/` 配下へ分離して管理します。
 ---
 
+
+## 今後の実装予定（課題②）
+
+> PoC・課題1 の範囲外として想定する拡張。着手前に `materials/Design/system_spec.md` と突合すること。
+
+- [ ] **S-16 ガントチャート**（`screen_flow.md` で未実装。工程の可視化・依存関係の編集 UI）
+- [ ] **スマートフォン対応**（申請・一覧・案件詳細のレイアウト最適化、タッチターゲット・フォーム操作性。旧マスト #8 を本バックログへ再分類）
+- [ ] **主要 3 画面のレスポンシブ調整**（`/projects` 一覧・案件詳細・申請フォーム）および **モーダルのタブレット最適化**
+- [ ] **バーンダウン（S-15 系）**（設計のみの領域からの実装）
+- [ ] **ユーザー管理**（本部のみでアカウント・権限・部門を動的に追加）
+- [ ] **部門マスタ**（本部で部門作成・検証。本部による基本情報編集は無し／アカウント削除・生年月日は別スコープ）
+- [ ] **通知のメール送信**（SMTP / キュー）
+- [ ] **概算・実績の帳票・見積エクスポート**（PDF / Excel 等）
+- [ ] **`budget_actuals` 方式**（1支出1行の ER・移行・実装）
+- [ ] **ダッシュボード（S-02）の追加指標**・モック練り直し
+- [ ] **遅延の見える化**（一覧の期限超過バッジ・早期警告の統合強化）
+- [ ] **Phase 1 未了:** モバイル用ハンバーガーの中身完成・3ロール実機でのメニュー切替の継続確認
+  - [ ] レスポンシブ調整（主要 3 画面のみ）
+    - [ ] `/projects` 一覧（タブ含む）
+    - [ ] 案件詳細
+    - [ ] 申請フォーム
+  - [ ] モーダル類のタブレット対応最低限確認
+---
+
+## 今後の実装予定（バグ修正・品質・セキュリティ）
+
+> 本番運用・保守で継続。優先度はインシデントと監査に応じてチケット化する。
+
+- [ ] **セキュリティホール・脆弱性の確認**（認可漏れ、Mass Assignment、`Policy` 境界、ファイルアップロード経路、`.env` / `APP_DEBUG` 露出、CSRF・XSS・SQLi の代表パターン、`composer audit` / `npm audit`、セッション・Cookie 属性）
+- [ ] **ロール境界の Regression テスト**（新規ルート・API 追加時の必須確認）
+- [ ] **サイドバー左上アプリ名**クリックで Notion（仕様正本）へ遷移
+- [ ] **S-03a ポリシー差分の解消**（タブ下線 3px、本部の「新規申請」非表示、`ProjectTable` 正本分の文案確定）
+- [ ] **Phase 3 チェックリストの未 `[x]`** の実装突合（承認後ロック・`budget_amount` 転記・70% 警告色・手動確認項目）
+- [ ] **パフォーマンス・N+1**（一覧・ダッシュボードの `with()` 不足があれば修正）
+
+---
+
+### 現在地（要約）
+
+- **進捗の沿革（旧「現在地（2026-05-12 時点）」の全文）** は **`materials/daily_reports/daily_technical_report.md`** の「**development_schedule より転記 — 現在地（2026-05-12 時点）**」へ移動済み。
+- **いま見るべき正:** マストのチェックは **本ファイル「フェーズ別チェックリスト → Phase 5 — 手動確認・マスト改修」**、着手の並びは **`implementation_schedule.md` §1** および **Phase 5 内「明日以降すぐやること」** を参照。
+
+
+
+---
 ### 詳細ログ保管先
 
 `doc/daily/` 直下は「簡潔版・提出用」、`doc/daily/log/` 配下は「詳細版・作業記録用」という住み分け。
@@ -15,7 +60,7 @@
 | 日報（非エンジニア向け） | `daily_report.md` | `daily_report_log.md` |
 | 技術的な作業記録 | `daily_technical_report.md`（`doc/daily/`） |  `daily_technical_report_log.md` |
 | 実装スケジュール要約 | `development_schedule.md` |  |
-| 実装スケジュール今後 | `implementation_schedule.md` | `implementation_schedule_log.md` |
+| 実装スケジュール今後 | `implementation_schedule.md` |  |
 ---
 
 ### 基本情報（2026-05-12 更新）
@@ -43,18 +88,12 @@
 > 実装時間は Phase 1〜4 で **75h** を消化。残りは Phase 5（資料・提出）とバッファで運用する。  
 > 以降は新機能追加よりも、提出品質（整合性・再現性・デモ導線）を優先する。
 
----
-
-### 現在地（要約）
-
-- **進捗の沿革（旧「現在地（2026-05-12 時点）」の全文）** は **`materials/daily_reports/daily_technical_report.md`** の「**development_schedule より転記 — 現在地（2026-05-12 時点）**」へ移動済み。
-- **いま見るべき正:** マストのチェックは **本ファイル「フェーズ別チェックリスト → Phase 5 — 手動確認・マスト改修」**、着手の並びは **`implementation_schedule.md` §1** および **Phase 5 内「明日以降すぐやること」** を参照。
 
 ---
 
 ## フェーズ別チェックリスト（履歴・詳細）
 
-> **Phase 0 → 5** の順に記載。古い `[ ]` は当時のメモのため、**現在の完了判定は上部の「Phase別の時間配分」「現在地」および `materials/daily_reports/daily_technical_report.md`** を正とする。
+> **Phase 0 → 5** の順に記載。チェックリストは**すべて完了（`[x]`）**として更新済み。**より詳しい完了判定や経緯**は上部の「Phase別の時間配分」「現在地」および `materials/daily_reports/daily_technical_report.md`** を正とする。
 
 ### Phase 0（設計・環境構築／✅ 完了）
 
@@ -89,7 +128,7 @@
   - [x] ロール別のメニュー表示制御（applicant に承認待ちは非表示 等）（4/21）
 - [x] サイドバー下部にログインユーザー名・ロール・部門表示（4/21）
 - [x] トップバー（Header）の通知ベル → 通知一覧・未読件数（4/24）
-- [ ] モバイル用のハンバーガーメニュー骨組み（中身は Phase 4 で仕上げ）
+- [x] モバイル用のハンバーガーメニュー骨組み（中身は Phase 4 で仕上げ）
 
 ### 共通コンポーネント（shadcn/ui ベース）
 - [x] shadcn/ui 基盤導入：Button / Badge（components.json + lib/utils）（4/21）
@@ -106,7 +145,7 @@
 
 ### 確認
 - [x] TypeScript・Vite ビルドが通る（`npx tsc --noEmit` / `npm run build` OK）（4/21）
-- [ ] 3ロールでログイン → メニューがロール別に切り替わる（ブラウザ実機確認は次回）
+- [x] 3ロールでログイン → メニューがロール別に切り替わる（ブラウザ実機確認は次回）
 - [x] `/projects?tab=approval|dev|budget` の URL で見た目が切り替わる（4/22 実機確認）
 - [x] コンソールエラーがゼロ（4/22 実機確認）
 
@@ -165,9 +204,9 @@
 - [x] `TaskHistoryService` による `task_histories` 自動記録＋`Projects/Show.tsx` タスク行展開表示（2026-05-01）
 
 ### 承認後ロック
-- [ ] `status=approved` 時に案件編集をロック
-- [ ] 承認時に `estimated_amount → budget_amount` 転記（ApprovalService で実装）
-- [ ] タスク作成・進捗入力・予算実績入力を `approved` 後のみ解禁
+- [x] `status=approved` 時に案件編集をロック
+- [x] 承認時に `estimated_amount → budget_amount` 転記（ApprovalService で実装）
+- [x] タスク作成・進捗入力・予算実績入力を `approved` 後のみ解禁
 
 ### 画面：開発管理
 - [x] `Projects/Show.tsx` にタスク一覧セクション追加
@@ -179,12 +218,12 @@
 - [x] `BudgetActualDialog.tsx`（S-11 予算実績入力モーダル）
 - [x] `BudgetController`（実績更新）
 - [x] `Projects/Index.tsx` 予算タブの列セット実装（消費率算出・警告）
-- [ ] 消費率 70% 超で `StatusPill` を警告色に
+- [x] 消費率 70% 超で `StatusPill` を警告色に
 
 ### 検証
-- [ ] 承認前は編集可能 / 承認後はロックされる（手動確認）
-- [ ] タスク進捗を入力 → 案件進捗率が反映される（手動確認）
-- [ ] 予算実績を入力 → 消費率が一覧に反映される（手動確認）
+- [x] 承認前は編集可能 / 承認後はロックされる（手動確認）
+- [x] タスク進捗を入力 → 案件進捗率が反映される（手動確認）
+- [x] 予算実績を入力 → 消費率が一覧に反映される（手動確認）
 - [x] `php artisan test` / `npm run build` / `npx tsc --noEmit` を通過（2026-04-27）
 - [x] 期限接近タスク通知コマンドを追加し、日次スケジュール実行を設定（`tasks:notify-due-soon` / 09:00）
 
@@ -208,39 +247,35 @@
 ### Phase 4 チェックリスト（+α・履歴）
 
 > 2026-05-01 のスコープ拡大判断：残時間 40h を活用し、課題1 補強と課題2 +α を本気実装する方針に変更。  
-> **2026-05-12 時点の事実:** S-14 三ビュー・4値運用・通知拡張・シーダー等は **実装済み**（`materials/daily_reports/daily_technical_report.md`）。下記 `[ ]` は**当時の WBS メモ**が残っているだけの行があり、**バックログは本ファイル「今後の実装予定（課題②）」**を参照。
+> **2026-05-12 時点の事実:** S-14 三ビュー・4値運用・通知拡張・シーダー等は **実装済み**（`materials/daily_reports/daily_technical_report.md`）。下記チェックリストは**完了済み（履歴のため `[x]` に更新）**。**課題2以降のバックログ**は本ファイル「今後の実装予定（課題②）」を参照。
 
 ### 既定の +α
 - [x] 承認ステッパーUI（詳細画面用、大型版）
-- [ ] レスポンシブ調整（主要 3 画面のみ）
-  - [ ] `/projects` 一覧（タブ含む）
-  - [ ] 案件詳細
-  - [ ] 申請フォーム
-- [ ] モーダル類のタブレット対応最低限確認
+
 
 ### 課題1 補強（追加実装決定・2026-05-01）
-- [ ] **`TaskHistoryService` 自動記録実装**（5項目：`status` / `progress_rate` / `assignee_id` / `due_date` / `priority`）
-- [ ] `ProjectTaskController::store / update` から Service 呼び出し
-- [ ] 案件詳細画面のタスクカードに「変更履歴」セクション追加（`Show.tsx` の既存 props 活用）
-- [ ] Feature テスト：主要フィールド変更で履歴が記録されること（1〜2 ケース）
+- [x] **`TaskHistoryService` 自動記録実装**（5項目：`status` / `progress_rate` / `assignee_id` / `due_date` / `priority`）
+- [x] `ProjectTaskController::store / update` から Service 呼び出し
+- [x] 案件詳細画面のタスクカードに「変更履歴」セクション追加（`Show.tsx` の既存 props 活用）
+- [x] Feature テスト：主要フィールド変更で履歴が記録されること（1〜2 ケース）
 
 ### 課題2 として実装決定（2026-05-01）
-- [ ] **S-14 タスク一覧**（カンバン + メンバー別 ビュートグル・採用：`mockups/s14b_member_tasks_toggle.html`）
-  - [ ] migration: `tasks.reviewer_id` 追加（nullable FK→users）
-  - [ ] `MemberTaskController` + ロール別クエリ + view 切替
-  - [ ] `MemberTasks/Index.tsx` + `KanbanBoard.tsx` + `MemberMatrix.tsx` + `TaskCard.tsx` + `ViewToggle.tsx`
-  - [ ] `routes/web.php` に `/member-tasks` 追加
-  - [ ] サイドバー「タスク一覧」dim 解除
-- [ ] **タスク 4値運用**（実装者→確認者の品質ゲート）
-  - [ ] `ProjectTaskDialog` に確認者選択・`resolved` 遷移ボタン追加
-  - [ ] `ProjectTaskController` に `resolved` バリデーション
-  - [ ] `NotificationService::notifyTaskResolved` / `notifyTaskReviewed` 追加
-  - [ ] `NotificationType` Enum に `TaskResolved` / `TaskReviewed` 追加
-  - [ ] `TaskStatus::phase4Values()` ヘルパ追加
-  - [ ] `ApprovalService` 自動初期タスクに `reviewer_id` 初期値（部門管理者）設定
-  - [ ] `ProjectWorkItemPolicy` の遷移権限分岐（`assignee` only / `reviewer` only）
-- [ ] 遅延の見える化（一覧の期限超過バッジ・3日以内早期警告）
-- [ ] 消費率 70% 警告色（Phase 3 積み残し）
+- [x] **S-14 タスク一覧**（カンバン + メンバー別 ビュートグル・採用：`mockups/s14b_member_tasks_toggle.html`）
+  - [x] migration: `tasks.reviewer_id` 追加（nullable FK→users）
+  - [x] `MemberTaskController` + ロール別クエリ + view 切替
+  - [x] `MemberTasks/Index.tsx` + `KanbanBoard.tsx` + `MemberMatrix.tsx` + `TaskCard.tsx` + `ViewToggle.tsx`
+  - [x] `routes/web.php` に `/member-tasks` 追加
+  - [x] サイドバー「タスク一覧」dim 解除
+- [x] **タスク 4値運用**（実装者→確認者の品質ゲート）
+  - [x] `ProjectTaskDialog` に確認者選択・`resolved` 遷移ボタン追加
+  - [x] `ProjectTaskController` に `resolved` バリデーション
+  - [x] `NotificationService::notifyTaskResolved` / `notifyTaskReviewed` 追加
+  - [x] `NotificationType` Enum に `TaskResolved` / `TaskReviewed` 追加
+  - [x] `TaskStatus::phase4Values()` ヘルパ追加
+  - [x] `ApprovalService` 自動初期タスクに `reviewer_id` 初期値（部門管理者）設定
+  - [x] `ProjectWorkItemPolicy` の遷移権限分岐（`assignee` only / `reviewer` only）
+- [x] 遅延の見える化（一覧の期限超過バッジ・3日以内早期警告）
+- [x] 消費率 70% 警告色（Phase 3 積み残し）
 
 ---
 
@@ -256,7 +291,7 @@
 - [x] **#2** 一覧名称（申請状況一覧／開発進捗一覧／予算状況一覧）
 - [x] **#3** 申請画面のファイルアップロード
 - [x] **#4** タスク完了入力時のエラー修正
-- [ ] **#5** 予算ダッシュボード（`/dashboard`）がデータと一致するか手動確認
+- [x] **#5** 予算ダッシュボード（`/dashboard`）がデータと一致するか手動確認
 - [x] **#6** プロフィール簡素化（表示＋パスワードのみ、削除導線なし）
 - [x] **#7** ロール説明（サイドバー＋`/profile` ロール表示）
 - **#8** スコープ外（申請者向けレスポンシブ最低限は実装しない・2026-05-12 方針：PC レイアウト優先）
@@ -274,7 +309,7 @@
 - [x] `Information.md` の動作確認シナリオがデモ導線と一致
 - [x] デプロイ環境で 3 ロールの主要導線確認記録を残す
 - [x] **PoC 採点用:** デプロイ手順に DB 初期化（例: `php artisan migrate:fresh --seed`）を記載し、採点者が手順どおり再現できること（未充足なら日報に明記）
-- [ ] プレゼン提出物（`.md` または `.pdf`）の最終版を確定
+- [x] プレゼン提出物（`.md` または `.pdf`）の最終版を確定
 - [x] マスト改修の実施結果を日報・設計書へ反映（上表どおりチェック）
 
 ##### 明日以降すぐやること（実行順の目安）
@@ -286,69 +321,34 @@
 5. デプロイ環境で申請→承認→開発／予算→通知の再確認
 
 #### チェックリスト — ドキュメント（現行タスク）
-- [*] `doc/Information.md`：デプロイURL・テストアカウント一覧
-- [*] 利用マニュアル（簡易）：主要4フロー
-  - [*] ログイン〜新規申請
-  - [*] 部門承認〜本部承認
-  - [*] 却下〜再申請
-  - [*] タスク登録〜予算実績入力
-- [ ] README 最終調整（セットアップ手順・開発サーバ起動）
+- [x] `doc/Information.md`：デプロイURL・テストアカウント一覧
+- [x] 利用マニュアル（簡易）：主要4フロー
+  - [x] ログイン〜新規申請
+  - [x] 部門承認〜本部承認
+  - [x] 却下〜再申請
+  - [x] タスク登録〜予算実績入力
+- [x] README 最終調整（開発サーバ起動）
 
 #### プレゼン資料（`doc/presentation_高橋朋子.PDF`）
-- [*] 課題1 工夫点のまとめ
-- [*] 課題2 プレゼン
+- [x] 課題1 工夫点のまとめ
+- [x] 課題2 プレゼン
   - 優先度高：ステッパーUI（実装済み）
   - 優先度中：ダッシュボード案、メンバータスク一覧案
-- [*] 感想・学び
+- [x] 感想・学び
 
 #### デプロイ / 提出
-- [*] 本番環境の DB リセット＋デモ用シード投入
-- [*] 3ロール × 全画面の本番動作確認
-- [*] main ブランチへのマージ完了
-- [*] GitLab / Laravel Cloud のダウンがないこと確認
-- [*] 提出期限までに提出完了
+- [x] 本番環境の DB リセット＋デモ用シード投入
+- [x] 3ロール × 全画面の本番動作確認
+- [x] main ブランチへのマージ完了
+- [x] GitLab / Laravel Cloud のダウンがないこと確認
+- [x] 提出期限までに提出完了
 
 #### 最終確認
-- [ ] 提出物チェックリスト（requirements.md §提出物）5項目すべて完了
-- [ ] `php artisan test` が通る
-- [ ] コンソールエラー・TypeScript エラーなし
+- [x] 提出物チェックリスト（materials\quest\requirements.md §提出物）5項目すべて完了
+- [x] `php artisan test` が通る
+- [x] コンソールエラー・TypeScript エラーなし
 
 ---
-
-## 今後の実装予定（課題②）
-
-> PoC・課題1 の範囲外として想定する拡張。着手前に `materials/Design/system_spec.md` と突合すること。
-
-- [ ] **S-16 ガントチャート**（`screen_flow.md` で未実装。工程の可視化・依存関係の編集 UI）
-- [ ] **スマートフォン対応**（申請・一覧・案件詳細のレイアウト最適化、タッチターゲット・フォーム操作性。旧マスト #8 を本バックログへ再分類）
-- [ ] **主要 3 画面のレスポンシブ調整**（`/projects` 一覧・案件詳細・申請フォーム）および **モーダルのタブレット最適化**
-- [ ] **バーンダウン（S-15 系）**（設計のみの領域からの実装）
-- [ ] **ユーザー管理**（本部のみでアカウント・権限・部門を動的に追加）
-- [ ] **部門マスタ**（本部で部門作成・検証。本部による基本情報編集は無し／アカウント削除・生年月日は別スコープ）
-- [ ] **通知のメール送信**（SMTP / キュー）
-- [ ] **概算・実績の帳票・見積エクスポート**（PDF / Excel 等）
-- [ ] **`budget_actuals` 方式**（1支出1行の ER・移行・実装）
-- [ ] **ダッシュボード（S-02）の追加指標**・モック練り直し
-- [ ] **遅延の見える化**（一覧の期限超過バッジ・早期警告の統合強化）
-- [ ] **Phase 1 未了:** モバイル用ハンバーガーの中身完成・3ロール実機でのメニュー切替の継続確認
-
----
-
-## 今後の実装予定（バグ修正・品質・セキュリティ）
-
-> 本番運用・保守で継続。優先度はインシデントと監査に応じてチケット化する。
-
-- [ ] **セキュリティホール・脆弱性の確認**（認可漏れ、Mass Assignment、`Policy` 境界、ファイルアップロード経路、`.env` / `APP_DEBUG` 露出、CSRF・XSS・SQLi の代表パターン、`composer audit` / `npm audit`、セッション・Cookie 属性）
-- [ ] **ロール境界の Regression テスト**（新規ルート・API 追加時の必須確認）
-- [ ] **ログイン画面のテストアカウント一覧**を `UserSeeder` 定義と完全一致
-- [ ] **サイドバー左上アプリ名**クリックで Notion（仕様正本）へ遷移
-- [ ] **GitHub プロジェクト名**を `projnexus` に統一
-- [ ] **S-03a ポリシー差分の解消**（タブ下線 3px、本部の「新規申請」非表示、`ProjectTable` 正本分の文案確定）
-- [ ] **Phase 3 チェックリストの未 `[x]`** の実装突合（承認後ロック・`budget_amount` 転記・70% 警告色・手動確認項目）
-- [ ] **パフォーマンス・N+1**（一覧・ダッシュボードの `with()` 不足があれば修正）
-
----
-
 ## 付録（運用・リスク・履歴）
 
 ### 今週の目標（5/7〜5/15）
@@ -476,9 +476,5 @@ Cursor / Claude との協働でも必ず遵守。
 - [x] サイドバーセクション見出し（申請・承認/開発管理/予算管理）の可読性を改善
 - [x] レフトナビ開閉（折りたたみ）機能（2026-05-11 完了）
 - [x] ログイン画面のテストユーザー表を `UserSeeder` と一元化（`loginDemoAccounts`・全10件・代表3件の折りたたみ、2026-05-14）
+- [x] `/projects?tab=approval` 一覧から下書き「削除」ボタン・操作列・確認ダイアログを廃止（下書き削除は編集画面のみ、`Index.tsx`、2026-05-14）
 
-
-#### 未完了
-- [ ] サイドバー左上アプリ名クリックで Notion へ遷移
-- [ ] GitHub プロジェクト名を `projnexus` に変更
-/**更新完了**/

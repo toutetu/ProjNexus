@@ -8,10 +8,8 @@ import {
     FolderSearch,
     GitBranch,
     Inbox,
-    Loader2,
     Plus,
     Search,
-    Trash2,
     Wallet,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -21,14 +19,6 @@ import EmptyState from '@/Components/EmptyState';
 import StatusPill, { type ProjectStatus } from '@/Components/StatusPill';
 import Tabs, { type TabItem } from '@/Components/Tabs';
 import { Button } from '@/Components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/Components/ui/dialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { ActiveKey } from '@/Components/Layout/Sidebar';
 import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
@@ -79,7 +69,6 @@ interface ProjectListItem {
     openTaskCount?: number;
     nearestTaskDueDate?: string | null;
     canEdit?: boolean;
-    canDeleteDraft?: boolean;
     rejectedAt?: 'dept' | 'hq' | null;
     applicantSubmitsToHqDirect?: boolean;
 }
@@ -374,7 +363,6 @@ interface ApprovalProjectRow {
     updatedAt: string;
     rejectedAt?: 'dept' | 'hq';
     canEdit: boolean;
-    canDeleteDraft: boolean;
     applicantSubmitsToHqDirect?: boolean;
 }
 
@@ -475,7 +463,6 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         appliedAt: '04/14',
         updatedAt: '2時間前',
         canEdit: false,
-        canDeleteDraft: false,
     },
     {
         id: 2,
@@ -485,7 +472,6 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         appliedAt: '04/15',
         updatedAt: '1日前',
         canEdit: true,
-        canDeleteDraft: false,
     },
     {
         id: 3,
@@ -495,7 +481,6 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         appliedAt: '—',
         updatedAt: '3日前',
         canEdit: true,
-        canDeleteDraft: true,
     },
     {
         id: 4,
@@ -506,7 +491,6 @@ const APPROVAL_ROWS: ApprovalProjectRow[] = [
         appliedAt: '04/08',
         updatedAt: '6日前',
         canEdit: true,
-        canDeleteDraft: false,
     },
 ];
 
@@ -585,11 +569,6 @@ export default function ProjectsIndex({
         key: null,
         dir: 'asc',
     });
-    const [draftDeleteTarget, setDraftDeleteTarget] = useState<{
-        id: number;
-        title: string;
-    } | null>(null);
-    const [draftDeletingId, setDraftDeletingId] = useState<number | null>(null);
 
     useEffect(() => {
         if (tab !== 'dev') {
@@ -635,7 +614,6 @@ export default function ProjectsIndex({
               updatedAt: project.updatedAt,
               rejectedAt: project.rejectedAt ?? undefined,
               canEdit: project.canEdit ?? false,
-              canDeleteDraft: project.canDeleteDraft ?? false,
               applicantSubmitsToHqDirect: project.applicantSubmitsToHqDirect ?? false,
           }))
         : APPROVAL_ROWS;
@@ -818,17 +796,6 @@ export default function ProjectsIndex({
         row.status === 'draft' && row.canEdit
             ? route('projects.edit', row.id)
             : showDetailHref(row.id, 'apply');
-
-    const confirmDeleteDraft = () => {
-        if (!draftDeleteTarget) return;
-        const { id } = draftDeleteTarget;
-        setDraftDeletingId(id);
-        router.delete(route('projects.destroy', id), {
-            preserveScroll: true,
-            onSuccess: () => setDraftDeleteTarget(null),
-            onFinish: () => setDraftDeletingId(null),
-        });
-    };
 
     return (
         <AuthenticatedLayout
@@ -1329,9 +1296,6 @@ export default function ProjectsIndex({
                                         onSort={toggleApprovalSort}
                                         className="px-4"
                                     />
-                                    <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">
-                                        操作
-                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-brand-border">
@@ -1387,40 +1351,6 @@ export default function ProjectsIndex({
                                         </td>
                                         <td className="px-4 py-3.5 text-brand-muted">
                                             {row.updatedAt}
-                                        </td>
-                                        <td
-                                            className="px-4 py-3.5"
-                                            onClick={(event) => event.stopPropagation()}
-                                        >
-                                            {row.canDeleteDraft ? (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="gap-1.5 border-red-200 text-red-700 hover:bg-red-50"
-                                                    disabled={draftDeletingId !== null}
-                                                    onClick={() =>
-                                                        setDraftDeleteTarget({
-                                                            id: row.id,
-                                                            title: row.title,
-                                                        })
-                                                    }
-                                                    aria-label={`「${row.title}」の下書きを削除`}
-                                                >
-                                                    {draftDeletingId === row.id ? (
-                                                        <Loader2
-                                                            className="h-4 w-4 shrink-0 animate-spin"
-                                                            aria-hidden
-                                                        />
-                                                    ) : (
-                                                        <Trash2
-                                                            className="h-4 w-4 shrink-0"
-                                                            aria-hidden
-                                                        />
-                                                    )}
-                                                    削除
-                                                </Button>
-                                            ) : null}
                                         </td>
                                     </tr>
                                 ))}
@@ -1769,57 +1699,6 @@ export default function ProjectsIndex({
                     <span className="ml-auto">行クリックで詳細へ</span>
                 </div>
             )}
-
-            <Dialog
-                open={draftDeleteTarget !== null}
-                onOpenChange={(open) => {
-                    if (!open && draftDeletingId === null) {
-                        setDraftDeleteTarget(null);
-                    }
-                }}
-            >
-                <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-brand-dark">
-                            <Trash2 className="h-5 w-5 text-red-600" aria-hidden />
-                            下書きを削除しますか？
-                        </DialogTitle>
-                        <DialogDescription>
-                            削除すると元に戻せません。添付ファイルもまとめて削除されます。
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm">
-                        <p className="font-semibold text-brand-dark">
-                            {draftDeleteTarget?.title ?? '—'}
-                        </p>
-                        <p className="mt-1 text-xs text-brand-muted">
-                            案件ID: {draftDeleteTarget?.id ?? '—'}
-                        </p>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setDraftDeleteTarget(null)}
-                            disabled={draftDeletingId !== null}
-                        >
-                            キャンセル
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="destructive"
-                            onClick={confirmDeleteDraft}
-                            disabled={draftDeletingId !== null}
-                            className="gap-2"
-                        >
-                            {draftDeletingId !== null ? (
-                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                            ) : null}
-                            削除する
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </AuthenticatedLayout>
     );
 }

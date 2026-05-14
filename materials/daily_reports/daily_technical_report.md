@@ -350,7 +350,7 @@
 - **下書き削除**
   - `ProjectPolicy::delete` を **下書き（`draft`）・申請者本人・子案件なし** に限定（却下のみの削除は不可に変更）
   - `ProjectController::destroy` に成功フラッシュ。一覧 API に `canDeleteDraft`。`flash.success` を Inertia 共有へ追加
-  - 申請タブ一覧: 操作列・確認ダイアログ・行クリックと削除ボタンのイベント分離
+  - 申請タブ一覧: 当初は操作列・確認ダイアログ・行クリックと削除ボタンのイベント分離を実装。**2026-05-14:** 一覧の削除 UI は廃止し編集画面に一本化（本節末尾の追記を参照）
   - `tests/Feature/ProjectDraftDeleteTest.php`（本人削除・却下不可・他人不可・子案件あり不可）
   - `materials/Design/system_spec.md`（URL 行・ロール表に下書き削除を追記）
 - **案件編集 UI（`Projects/Edit.tsx`）**
@@ -401,5 +401,20 @@
 - `materials/daily_reports/implementation_schedule.md`（現在地に1行追記）
 - 本ファイル（本節）
 
+---
 
-/**更新完了**/
+## 2026-05-14 追記 — 申請タブ一覧（`/projects?tab=approval`）から下書き削除 UI を廃止
+
+### 背景・方針
+- 下書き削除の**サーバー側**（`ProjectPolicy::delete`・`destroy`・テスト）は維持する。
+- 一覧の行末「削除」は誤タップや画面のノイズになりやすいため、**申請タブのテーブルから削除ボタン・「操作」列・専用確認ダイアログ**を取り除く。
+- 下書きの削除は **`/projects/{id}/edit` の「下書きを削除」** に一本化する。
+
+### 実装概要
+- `resources/js/Pages/Projects/Index.tsx`: 承認タブ行の削除ボタン、`draftDeleteTarget` / `draftDeletingId` / `confirmDeleteDraft`、下書き削除用 `Dialog`、未使用 import（`Loader2` / `Trash2` / `Dialog*`）を削除。`ApprovalProjectRow` 等から `canDeleteDraft` を除去（API の余剰キーはそのままでも可）。
+- `npx tsc --noEmit` で型チェック済み。
+
+### 日次ドキュメント
+- `materials/daily_reports/implementation_schedule.md`（§1 現在地の文言調整）
+- `materials/daily_reports/development_schedule.md`（完了済みへ追記）
+- 本ファイル（本節）
