@@ -21,7 +21,12 @@ import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
+import { cn } from '@/lib/utils';
 import type { PageProps, RoleName } from '@/types';
+
+/** design_system.md 準拠: ボーダー・補助テキスト・背景・濃色（下書き削除系のグレーアウトライン） */
+const DRAFT_DELETE_OUTLINE_CLASS =
+    'flex items-center gap-2 border border-brand-border bg-white text-brand-muted shadow-sm hover:bg-brand-bg hover:text-brand-dark';
 
 interface ProjectEditData {
     id: number;
@@ -373,36 +378,32 @@ export default function ProjectsEdit({ departments, project, canDeleteDraft = fa
                     </div>
 
                     <div className="flex items-center justify-between rounded-b-lg border-t border-brand-border bg-brand-bg px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => submitWithAction('draft')}
+                                disabled={processing}
+                                className="flex items-center gap-2"
+                            >
+                                <Save className="h-4 w-4" />
+                                更新を保存
+                            </Button>
+                            {canDeleteDraft ? (
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => submitWithAction('draft')}
-                                    disabled={processing}
-                                    className="flex items-center gap-2"
+                                    onClick={() => setDeleteDraftOpen(true)}
+                                    disabled={processing || deleteDraftBusy}
+                                    className={cn(DRAFT_DELETE_OUTLINE_CLASS)}
                                 >
-                                    <Save className="h-4 w-4" />
-                                    更新を保存
+                                    <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+                                    下書きを削除
                                 </Button>
-                                <Infotip ariaLabel="更新を保存の補足" align="left">
-                                    更新を保存: 案件名のみで保存できます
-                                </Infotip>
-                            </div>
-                            {canDeleteDraft ? (
-                                <div className="pt-1">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setDeleteDraftOpen(true)}
-                                        disabled={processing || deleteDraftBusy}
-                                        className="gap-2 border-red-200 text-red-700 hover:bg-red-50"
-                                    >
-                                        <Trash2 className="h-4 w-4" aria-hidden />
-                                        下書きを削除
-                                    </Button>
-                                </div>
                             ) : null}
+                            <Infotip ariaLabel="更新を保存の補足" align="left">
+                                更新を保存: 案件名のみで保存できます
+                            </Infotip>
                         </div>
                         <div className="flex items-center gap-2">
                             <Button
@@ -528,7 +529,7 @@ export default function ProjectsEdit({ departments, project, canDeleteDraft = fa
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-brand-dark">
-                            <Trash2 className="h-5 w-5 text-red-600" aria-hidden />
+                            <Trash2 className="h-5 w-5 text-brand-muted" aria-hidden />
                             下書きを削除しますか？
                         </DialogTitle>
                         <DialogDescription>
@@ -539,25 +540,28 @@ export default function ProjectsEdit({ departments, project, canDeleteDraft = fa
                         <p className="font-semibold text-brand-dark">{project.title}</p>
                         <p className="mt-1 text-xs text-brand-muted">案件ID: {project.id}</p>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="gap-2 sm:flex-row sm:justify-end">
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="destructive"
                             onClick={() => setDeleteDraftOpen(false)}
                             disabled={deleteDraftBusy}
+                            className="w-full border-brand-red bg-brand-red text-white shadow-sm hover:brightness-105 sm:w-auto"
                         >
                             キャンセル
                         </Button>
                         <Button
                             type="button"
-                            variant="destructive"
+                            variant="outline"
                             onClick={confirmDeleteDraft}
                             disabled={deleteDraftBusy}
-                            className="gap-2"
+                            className={cn(DRAFT_DELETE_OUTLINE_CLASS, 'w-full sm:w-auto')}
                         >
                             {deleteDraftBusy ? (
-                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                            ) : null}
+                                <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                            ) : (
+                                <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+                            )}
                             削除する
                         </Button>
                     </DialogFooter>
