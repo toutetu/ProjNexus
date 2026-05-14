@@ -4,18 +4,35 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
+import { cn } from '@/lib/utils';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { BookOpen, ExternalLink } from 'lucide-react';
-import { FormEventHandler, useState } from 'react';
+import { FormEventHandler, useMemo, useState } from 'react';
+
+type TestAccountRow = {
+    roleLabel: string;
+    email: string;
+    department: string;
+    representative: boolean;
+};
 
 export default function Login({
     status,
     canResetPassword,
+    testAccounts,
 }: {
     status?: string;
     canResetPassword: boolean;
+    testAccounts: TestAccountRow[];
 }) {
     const [showAllUsers, setShowAllUsers] = useState(false);
+    const visibleRows = useMemo(
+        () =>
+            showAllUsers
+                ? testAccounts
+                : testAccounts.filter((row) => row.representative),
+        [showAllUsers, testAccounts],
+    );
     const { data, setData, post, processing, errors, reset } = useForm({
         email: 'dept@example.com',
         password: '',
@@ -145,40 +162,24 @@ export default function Login({
                             </tr>
                         </thead>
                         <tbody>
-                            <tr className="border-b border-gray-100">
-                                <td className="px-2 py-2">申請者</td>
-                                <td className="px-2 py-2">applicant@example.com</td>
-                                <td className="px-2 py-2">開発1部</td>
-                            </tr>
-                            <tr className="border-b border-gray-100">
-                                <td className="px-2 py-2">部門管理者</td>
-                                <td className="px-2 py-2">dept@example.com</td>
-                                <td className="px-2 py-2">開発1部</td>
-                            </tr>
-                            <tr>
-                                <td className="px-2 py-2">本部管理者</td>
-                                <td className="px-2 py-2">hq@example.com</td>
-                                <td className="px-2 py-2">本部</td>
-                            </tr>
-                            {showAllUsers && (
-                                <>
-                                    <tr className="border-b border-gray-100 bg-white/70">
-                                        <td className="px-2 py-2">申請者</td>
-                                        <td className="px-2 py-2">applicant2@example.com</td>
-                                        <td className="px-2 py-2">開発2部</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-100 bg-white/70">
-                                        <td className="px-2 py-2">部門管理者</td>
-                                        <td className="px-2 py-2">dept2@example.com</td>
-                                        <td className="px-2 py-2">開発2部</td>
-                                    </tr>
-                                    <tr className="bg-white/70">
-                                        <td className="px-2 py-2">申請者</td>
-                                        <td className="px-2 py-2">applicant3@example.com</td>
-                                        <td className="px-2 py-2">開発3部</td>
-                                    </tr>
-                                </>
-                            )}
+                            {visibleRows.map((row, index) => (
+                                <tr
+                                    key={row.email}
+                                    className={cn(
+                                        index < visibleRows.length - 1 &&
+                                            'border-b border-gray-100',
+                                        !row.representative && 'bg-white/70',
+                                    )}
+                                >
+                                    <td className="px-2 py-2">
+                                        {row.roleLabel}
+                                    </td>
+                                    <td className="px-2 py-2">{row.email}</td>
+                                    <td className="px-2 py-2">
+                                        {row.department}
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
