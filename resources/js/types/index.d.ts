@@ -28,6 +28,7 @@ export interface BreadcrumbItem {
 
 export interface FlashMessages {
     error?: string | null;
+    success?: string | null;
 }
 
 export type PageProps<

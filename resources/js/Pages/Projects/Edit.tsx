@@ -1,6 +1,6 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { ArrowLeft, FileCheck2, FilePenLine, Save, Send } from 'lucide-react';
+import { ArrowLeft, FileCheck2, FilePenLine, Loader2, Save, Send, Trash2 } from 'lucide-react';
 
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
@@ -9,6 +9,14 @@ import ProjectAttachmentField from '@/Components/Form/ProjectAttachmentField';
 import ApprovalStepperFull from '@/Components/Approval/ApprovalStepperFull';
 import StatusPill from '@/Components/StatusPill';
 import { Button } from '@/Components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/Components/ui/dialog';
 import { Infotip } from '@/Components/ui/infotip';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -38,6 +46,7 @@ interface Props {
         name: string;
     }>;
     project: ProjectEditData;
+    canDeleteDraft?: boolean;
 }
 
 interface EditProjectForm {
@@ -63,11 +72,13 @@ const formatAmountForDisplay = (value: string): string => {
     return integerValue === '' ? '' : integerValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
-export default function ProjectsEdit({ departments, project }: Props) {
+export default function ProjectsEdit({ departments, project, canDeleteDraft = false }: Props) {
     const { auth } = usePage<PageProps>().props;
     const roles = auth.user.roles ?? [];
     const submitsToHqDirect = roles.includes('dept_manager' as RoleName);
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const [deleteDraftOpen, setDeleteDraftOpen] = useState(false);
+    const [deleteDraftBusy, setDeleteDraftBusy] = useState(false);
     const { data, setData, processing, errors, transform, put } = useForm<EditProjectForm>({
         title: project.title ?? '',
         department_id: String(project.departmentId ?? ''),
@@ -109,6 +120,15 @@ export default function ProjectsEdit({ departments, project }: Props) {
                     setConfirmOpen(false);
                 }
             },
+        });
+    };
+
+    const confirmDeleteDraft = () => {
+        setDeleteDraftBusy(true);
+        router.delete(route('projects.destroy', project.id), {
+            preserveScroll: true,
+            onSuccess: () => setDeleteDraftOpen(false),
+            onFinish: () => setDeleteDraftBusy(false),
         });
     };
 
@@ -369,6 +389,20 @@ export default function ProjectsEdit({ departments, project }: Props) {
                                     更新を保存: 案件名のみで保存できます
                                 </Infotip>
                             </div>
+                            {canDeleteDraft ? (
+                                <div className="pt-1">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setDeleteDraftOpen(true)}
+                                        disabled={processing || deleteDraftBusy}
+                                        className="gap-2 border-red-200 text-red-700 hover:bg-red-50"
+                                    >
+                                        <Trash2 className="h-4 w-4" aria-hidden />
+                                        下書きを削除
+                                    </Button>
+                                </div>
+                            ) : null}
                         </div>
                         <div className="flex items-center gap-2">
                             <Button
@@ -480,6 +514,55 @@ export default function ProjectsEdit({ departments, project }: Props) {
                     </div>
                 </div>
             )}
+
+            <Dialog
+                open={deleteDraftOpen}
+                onOpenChange={(open) => {
+                    if (open) {
+                        setDeleteDraftOpen(true);
+                    } else if (!deleteDraftBusy) {
+                        setDeleteDraftOpen(false);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-brand-dark">
+                            <Trash2 className="h-5 w-5 text-red-600" aria-hidden />
+                            下書きを削除しますか？
+                        </DialogTitle>
+                        <DialogDescription>
+                            削除すると元に戻せません。添付ファイルもまとめて削除され、一覧へ戻ります。
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm">
+                        <p className="font-semibold text-brand-dark">{project.title}</p>
+                        <p className="mt-1 text-xs text-brand-muted">案件ID: {project.id}</p>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteDraftOpen(false)}
+                            disabled={deleteDraftBusy}
+                        >
+                            キャンセル
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={confirmDeleteDraft}
+                            disabled={deleteDraftBusy}
+                            className="gap-2"
+                        >
+                            {deleteDraftBusy ? (
+                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                            ) : null}
+                            削除する
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AuthenticatedLayout>
     );
 }

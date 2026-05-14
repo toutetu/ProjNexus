@@ -823,6 +823,14 @@ export default function ProjectsIndex({
                     {flash.error}
                 </div>
             )}
+            {flash?.success && (
+                <div
+                    role="status"
+                    className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+                >
+                    {flash.success}
+                </div>
+            )}
 
             <div className="mb-5 flex items-start justify-between">
                 <div>
@@ -1691,7 +1699,6 @@ export default function ProjectsIndex({
                     <span className="ml-auto">行クリックで詳細へ</span>
                 </div>
             )}
-
         </AuthenticatedLayout>
     );
 }

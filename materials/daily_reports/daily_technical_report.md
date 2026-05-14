@@ -5,6 +5,21 @@
 
 ---
 
+## development_schedule より転記 — 現在地（2026-05-12 時点）
+
+> 旧 `development_schedule.md` §「現在地」の長文をここへ集約。日別の実装メモは本ファイルの各日付セクションを正とする。
+
+- **現在の主作業:** Phase 5（資料同期・提出準備・デプロイ確認）。マスト改修のチェックは **`development_schedule.md` §「Phase 5 手動確認・マスト改修」** を正とする。
+- **直近の実装（2026-05-08 前後）:** S-02 ダッシュボード（Recharts・サイドバー導線）、タイムゾーン JST 統一（`config/app.php`）。
+- **直近の実装（2026-05-11）:** 申請ファイル添付・multipart／JSON 切替、サイドバーライト化・一覧名称統一、案件詳細タブとサイドバー配色連動（`sidebarNavTheme.ts`）、申請帯／工数サマリー帯／履歴／予算パネルの背景整理、サイドバー親子アクティブの一体角丸・`activeKey` 優先による二重ハイライト解消。（UI 粒度の詳細は上記 **2026-05-01** ログ参照）
+- **直近の実装（2026-05-12）:** マスト #10（予算実績入力導線の整理、`/projects/{id}/budget-input` を深い導線として残し S-11 は詳細内モーダルへ統一、サイドバー 3 行 merged）、マスト #11（S-14 DnD 403 後の見た目ズレ・先行楽観更新の廃止）。
+- **直近の実装（2026-05-12 追記）:** マスト #12（`ScenarioMirrorSeeder`・`track-b-*` / `track-c-*`）、マスト #13（申請者 S-14 board/list の部門内タスク閲覧）。マスト #8 はスコープ外。
+- **直近完了（実装）:** S-14（board/members/list）、4 値運用（`resolved`/`closed`）、通知拡張（`task_resolved`/`task_reviewed`）、設計書群の実装同期。
+- **直近完了（設計）:** `er_diagram.md` v6、`components_spec.md` 正本化、`Information.md` シナリオ拡充、`screen_flow.md` 実装整合、`s16_burndown_policy.md` 追加、Button `neutral` 定義追記。
+- **当時の次の着手:** Phase 5（資料・スクショ・提出チェック）。マスト #5 手動確認、#8 はスコープ外、サイドバー調査メモの要否判断。具体: 変更後 UI のスクショ差し替え、S-14 DnD 修正の再確認、マニュアル・プレゼン反映。**最新の着手順は `implementation_schedule.md` と `development_schedule.md` §「明日以降すぐやること」を参照。**
+
+---
+
 ## 2026-05-01（金）追記 — 案件詳細/タスク一覧 UI 統一・共通化・導線調整
 
 ### 実装概要
@@ -329,5 +344,77 @@
 - **`daily_report.md`（2026-05-12）:** 作業時間・累計・次回予定をユーザー意図どおり保持（`git restore` で失われた内容の手動復元方針を `AI.md` §注意へ追記）。
 - **`doc/Design/AI.md`:** 再開時は `implementation_schedule.md` に加え `development_schedule.md` を確認する旨、および **`git restore` で `daily_report.md` を一括巻き戻さない** 注意を追加。
 
+## 2026-05-14（申請下書き削除・編集画面 UI）
 
-/**更新完了**/
+### 実装概要
+- **下書き削除**
+  - `ProjectPolicy::delete` を **下書き（`draft`）・申請者本人・子案件なし** に限定（却下のみの削除は不可に変更）
+  - `ProjectController::destroy` に成功フラッシュ。一覧 API に `canDeleteDraft`。`flash.success` を Inertia 共有へ追加
+  - 申請タブ一覧: 当初は操作列・確認ダイアログ・行クリックと削除ボタンのイベント分離を実装。**2026-05-14:** 一覧の削除 UI は廃止し編集画面に一本化（本節末尾の追記を参照）
+  - `tests/Feature/ProjectDraftDeleteTest.php`（本人削除・却下不可・他人不可・子案件あり不可）
+  - `materials/Design/system_spec.md`（URL 行・ロール表に下書き削除を追記）
+- **案件編集 UI（`Projects/Edit.tsx`）**
+  - 「下書きを削除」を「更新を保存」と**同一行**（`flex-wrap` + `gap-2`）
+  - `DRAFT_DELETE_OUTLINE_CLASS` で `brand-border` / `brand-muted` / `brand-bg` / `brand-dark` を共通化（`design_system.md` のボーダー・補助色・背景・濃色に相当）
+  - 削除確認モーダル: **キャンセル**は `variant="destructive"`（ブランドレッド地＋白字）、**削除する**は上記グレーアウトライン＋ `Trash2`／処理中は `Loader2`
+
+### 主要変更ファイル
+- `app/Policies/ProjectPolicy.php`
+- `app/Http/Controllers/ProjectController.php`
+- `app/Http/Middleware/HandleInertiaRequests.php`
+- `resources/js/Pages/Projects/Index.tsx`
+- `resources/js/Pages/Projects/Edit.tsx`
+- `resources/js/types/index.d.ts`
+- `tests/Feature/ProjectDraftDeleteTest.php`
+- `materials/Design/system_spec.md`
+
+### 検証
+- `php artisan test --filter=ProjectDraftDeleteTest`
+- `npx tsc --noEmit` / `npm run build`
+
+### Git（参考）
+- ブランチ `feat/project-draft-delete`
+- コミット例: `d7533a03` — `feat: 申請下書きの削除（一覧・編集・Policy・テスト）`
+- **補足:** 案件編集の UI 調整（横並び・モーダル配色・`cn` 共通化）は作業後に `Edit.tsx` のみ未コミットの状態があり得る。区切りで `feat:` または `fix:` を分けてコミット推奨
+
+---
+
+## 2026-05-14 追記 — ログイン画面テストユーザー表と `UserSeeder` の一元化
+
+### 実装概要
+- **`UserSeeder`:** 投入行を `userDefinitions()` に集約し、`run()` は同配列をループして `updateOrCreate`（従来の10アカウント・ロール・所属と同一）
+- **`UserSeeder::loginDemoAccounts()`:** ログイン画面用に `roleLabel`（`Role` Enum の `label()`）・`email`・`department`・`representative`（代表3件のみ true）を返す静的メソッドを追加
+- **`AuthenticatedSessionController::create`:** Inertia に `testAccounts` を付与
+- **`Login.tsx`:** ハードコード表を廃止し `testAccounts` を描画。折りたたみ時は代表3件、展開時はシーダー順の全10件（従来欠けていた開発1部の追加申請者3名・開発3部の部門管理者を含む）
+
+### 主要変更ファイル
+- `database/seeders/UserSeeder.php`
+- `app/Http/Controllers/Auth/AuthenticatedSessionController.php`
+- `resources/js/Pages/Auth/Login.tsx`
+
+### 検証
+- `php artisan test` 全件通過
+- `npm run build` 成功
+
+### 日次ドキュメント
+- `materials/daily_reports/development_schedule.md`（継続UI調整・完了済みへ移管）
+- `materials/daily_reports/implementation_schedule.md`（現在地に1行追記）
+- 本ファイル（本節）
+
+---
+
+## 2026-05-14 追記 — 申請タブ一覧（`/projects?tab=approval`）から下書き削除 UI を廃止
+
+### 背景・方針
+- 下書き削除の**サーバー側**（`ProjectPolicy::delete`・`destroy`・テスト）は維持する。
+- 一覧の行末「削除」は誤タップや画面のノイズになりやすいため、**申請タブのテーブルから削除ボタン・「操作」列・専用確認ダイアログ**を取り除く。
+- 下書きの削除は **`/projects/{id}/edit` の「下書きを削除」** に一本化する。
+
+### 実装概要
+- `resources/js/Pages/Projects/Index.tsx`: 承認タブ行の削除ボタン、`draftDeleteTarget` / `draftDeletingId` / `confirmDeleteDraft`、下書き削除用 `Dialog`、未使用 import（`Loader2` / `Trash2` / `Dialog*`）を削除。`ApprovalProjectRow` 等から `canDeleteDraft` を除去（API の余剰キーはそのままでも可）。
+- `npx tsc --noEmit` で型チェック済み。
+
+### 日次ドキュメント
+- `materials/daily_reports/implementation_schedule.md`（§1 現在地の文言調整）
+- `materials/daily_reports/development_schedule.md`（完了済みへ追記）
+- 本ファイル（本節）
