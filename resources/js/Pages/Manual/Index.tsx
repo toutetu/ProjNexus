@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import mermaid from 'mermaid';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
-import { ArrowLeft, BookOpen, Menu, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, Menu, X } from 'lucide-react';
 
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Infotip } from '@/Components/ui/infotip';
@@ -16,8 +17,280 @@ interface Props {
 interface TocItem {
     id: string;
     label: string;
-    level: 1 | 2;
+    level: 1 | 2 | 3;
+    children?: TocItem[];
 }
+
+function buildTocTree(headings: HTMLHeadingElement[]): TocItem[] {
+    const roots: TocItem[] = [];
+    let currentH1: TocItem | null = null;
+    let currentH2: TocItem | null = null;
+
+    for (const el of headings) {
+        const id = el.id;
+        const label = el.textContent?.trim() ?? '';
+        if (el.tagName === 'H1') {
+            currentH2 = null;
+            const n: TocItem = { id, label, level: 1, children: [] };
+            roots.push(n);
+            currentH1 = n;
+        } else if (el.tagName === 'H2') {
+            const n: TocItem = { id, label, level: 2, children: [] };
+            if (currentH1?.children) {
+                currentH1.children.push(n);
+            } else {
+                roots.push(n);
+            }
+            currentH2 = n;
+        } else if (el.tagName === 'H3') {
+            const n: TocItem = { id, label, level: 3, children: [] };
+            if (currentH2?.children) {
+                currentH2.children.push(n);
+            } else if (currentH1?.children) {
+                currentH1.children.push(n);
+            } else {
+                roots.push(n);
+            }
+        }
+    }
+    return roots;
+}
+
+function collectH2IdsWithChildH3(nodes: TocItem[]): string[] {
+    const out: string[] = [];
+    const walk = (ns: TocItem[]) => {
+        for (const n of ns) {
+            if (
+                n.level === 2 &&
+                n.children?.some((c) => c.level === 3)
+            ) {
+                out.push(n.id);
+            }
+            if (n.children?.length) walk(n.children);
+        }
+    };
+    walk(nodes);
+    return out;
+}
+
+function findParentH2IdForHeading(nodes: TocItem[], targetId: string): string | null {
+    for (const n of nodes) {
+        if (n.level === 2 && n.children?.some((c) => c.id === targetId)) {
+            return n.id;
+        }
+        if (n.children?.length) {
+            const inner = findParentH2IdForHeading(n.children, targetId);
+            if (inner) return inner;
+        }
+    }
+    return null;
+}
+
+type ManualTocNavProps = {
+    tree: TocItem[];
+    expandedH2Ids: Set<string>;
+    onToggleChapter: (id: string) => void;
+    onOpenChapter: (id: string) => void;
+    onExpandAll: () => void;
+    activeId: string;
+    onPick: (id: string) => void;
+    compact?: boolean;
+};
+
+function ManualTocNav({
+    tree,
+    expandedH2Ids,
+    onToggleChapter,
+    onOpenChapter,
+    onExpandAll,
+    activeId,
+    onPick,
+    compact,
+}: ManualTocNavProps) {
+    const linkPad = compact ? 'px-2 py-1' : 'px-3 py-1.5';
+    const h3Pad = compact ? 'pl-4 py-0.5' : 'pl-5 py-1';
+
+    const activeStyle = (isActive: boolean): CSSProperties =>
+        isActive
+            ? {
+                  backgroundColor: ACCENT_BG,
+                  color: ACCENT_TEXT,
+                  fontWeight: 600,
+                  borderLeft: `3px solid ${ACCENT}`,
+                  paddingLeft: compact ? '5px' : '9px',
+              }
+            : {};
+
+    const renderH2 = (node: TocItem) => {
+        const hasH3 = node.children?.some((c) => c.level === 3) ?? false;
+        const open = expandedH2Ids.has(node.id);
+        const isActive = activeId === node.id;
+        const h3List = node.children?.filter((c) => c.level === 3) ?? [];
+
+        return (
+            <li key={node.id} className="space-y-0.5">
+                <div className="flex items-start gap-0.5">
+                    {hasH3 ? (
+                        <button
+                            type="button"
+                            className="mt-0.5 shrink-0 rounded p-0.5 text-brand-muted hover:bg-brand-bg hover:text-brand-dark"
+                            aria-expanded={open}
+                            aria-controls={`toc-h2-${node.id}`}
+                            id={`toc-h2-btn-${node.id}`}
+                            onClick={() => onToggleChapter(node.id)}
+                        >
+                            {open ? (
+                                <ChevronDown className="h-4 w-4" aria-hidden />
+                            ) : (
+                                <ChevronRight className="h-4 w-4" aria-hidden />
+                            )}
+                        </button>
+                    ) : (
+                        <span className="w-5 shrink-0" aria-hidden />
+                    )}
+                    <a
+                        href={`#${node.id}`}
+                        id={hasH3 ? `toc-h2-link-${node.id}` : undefined}
+                        className={`min-w-0 flex-1 rounded-md leading-snug transition-colors hover:bg-[#FFF9E6] hover:text-[#7A5400] ${linkPad} ${
+                            hasH3 ? '' : 'pl-0'
+                        }`}
+                        style={{
+                            color: ACCENT_TEXT,
+                            fontWeight: 600,
+                            fontSize: compact ? '0.8rem' : '0.82rem',
+                            ...activeStyle(isActive),
+                        }}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            if (hasH3 && !open) {
+                                onOpenChapter(node.id);
+                            }
+                            onPick(node.id);
+                        }}
+                    >
+                        {node.label}
+                    </a>
+                </div>
+                {hasH3 && open ? (
+                    <ul
+                        id={`toc-h2-${node.id}`}
+                        role="region"
+                        aria-labelledby={
+                            hasH3
+                                ? `toc-h2-btn-${node.id} toc-h2-link-${node.id}`
+                                : undefined
+                        }
+                        className="ml-5 space-y-0.5 border-l border-brand-border/50 pl-2"
+                    >
+                        {h3List.map((h3) => {
+                            const h3Active = activeId === h3.id;
+                            return (
+                                <li key={h3.id}>
+                                    <a
+                                        href={`#${h3.id}`}
+                                        className={`block rounded-md text-xs leading-snug text-brand-dark transition-colors hover:bg-[#FFF9E6] hover:text-[#7A5400] ${h3Pad}`}
+                                        style={activeStyle(h3Active)}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            onPick(h3.id);
+                                        }}
+                                    >
+                                        {h3.label}
+                                    </a>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                ) : null}
+            </li>
+        );
+    };
+
+    return (
+        <>
+            <button
+                type="button"
+                className={`mb-3 w-full rounded-md border border-brand-border bg-white text-xs font-semibold text-brand-dark shadow-sm transition-colors hover:bg-brand-bg ${
+                    compact ? 'py-1.5' : 'py-2'
+                }`}
+                onClick={onExpandAll}
+            >
+                全部表示
+            </button>
+            <ul className="space-y-1 text-sm">
+                {tree.map((h1) => (
+                    <li key={h1.id} className="mt-3 first:mt-0">
+                        <a
+                            href={`#${h1.id}`}
+                            className={`block rounded-md font-bold tracking-tight transition-colors hover:bg-[#FFF9E6] hover:text-[#7A5400] ${linkPad}`}
+                            style={{
+                                color: ACCENT_TEXT,
+                                fontSize: compact ? '0.8rem' : '0.82rem',
+                                ...activeStyle(activeId === h1.id),
+                            }}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onPick(h1.id);
+                            }}
+                        >
+                            {h1.label}
+                        </a>
+                        {h1.children?.length ? (
+                            <ul className="mt-1.5 space-y-1 border-l border-brand-border/40 pl-2">
+                                {h1.children.map((c) => {
+                                    if (c.level === 2) {
+                                        return renderH2(c);
+                                    }
+                                    if (c.level === 3) {
+                                        const h3Active = activeId === c.id;
+                                        return (
+                                            <li key={c.id}>
+                                                <a
+                                                    href={`#${c.id}`}
+                                                    className={`block rounded-md text-xs leading-snug text-brand-dark transition-colors hover:bg-[#FFF9E6] hover:text-[#7A5400] ${h3Pad}`}
+                                                    style={activeStyle(h3Active)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        onPick(c.id);
+                                                    }}
+                                                >
+                                                    {c.label}
+                                                </a>
+                                            </li>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </ul>
+                        ) : null}
+                    </li>
+                ))}
+            </ul>
+        </>
+    );
+}
+
+mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'sans-serif' });
+
+let mermaidCounter = 0;
+
+const MermaidDiagram = ({ chart }: { chart: string }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const id = useRef(`mermaid-${++mermaidCounter}`);
+
+    useEffect(() => {
+        let cancelled = false;
+        if (!containerRef.current) return;
+        mermaid.render(id.current, chart.trim()).then(({ svg }) => {
+            if (!cancelled && containerRef.current) {
+                containerRef.current.innerHTML = svg;
+            }
+        }).catch(() => {});
+        return () => { cancelled = true; };
+    }, [chart]);
+
+    return <div ref={containerRef} className="my-4 flex justify-center overflow-x-auto" />;
+};
 
 const ACCENT = '#EDB100';
 const ACCENT_BG = '#FFF9E6';
@@ -134,7 +407,8 @@ const formatUpdatedAt = (iso: string | null): string => {
 };
 
 export default function ManualIndex({ markdown, updatedAt }: Props) {
-    const [tocItems, setTocItems] = useState<TocItem[]>([]);
+    const [tocTree, setTocTree] = useState<TocItem[]>([]);
+    const [expandedH2Ids, setExpandedH2Ids] = useState<Set<string>>(() => new Set());
     const [activeId, setActiveId] = useState<string>('');
     const [mobileTocOpen, setMobileTocOpen] = useState<boolean>(false);
 
@@ -147,28 +421,52 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
         };
     }, [markdown]);
 
-    const scrollToHeading = (id: string) => {
+    const scrollToHeading = useCallback((id: string) => {
         const el = document.getElementById(id);
         if (!el) return;
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         window.history.replaceState(null, '', `#${id}`);
         setActiveId(id);
         setMobileTocOpen(false);
-    };
+    }, []);
+
+    const toggleChapter = useCallback((id: string) => {
+        setExpandedH2Ids((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, []);
+
+    const openChapter = useCallback((id: string) => {
+        setExpandedH2Ids((prev) => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+        });
+    }, []);
+
+    const expandAllChapters = useCallback(() => {
+        setExpandedH2Ids(new Set(collectH2IdsWithChildH3(tocTree)));
+    }, [tocTree]);
 
     useEffect(() => {
         const article = document.querySelector('article#manual-body');
         if (!article) return;
         const headings = Array.from(
-            article.querySelectorAll<HTMLHeadingElement>('h1[id], h2[id]'),
+            article.querySelectorAll<HTMLHeadingElement>('h1[id], h2[id], h3[id]'),
         );
-        setTocItems(
-            headings.map((h) => ({
-                id: h.id,
-                label: h.textContent?.trim() ?? '',
-                level: h.tagName === 'H1' ? 1 : 2,
-            })),
-        );
+        const tree = buildTocTree(headings);
+        setTocTree(tree);
+
+        const nextExpanded = new Set<string>();
+        const hash = window.location.hash.replace(/^#/, '');
+        if (hash) {
+            const parentH2 = findParentH2IdForHeading(tree, hash);
+            if (parentH2) nextExpanded.add(parentH2);
+        }
+        setExpandedH2Ids(nextExpanded);
 
         if (headings.length === 0) return;
 
@@ -186,6 +484,18 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
         headings.forEach((h) => observer.observe(h));
         return () => observer.disconnect();
     }, [manualMarkdown]);
+
+    useEffect(() => {
+        if (!activeId || tocTree.length === 0) return;
+        const parentH2 = findParentH2IdForHeading(tocTree, activeId);
+        if (!parentH2) return;
+        setExpandedH2Ids((prev) => {
+            if (prev.has(parentH2)) return prev;
+            const next = new Set(prev);
+            next.add(parentH2);
+            return next;
+        });
+    }, [activeId, tocTree]);
 
     const transformImageUri = useMemo(
         () =>
@@ -237,58 +547,23 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                 </header>
 
                 <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8 sm:px-6 md:py-12">
-                    <aside className="hidden w-64 shrink-0 lg:block">
+                    <aside className="hidden w-72 shrink-0 lg:block">
                         <nav className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
                             <p
-                                className="mb-3 text-xs font-semibold uppercase tracking-wider"
+                                className="mb-2 text-xs font-semibold uppercase tracking-wider"
                                 style={{ color: ACCENT_TEXT }}
                             >
                                 目次
                             </p>
-                            <ul className="space-y-1 text-sm">
-                                {tocItems.map((item) => {
-                                    const isActive = item.id === activeId;
-                                    const isGroup = item.level === 1;
-                                    const baseStyle: CSSProperties = isGroup
-                                        ? {
-                                              color: ACCENT_TEXT,
-                                              fontWeight: 700,
-                                              fontSize: '0.78rem',
-                                              letterSpacing: '0.02em',
-                                              textTransform: 'uppercase',
-                                          }
-                                        : {};
-                                    const activeStyle: CSSProperties = isActive
-                                        ? {
-                                              backgroundColor: ACCENT_BG,
-                                              color: ACCENT_TEXT,
-                                              fontWeight: 600,
-                                              borderLeft: `3px solid ${ACCENT}`,
-                                              paddingLeft: '9px',
-                                          }
-                                        : {};
-                                    return (
-                                        <li
-                                            key={item.id}
-                                            className={isGroup ? 'mt-3 first:mt-0' : ''}
-                                        >
-                                            <a
-                                                href={`#${item.id}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    scrollToHeading(item.id);
-                                                }}
-                                                className={`block rounded-md px-3 py-1.5 leading-snug transition-colors hover:bg-[#FFF9E6] hover:text-[#7A5400] ${
-                                                    isGroup ? '' : 'pl-5'
-                                                }`}
-                                                style={{ ...baseStyle, ...activeStyle }}
-                                            >
-                                                {item.label}
-                                            </a>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
+                            <ManualTocNav
+                                tree={tocTree}
+                                expandedH2Ids={expandedH2Ids}
+                                onToggleChapter={toggleChapter}
+                                onOpenChapter={openChapter}
+                                onExpandAll={expandAllChapters}
+                                activeId={activeId}
+                                onPick={scrollToHeading}
+                            />
                         </nav>
                     </aside>
 
@@ -308,25 +583,18 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                             {mobileTocOpen && (
                                 <div
                                     id="mobile-manual-toc"
-                                    className="mt-3 rounded-lg border border-brand-border bg-white p-3 text-sm shadow-sm"
+                                    className="mt-3 max-h-[min(70vh,28rem)] overflow-y-auto rounded-lg border border-brand-border bg-white p-3 text-sm shadow-sm"
                                 >
-                                    <ul className="space-y-1">
-                                        {tocItems.map((item) => (
-                                            <li key={item.id}>
-                                                <a
-                                                    href={`#${item.id}`}
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        scrollToHeading(item.id);
-                                                    }}
-                                                    className="block rounded px-2 py-1 hover:bg-[#FFF9E6]"
-                                                    style={{ color: ACCENT_TEXT }}
-                                                >
-                                                    {item.label}
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <ManualTocNav
+                                        tree={tocTree}
+                                        expandedH2Ids={expandedH2Ids}
+                                        onToggleChapter={toggleChapter}
+                                        onOpenChapter={openChapter}
+                                        onExpandAll={expandAllChapters}
+                                        activeId={activeId}
+                                        onPick={scrollToHeading}
+                                        compact
+                                    />
                                 </div>
                             )}
                         </div>
@@ -536,6 +804,9 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                     ),
                                     code: ({ node, className, children, ...props }) => {
                                         const codeText = String(children ?? '');
+                                        if ((className ?? '').includes('language-mermaid')) {
+                                            return <MermaidDiagram chart={codeText} />;
+                                        }
                                         const isBlockCode =
                                             (className ?? '').includes('language-') ||
                                             codeText.includes('\n');
