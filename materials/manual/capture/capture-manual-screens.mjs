@@ -225,8 +225,7 @@ async function main() {
     await page.getByRole('button', { name: '承認する' }).click();
     await page.waitForURL(/\/projects/, { timeout: 30_000 });
     await waitInertia(page);
-
-    await login(context, page, 'applicant@example.com');
+    // 計画表どおり「hq」で本部承認直後のタスクタブを撮影
     await page.goto(`${BASE}/projects/${ids.pendingHqSecond}?detailTab=tasks`, { waitUntil: 'domcontentloaded' });
     await waitInertia(page);
     await page.getByText('実装計画作成').first().waitFor({ state: 'visible', timeout: 20_000 });
@@ -277,7 +276,8 @@ async function main() {
     await waitInertia(page);
     await shot(page, '41_projects_create_dept_manager.png', { fullPage: true });
 
-    // --- 42 notifications types ---
+    // --- 42 notifications types（計画表どおり applicant） ---
+    await login(context, page, 'applicant@example.com');
     await page.goto(`${BASE}/notifications`, { waitUntil: 'domcontentloaded' });
     await waitInertia(page);
     await shot(page, '42_notifications_types.png', { fullPage: true });

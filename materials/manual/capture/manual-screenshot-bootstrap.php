@@ -34,6 +34,32 @@ Notification::query()->create([
     'read_at' => null,
 ]);
 
+$demoPid = $pid('PRJ-DEMO-EAM');
+$notifMeta = $demoPid ? ['project_id' => $demoPid] : null;
+Notification::query()
+    ->where('user_id', $applicant->id)
+    ->where('title', 'like', 'マニュアル撮影用通知｜%')
+    ->delete();
+foreach (
+    [
+        [NotificationType::ProjectApproved, 'マニュアル撮影用通知｜案件承認', '案件が承認されました。'],
+        [NotificationType::TaskAssigned, 'マニュアル撮影用通知｜タスク割当', '新しいタスクが割り当てられました。'],
+        [NotificationType::TaskDueSoon, 'マニュアル撮影用通知｜期限接近', '期限が近いタスクがあります。'],
+        [NotificationType::TaskResolved, 'マニュアル撮影用通知｜確認依頼', '確認待ちのタスクがあります。'],
+        [NotificationType::TaskCompleted, 'マニュアル撮影用通知｜タスク完了', 'タスクが完了しました。'],
+        [NotificationType::TaskReviewed, 'マニュアル撮影用通知｜レビュー', 'タスクが確認OKになりました。'],
+    ] as [$nType, $nTitle, $nBody]
+) {
+    Notification::query()->create([
+        'user_id' => $applicant->id,
+        'type' => $nType,
+        'title' => $nTitle,
+        'body' => $nBody,
+        'meta' => $notifMeta,
+        'read_at' => null,
+    ]);
+}
+
 $pOver = Project::query()->where('project_code', 'PRJ-SEED-0009')->first();
 if ($pOver !== null) {
     $budget = (int) ($pOver->budget_amount ?? 0);

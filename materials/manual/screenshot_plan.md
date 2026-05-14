@@ -72,7 +72,7 @@
 | 32 | resubmission_chain.png | 再申請チェイン表示 | applicant | 再申請後の新案件詳細 `/projects/{newId}` | 詳細画面上部「改訂2回目・再申請チェイン: 元案件 #N」のリンクを含む領域 | 詳細版 §4.4 |
 | 33 | projects_show_pending_dept.png | 案件詳細（部門承認待ち） | applicant | 自分が出した部門承認待ち案件の `/projects/{id}` | 承認ステッパーで「部門承認」が現在ステップで青く強調された状態 | 詳細版 §2.2 |
 | 34 | projects_show_pending_hq.png | 案件詳細（本部承認待ち） | applicant | 部門承認後の案件 | 承認ステッパー「本部承認」が現在ステップ | 詳細版 §2.2 |
-| 35 | initial_task_auto_created.png | 自動生成タスク | hq | 本部承認直後の案件 `/projects/{id}?detailTab=tasks` | タスクタブに「実装計画作成」が自動で並んでいる状態 | 詳細版 §6.2 |
+| 35 | initial_task_auto_created.png | 自動生成タスク | hq | 本部承認直後の案件 `/projects/{id}?detailTab=tasks`（撮影スクリプトは `PRJ-SEED-0006` を承認後に hq で開く） | タスクタブに「実装計画作成」が自動で並んでいる状態 | 詳細版 §6.2 |
 | 36 | dev_tab_deadline_warning.png | 期限警告色 | hq | `/projects?tab=dev` | 期限超過＝赤、2週間以内＝赤、1ヶ月以内＝橙の行が並んだ状態（要シード調整 or 既存データから） | 詳細版 §6.3 |
 | 37 | budget_alert_red.png | 消費率 100% 超過 | hq | `/projects?tab=budget` | 消費率 100% 超の赤い表示。要注意件数サマリも含む | 詳細版 §6.3 |
 
@@ -84,7 +84,7 @@
 | 39 | member_tasks_hq_select_dept.png | 本部・部門未選択時 | hq | `/member-tasks` | 「部門を選択してください」のプレースホルダ表示 | 詳細版 §4.6 |
 | 40 | task_history_expand.png | タスク変更履歴 | applicant | 承認済案件 `/projects/{id}?detailTab=tasks` | 1 タスク行をクリック展開して `task_histories` の時系列が出た状態 | 詳細版 §4.8 |
 | 41 | projects_create_dept_manager.png | 部門管理者の新規申請 | dept | `/projects/create` | 「申請フロー」インジケータが本部直行になっている画面 | 詳細版 §5.3 |
-| 42 | notifications_types.png | 通知タイプの並び | applicant | `/notifications` | 申請受付・案件承認・タスク割り当てなど複数種類が並ぶ状態 | 詳細版 §3.4 |
+| 42 | notifications_types.png | 通知タイプの並び | applicant | `/notifications` | 申請受付・案件承認・タスク関連など複数種類（`manual-screenshot-bootstrap.php` が撮影用に未読を追加） | 詳細版 §3.4 |
 | 43 | header_bell_unread.png | 通知ベル未読 | applicant | 任意の画面 | ヘッダー右上の通知ベルに未読バッジが付いた状態をズーム | 簡易版 §0 補足 |
 | 44 | projects_dev_progress_bar.png | 進捗バー色分け | applicant | `/projects?tab=dev` | 開発タブで未着手（グレー）／進行中（青）／完了間近（紫）／完了（緑）が並ぶ行 | 詳細版 §3.3 進捗バンド |
 
