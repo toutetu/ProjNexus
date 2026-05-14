@@ -6,6 +6,7 @@ import rehypeSlug from 'rehype-slug';
 import { ArrowLeft, BookOpen, Menu, X } from 'lucide-react';
 
 import ApplicationLogo from '@/Components/ApplicationLogo';
+import { Infotip } from '@/Components/ui/infotip';
 
 interface Props {
     markdown: string;
@@ -21,6 +22,10 @@ interface TocItem {
 const ACCENT = '#EDB100';
 const ACCENT_BG = '#FFF9E6';
 const ACCENT_TEXT = '#7A5400';
+
+/** quick_manual に残っている場合のみ除去（本文では H1 横の Infotip に表示） */
+const QUICK_MANUAL_OPTIONAL_BLOCKQUOTE =
+    /^# 利用マニュアル（簡易版）\n\n> 各ロールが「最低限の業務を一周」できるクイックリファレンスです。\n\n/m;
 
 const extractHeadingText = (children: ReactNode): string => {
     if (typeof children === 'string') return children;
@@ -85,7 +90,36 @@ const PRINT_STYLES = `
     .manual-body img { max-width: 100%; page-break-inside: avoid; }
     .manual-body blockquote { page-break-inside: avoid; }
 
+    .manual-body pre.manual-ascii-pre {
+        background: #f4f6f9 !important;
+        color: #1a1a1a !important;
+        border: 1px solid #ccc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        page-break-inside: avoid;
+        white-space: pre !important;
+        overflow-x: auto !important;
+        font-size: 7.5pt;
+        line-height: 1.35;
+    }
+
+    .manual-body pre.manual-ascii-pre code {
+        background: transparent !important;
+        color: inherit !important;
+        white-space: pre !important;
+    }
+
     .manual-body .page-break { page-break-before: always; display: block; height: 0; }
+
+    .manual-quick-intro-tooltip {
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: static !important;
+        pointer-events: auto !important;
+        margin-top: 0.5rem !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
 }
 `;
 
@@ -103,6 +137,15 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
     const [tocItems, setTocItems] = useState<TocItem[]>([]);
     const [activeId, setActiveId] = useState<string>('');
     const [mobileTocOpen, setMobileTocOpen] = useState<boolean>(false);
+
+    const { manualMarkdown, showQuickManualIntroInfotip } = useMemo(() => {
+        const stripped = markdown.replace(QUICK_MANUAL_OPTIONAL_BLOCKQUOTE, '# 利用マニュアル（簡易版）\n\n');
+        const startsQuick = /^\s*# 利用マニュアル（簡易版）/.test(markdown);
+        return {
+            manualMarkdown: stripped,
+            showQuickManualIntroInfotip: startsQuick,
+        };
+    }, [markdown]);
 
     const scrollToHeading = (id: string) => {
         const el = document.getElementById(id);
@@ -142,7 +185,7 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
         );
         headings.forEach((h) => observer.observe(h));
         return () => observer.disconnect();
-    }, [markdown]);
+    }, [manualMarkdown]);
 
     const transformImageUri = useMemo(
         () =>
@@ -303,6 +346,74 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                     h1: ({ node, ...props }) => {
                                         const text = extractHeadingText(props.children);
                                         const anchorId = headingAnchorId(text);
+                                        if (anchorId === 'top' && showQuickManualIntroInfotip) {
+                                            return (
+                                                <>
+                                                    <div className="mb-6 scroll-mt-20 border-b border-brand-border pb-3">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <h1
+                                                                {...props}
+                                                                id={
+                                                                    anchorId ??
+                                                                    (props as { id?: string }).id
+                                                                }
+                                                                className="mb-0 shrink-0 border-0 pb-0 text-3xl font-bold tracking-tight text-brand-dark"
+                                                            />
+                                                            <div className="flex shrink-0 items-center gap-1.5">
+                                                                <Infotip
+                                                                    ariaLabel="簡易版マニュアルについて"
+                                                                    align="left"
+                                                                    tooltipClassName="manual-quick-intro-tooltip"
+                                                                >
+                                                                    <p className="m-0">
+                                                                        各ロールが「最低限の業務を一周」できるクイックリファレンスです。
+                                                                    </p>
+                                                                </Infotip>
+                                                                <Infotip
+                                                                    ariaLabel="印刷レイアウトと詳細版マニュアルについて"
+                                                                    align="left"
+                                                                    tooltipClassName="manual-quick-intro-tooltip"
+                                                                >
+                                                                    <p className="m-0">
+                                                                        印刷すると{' '}
+                                                                        <strong>
+                                                                            ロールごとに A4 1 枚 × 3 ページ
+                                                                        </strong>{' '}
+                                                                        に分かれます。
+                                                                    </p>
+                                                                    <p className="mt-2 m-0">
+                                                                        詳しい操作・状態遷移・FAQ
+                                                                        は、下の「▼
+                                                                        詳細版マニュアルを見る」から参照してください。
+                                                                    </p>
+                                                                </Infotip>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <a
+                                                        href="#detailed"
+                                                        className="manual-print-hide -mt-2 mb-6 flex items-center justify-between gap-3 rounded-lg border-2 px-5 py-4 text-base font-semibold no-underline shadow-sm transition-shadow hover:shadow-md"
+                                                        style={{
+                                                            borderColor: ACCENT,
+                                                            backgroundColor: ACCENT_BG,
+                                                            color: ACCENT_TEXT,
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            scrollToHeading('detailed');
+                                                        }}
+                                                    >
+                                                        <span className="flex items-center gap-2">
+                                                            <BookOpen className="h-5 w-5" />
+                                                            ▼ 詳細版マニュアルを見る
+                                                        </span>
+                                                        <span className="text-xl" aria-hidden>
+                                                            →
+                                                        </span>
+                                                    </a>
+                                                </>
+                                            );
+                                        }
                                         return (
                                             <h1
                                                 {...props}
@@ -440,14 +551,22 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                             );
                                         }
                                         return (
-                                            <code className={className} {...props}>
+                                            <code
+                                                className={[
+                                                    className ?? '',
+                                                    'manual-ascii-code block w-max min-w-full whitespace-pre font-mono text-[12px] leading-[1.45] text-brand-dark sm:text-[13px]',
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' ')}
+                                                {...props}
+                                            >
                                                 {children}
                                             </code>
                                         );
                                     },
                                     pre: ({ node, ...props }) => (
                                         <pre
-                                            className="my-4 overflow-x-auto rounded-md bg-brand-dark p-4 text-xs leading-6 text-white"
+                                            className="manual-ascii-pre my-4 max-w-full overflow-x-auto rounded-md border border-brand-border bg-[#f4f6f9] p-3 shadow-sm sm:p-4"
                                             {...props}
                                         />
                                     ),
@@ -470,7 +589,7 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                     ),
                                 }}
                             >
-                                {markdown}
+                                {manualMarkdown}
                             </ReactMarkdown>
                         </article>
                     </main>

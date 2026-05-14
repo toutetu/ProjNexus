@@ -12,9 +12,11 @@ export interface InfotipProps {
     align?: 'left' | 'right';
     /** ラッパー（トリガー＋ツールチップ）への追加クラス（位置微調整用） */
     className?: string;
+    /** ツールチップ本体（浮遊 span）への追加クラス（印刷用の表示切替など） */
+    tooltipClassName?: string;
 }
 
-export function Infotip({ children, ariaLabel, align = 'right', className }: InfotipProps) {
+export function Infotip({ children, ariaLabel, align = 'right', className, tooltipClassName }: InfotipProps) {
     return (
         <div className={cn('group relative shrink-0', className)}>
             <button
@@ -29,6 +31,7 @@ export function Infotip({ children, ariaLabel, align = 'right', className }: Inf
                 className={cn(
                     'pointer-events-none invisible absolute top-full z-20 mt-1.5 w-[min(18rem,calc(100vw-2rem))] rounded-md border border-brand-border bg-white px-2.5 py-2 text-left text-xs leading-snug text-brand-dark shadow-md opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100',
                     align === 'right' ? 'right-0' : 'left-0',
+                    tooltipClassName,
                 )}
             >
                 {children}
