@@ -62,7 +62,7 @@ class UserSeeder extends Seeder
             ['name' => '申請 次郎', 'email' => 'applicant2@example.com', 'department' => $dept2, 'role' => RoleEnum::Applicant],
             ['name' => '部門 慎二', 'email' => 'dept2@example.com', 'department' => $dept2, 'role' => RoleEnum::DeptManager],
             ['name' => '申請 三郎', 'email' => 'applicant3@example.com', 'department' => $dept3, 'role' => RoleEnum::Applicant],
-            ['name' => '部門 美咲', 'email' => 'dept3@example.com', 'department' => $dept3, 'role' => RoleEnum::DeptManager],
+            ['name' => '部門 由美', 'email' => 'dept3@example.com', 'department' => $dept3, 'role' => RoleEnum::DeptManager],
         ];
 
         foreach ($extras as $attrs) {

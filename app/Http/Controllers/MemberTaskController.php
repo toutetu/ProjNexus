@@ -280,17 +280,8 @@ class MemberTaskController extends Controller
                     });
             });
 
-        if (
-            $user->hasRole(Role::Applicant->value)
-            && ! $user->hasRole(Role::DeptManager->value)
-            && ! $user->hasRole(Role::HqManager->value)
-            && in_array($view, ['board', 'list'], true)
-        ) {
-            $uid = $user->id;
-            $q->where(static function (Builder $w) use ($uid): void {
-                $w->where('assignee_id', $uid)->orWhere('reviewer_id', $uid);
-            });
-        }
+        // 純申請者のカンバン／一覧: 上記 whereHas で「選択部門の承認済み案件」に限定済み。
+        // 閲覧範囲は ProjectWorkItemPolicy::view（同部門承認済みは閲覧可）と整合。更新可否は canUpdate / Policy で分離。
 
         $assigneeFilter = $request->query('assignee_id');
         if ($assigneeFilter !== null && $assigneeFilter !== '') {
