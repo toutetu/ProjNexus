@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
@@ -15,11 +15,79 @@ interface Props {
 interface TocItem {
     id: string;
     label: string;
+    level: 1 | 2;
 }
 
 const ACCENT = '#EDB100';
 const ACCENT_BG = '#FFF9E6';
 const ACCENT_TEXT = '#7A5400';
+
+const extractHeadingText = (children: ReactNode): string => {
+    if (typeof children === 'string') return children;
+    if (Array.isArray(children)) {
+        return children.map(extractHeadingText).join('');
+    }
+    if (children && typeof children === 'object' && 'props' in (children as object)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return extractHeadingText((children as any).props?.children);
+    }
+    return '';
+};
+
+const headingAnchorId = (text: string): string | undefined => {
+    if (text.includes('（簡易版）')) return 'top';
+    if (text.includes('（詳細版）')) return 'detailed';
+    return undefined;
+};
+
+const PRINT_STYLES = `
+@media print {
+    @page { size: A4; margin: 12mm 14mm; }
+
+    body { background: #fff !important; }
+
+    header,
+    aside,
+    .manual-print-hide,
+    #detailed,
+    #detailed ~ * {
+        display: none !important;
+    }
+
+    .manual-body {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        font-size: 10.5pt;
+        line-height: 1.5;
+    }
+
+    .manual-body h1 {
+        font-size: 18pt;
+        margin-bottom: 8pt;
+        padding-bottom: 4pt;
+    }
+
+    .manual-body h2 {
+        font-size: 13pt;
+        margin-top: 10pt;
+        margin-bottom: 6pt;
+        page-break-after: avoid;
+    }
+
+    .manual-body h3 {
+        font-size: 11.5pt;
+        margin-top: 8pt;
+        page-break-after: avoid;
+    }
+
+    .manual-body table { font-size: 9.5pt; page-break-inside: avoid; }
+    .manual-body img { max-width: 100%; page-break-inside: avoid; }
+    .manual-body blockquote { page-break-inside: avoid; }
+
+    .manual-body .page-break { page-break-before: always; display: block; height: 0; }
+}
+`;
 
 const formatUpdatedAt = (iso: string | null): string => {
     if (!iso) return '—';
@@ -48,11 +116,14 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
     useEffect(() => {
         const article = document.querySelector('article#manual-body');
         if (!article) return;
-        const headings = Array.from(article.querySelectorAll<HTMLHeadingElement>('h2[id]'));
+        const headings = Array.from(
+            article.querySelectorAll<HTMLHeadingElement>('h1[id], h2[id]'),
+        );
         setTocItems(
             headings.map((h) => ({
                 id: h.id,
                 label: h.textContent?.trim() ?? '',
+                level: h.tagName === 'H1' ? 1 : 2,
             })),
         );
 
@@ -88,6 +159,7 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
     return (
         <>
             <Head title="利用マニュアル" />
+            <style>{PRINT_STYLES}</style>
             <div className="min-h-screen bg-brand-bg text-brand-dark">
                 <header className="sticky top-0 z-20 border-b border-brand-border bg-brand-dark text-white">
                     <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
@@ -133,26 +205,40 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                             <ul className="space-y-1 text-sm">
                                 {tocItems.map((item) => {
                                     const isActive = item.id === activeId;
+                                    const isGroup = item.level === 1;
+                                    const baseStyle: CSSProperties = isGroup
+                                        ? {
+                                              color: ACCENT_TEXT,
+                                              fontWeight: 700,
+                                              fontSize: '0.78rem',
+                                              letterSpacing: '0.02em',
+                                              textTransform: 'uppercase',
+                                          }
+                                        : {};
+                                    const activeStyle: CSSProperties = isActive
+                                        ? {
+                                              backgroundColor: ACCENT_BG,
+                                              color: ACCENT_TEXT,
+                                              fontWeight: 600,
+                                              borderLeft: `3px solid ${ACCENT}`,
+                                              paddingLeft: '9px',
+                                          }
+                                        : {};
                                     return (
-                                        <li key={item.id}>
+                                        <li
+                                            key={item.id}
+                                            className={isGroup ? 'mt-3 first:mt-0' : ''}
+                                        >
                                             <a
                                                 href={`#${item.id}`}
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     scrollToHeading(item.id);
                                                 }}
-                                                className="block rounded-md px-3 py-1.5 leading-snug transition-colors hover:bg-[#FFF9E6] hover:text-[#7A5400]"
-                                                style={
-                                                    isActive
-                                                        ? {
-                                                              backgroundColor: ACCENT_BG,
-                                                              color: ACCENT_TEXT,
-                                                              fontWeight: 600,
-                                                              borderLeft: `3px solid ${ACCENT}`,
-                                                              paddingLeft: '9px',
-                                                          }
-                                                        : undefined
-                                                }
+                                                className={`block rounded-md px-3 py-1.5 leading-snug transition-colors hover:bg-[#FFF9E6] hover:text-[#7A5400] ${
+                                                    isGroup ? '' : 'pl-5'
+                                                }`}
+                                                style={{ ...baseStyle, ...activeStyle }}
                                             >
                                                 {item.label}
                                             </a>
@@ -214,12 +300,17 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                 rehypePlugins={[rehypeSlug]}
                                 urlTransform={transformImageUri}
                                 components={{
-                                    h1: ({ node, ...props }) => (
-                                        <h1
-                                            className="mb-6 border-b border-brand-border pb-3 text-3xl font-bold tracking-tight text-brand-dark"
-                                            {...props}
-                                        />
-                                    ),
+                                    h1: ({ node, ...props }) => {
+                                        const text = extractHeadingText(props.children);
+                                        const anchorId = headingAnchorId(text);
+                                        return (
+                                            <h1
+                                                {...props}
+                                                id={anchorId ?? (props as { id?: string }).id}
+                                                className="mb-6 scroll-mt-20 border-b border-brand-border pb-3 text-3xl font-bold tracking-tight text-brand-dark"
+                                            />
+                                        );
+                                    },
                                     h2: ({ node, ...props }) => (
                                         <h2
                                             className="mt-10 mb-4 scroll-mt-20 border-l-4 pl-3 text-2xl font-bold text-brand-dark"
@@ -242,13 +333,46 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                     p: ({ node, ...props }) => (
                                         <p className="my-3 leading-7 text-brand-dark" {...props} />
                                     ),
-                                    a: ({ node, ...props }) => (
-                                        <a
-                                            className="font-medium underline decoration-2 underline-offset-2 hover:no-underline"
-                                            style={{ color: ACCENT_TEXT, textDecorationColor: ACCENT }}
-                                            {...props}
-                                        />
-                                    ),
+                                    a: ({ node, ...props }) => {
+                                        const href = (props as { href?: string }).href ?? '';
+                                        if (href === '#detailed') {
+                                            return (
+                                                <a
+                                                    {...props}
+                                                    className="manual-print-hide my-6 flex items-center justify-between gap-3 rounded-lg border-2 px-5 py-4 text-base font-semibold no-underline shadow-sm transition-shadow hover:shadow-md"
+                                                    style={{
+                                                        borderColor: ACCENT,
+                                                        backgroundColor: ACCENT_BG,
+                                                        color: ACCENT_TEXT,
+                                                    }}
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <BookOpen className="h-5 w-5" />
+                                                        {props.children}
+                                                    </span>
+                                                    <span className="text-xl" aria-hidden>
+                                                        →
+                                                    </span>
+                                                </a>
+                                            );
+                                        }
+                                        if (href === '#top') {
+                                            return (
+                                                <a
+                                                    {...props}
+                                                    className="manual-print-hide inline-flex items-center gap-1 rounded-md border border-brand-border bg-white px-3 py-1.5 text-xs font-medium no-underline hover:bg-brand-bg"
+                                                    style={{ color: ACCENT_TEXT }}
+                                                />
+                                            );
+                                        }
+                                        return (
+                                            <a
+                                                className="font-medium underline decoration-2 underline-offset-2 hover:no-underline"
+                                                style={{ color: ACCENT_TEXT, textDecorationColor: ACCENT }}
+                                                {...props}
+                                            />
+                                        );
+                                    },
                                     ul: ({ node, ...props }) => (
                                         <ul className="my-3 list-disc space-y-1 pl-6" {...props} />
                                     ),

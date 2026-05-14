@@ -10,15 +10,28 @@ class ManualController extends Controller
 {
     public function show(): Response
     {
-        $path = base_path('materials/manual/user_manual.md');
+        $quickPath = base_path('materials/manual/quick_manual.md');
+        $detailedPath = base_path('materials/manual/user_manual.md');
 
-        $markdown = is_file($path)
-            ? (string) file_get_contents($path)
-            : "# 利用マニュアル\n\n本文を読み込めませんでした。";
+        $quick = is_file($quickPath) ? (string) file_get_contents($quickPath) : '';
+        $detailed = is_file($detailedPath) ? (string) file_get_contents($detailedPath) : '';
+
+        $markdown = match (true) {
+            $quick !== '' && $detailed !== '' => $quick."\n\n---\n\n".$detailed,
+            $detailed !== '' => $detailed,
+            $quick !== '' => $quick,
+            default => "# 利用マニュアル\n\n本文を読み込めませんでした。",
+        };
+
+        $mtimes = array_filter([
+            is_file($quickPath) ? filemtime($quickPath) : null,
+            is_file($detailedPath) ? filemtime($detailedPath) : null,
+        ]);
+        $updatedAt = $mtimes !== [] ? date('c', max($mtimes)) : null;
 
         return Inertia::render('Manual/Index', [
             'markdown' => $markdown,
-            'updatedAt' => is_file($path) ? date('c', filemtime($path)) : null,
+            'updatedAt' => $updatedAt,
         ]);
     }
 

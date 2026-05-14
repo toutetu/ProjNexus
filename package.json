@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "tsc && vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "capture:manual": "node materials/manual/capture/capture-manual-screens.mjs"
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",
