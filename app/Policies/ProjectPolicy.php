@@ -76,7 +76,7 @@ class ProjectPolicy
             return false;
         }
 
-        if (! in_array($project->status, [ProjectStatus::Draft, ProjectStatus::Rejected], true)) {
+        if ($project->status !== ProjectStatus::Draft) {
             return false;
         }
 

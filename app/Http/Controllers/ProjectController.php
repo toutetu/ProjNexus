@@ -340,6 +340,7 @@ class ProjectController extends Controller
                     'openTaskCount' => (int) ($project->open_tasks_count ?? 0),
                     'nearestTaskDueDate' => $project->tasks_min_due_date,
                     'canEdit' => $user->can('update', $project),
+                    'canDeleteDraft' => $user->can('delete', $project),
                     'rejectedAt' => $rejectedAt,
                     'rejectedComment' => $rejectedComment,
                     'applicantSubmitsToHqDirect' => $project->applicant?->hasRole(Role::DeptManager->value) ?? false,
@@ -511,7 +512,7 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function edit(Project $project): Response
+    public function edit(Request $request, Project $project): Response
     {
         $this->authorize('update', $project);
 
@@ -520,6 +521,7 @@ class ProjectController extends Controller
         }]);
 
         return Inertia::render('Projects/Edit', [
+            'canDeleteDraft' => $request->user()?->can('delete', $project) ?? false,
             'departments' => Department::query()
                 ->select(['id', 'name'])
                 ->orderBy('id')
@@ -688,6 +690,8 @@ class ProjectController extends Controller
 
         $project->delete();
 
-        return redirect()->route('projects.index', ['tab' => 'approval']);
+        return redirect()
+            ->route('projects.index', ['tab' => 'approval'])
+            ->with('success', '下書きを削除しました。');
     }
 }

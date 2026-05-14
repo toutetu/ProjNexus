@@ -88,6 +88,7 @@
 | 案件詳細タブ | `/projects/{id}?detailTab=` に `apply` / `tasks` / `budget` / `history`（互換: `overview` ≒ `apply`） |
 | ダッシュボード | `/dashboard` |
 | 案件一覧（運用上のよく使う起点） | `/projects?tab=approval`（ナビ「申請・承認」等。Breeze ログイン直後の既定は `/dashboard`） |
+| 下書き案件の削除 | `DELETE /projects/{id}`（Inertia）。**下書き**かつ**申請者本人**かつ**子案件なし**のみ可（`ProjectPolicy::delete`・一覧・編集画面の確認ダイアログ） |
 
 ### 4.1 タイムゾーン（表示）
 
@@ -201,6 +202,7 @@ Controller のクエリ分岐 + Spatie + Policy の多層防御。
 | 案件一覧（予算） | 自案件 | 自部門 | 全件 |
 | 案件詳細 | 起票・主担当／または同部門の承認済（`ProjectPolicy::view`） | 自部門 | 全件 |
 | 新規申請 | ○ | ○（部門承認スキップ） | × |
+| 下書き削除（`DELETE /projects/{id}`） | ○（本人・下書き・子案件なし） | × | × |
 | 承認待ち一覧 | × | `approvals.level=dept` | `approvals.level=hq` |
 | タスク CRUD | 自案件（主担当）※ | 自部門（承認済）※ | 全部門・**閲覧のみ** ※2 |
 | 予算実績入力 | 自案件の主担当 | 自部門かつ承認済（`BudgetController`） | × |

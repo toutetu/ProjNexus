@@ -46,6 +46,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'error' => fn () => $request->session()->get('error'),
+                'success' => fn () => $request->session()->get('success'),
             ],
             'unreadNotificationCount' => fn () => $user
                 ? $user->appNotifications()->whereNull('read_at')->count()
