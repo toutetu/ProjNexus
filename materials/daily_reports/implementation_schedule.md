@@ -12,6 +12,7 @@
 - **残りの実装タスク:** 原則なし（マスト #8 はスコープ外）。**追加分（2026-05-14）:** 申請の**下書き削除**（Policy・`destroy`・編集画面・テスト・`system_spec.md`）を実装済み。**同一日の整理:** 申請タブ一覧（`/projects?tab=approval`）の削除ボタンは廃止し、削除導線は**案件編集**に限定（一覧の誤操作防止）。案件編集の削除ボタン配置・モーダル配色の追記コミットは区切りで実施。**同日:** ログイン画面のテストユーザー一覧を `UserSeeder::loginDemoAccounts()` 経由で表示し、投入データ（10件）と常に一致させる対応を実施済み
 - **手動確認** … マスト #5 ほか Phase 5 項目は `materials/daily_reports/development_schedule.md` で完了チェック済み。最終日は本ファイル **§3** のスモーク・提出で取りこぼしがないか確認する
 - **2026-05-15 実施済み:** 提出物確定・本番 3 ロールスモーク・`return_to` / `/manual` 修正・日報締め（詳細は `daily_technical_report.md` 2026-05-15 節）
+- **2026-05-15 実施済み:** 通知一覧（S-12）のリンク切れ修正 — `NotificationActionUrl`・タスク系の「案件を開く」（`detailTab=tasks`）＋「タスクを開く」（`taskId`）の2ボタン、`Show.tsx` ディープリンク、`DemoWorkloadSeeder` の meta 整合。ローカル確認は `scripts/local-setup.ps1`（詳細は `daily_technical_report.md` 同節）
 - **調査のみ（未着手）:** サイドバー「申請・承認／開発管理」のアクティブ表示（`activeKey` と `approvalActive` / `devActive` の整理）。着手する場合は `AI.md` のプラン確認後にブランチを切る
 
 ---
@@ -46,6 +47,13 @@
 ## 4. Phase 4/5 のフォロー（任意）
 
 - ロール別の最終手動確認ログを必要に応じて追記
+
+- **通知一覧（S-12）手動確認（2026-05-15 追記）**
+  1. `php artisan migrate:fresh --seed`（または `.\scripts\local-setup.ps1`）
+  2. XAMPP: `http://localhost/ProjNexus/public/notifications`（`.env` の `APP_URL` と一致させる）
+  3. `applicant@example.com` / `dept@example.com` でログインし、タスク系通知に「案件を開く」「タスクを開く」が並ぶこと、クリックでタスクタブ・モーダルが開くこと
+  4. CLI: `php scripts/check-notification-links.php applicant@example.com` でリンク解決の事前確認可
+  5. 本番反映後は同 URL で再走査（古い `notifications` 行は再シードしない限り meta が残る場合あり）
 
 - 通知運用（定時実行・重複防止）の監視手順を運用メモに残す場合は `doc/daily` または `Information.md` へ
 - `budget_alert` は ER 図正本（`er_diagram.md` の NTF-01/02）に沿って別タスクで実装

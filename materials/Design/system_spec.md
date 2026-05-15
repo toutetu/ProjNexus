@@ -256,6 +256,13 @@ draft → pending_dept → pending_hq → approved
 
 案件・タスクの発火タイミングの詳細は **`NotificationService`** / **`ApprovalService`** を正とする。
 
+### S-12 通知一覧の導線（実装）
+
+- `NotificationController@index` は **`NotificationActionUrl::resolveActions`** で `projectActionHref` / `taskActionHref` を解決する（`ProjectPolicy` / `ProjectWorkItemPolicy` で閲覧不可なら `null`）。
+- **案件系**（`project_*`）: 「案件を開く」のみ → `/projects/{id}?detailTab=apply`。
+- **タスク系**（`task_*`）: 「案件を開く」（承認済みは `detailTab=tasks`＝開発タブ）と「タスクを開く」（`meta.task_id` があり閲覧可のとき `detailTab=tasks&taskId={id}`）を横並び表示。
+- `Projects/Show.tsx` は `taskId` クエリでタスクタブ表示＋`ProjectTaskDialog` を自動オープンする。
+
 ---
 
 ## 10. 関連ドキュメント

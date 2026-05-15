@@ -454,3 +454,42 @@
 - `materials/daily_reports/daily_report.md`（本日・最終日）
 - `materials/daily_reports/implementation_schedule.md`（§1 日付・Phase 5 完了）
 - 本ファイル（本節）
+
+---
+
+## 2026-05-15 追記 — 通知一覧（S-12）のタスク導線・リンク切れ修正
+
+### 背景
+- 本番・ローカルで `/notifications` の「案件を開く」が **403** やリンク非表示になる事例（デモシードの `meta.project_id` が受信者の閲覧範囲外、タスク系で `detailTab=tasks` 未指定など）
+- 確認依頼（`task_resolved`）などタスク通知では **開発タブ（タスク）** へ誘導し、該当タスクは別ボタンで開きたい要望
+
+### 実装概要
+- **`app/Support/NotificationActionUrl.php`（新規）:** `resolveActions()` で `project` / `task` の2導線を解決。`ProjectPolicy` / `ProjectWorkItemPolicy` で閲覧不可なら `null`。Inertia 向けに **相対パス**（`route(..., absolute: false)`）を返す
+- **タスク系:** 「案件を開く」→ 承認済みは `detailTab=tasks`、「タスクを開く」→ `detailTab=tasks&taskId={id}`（`meta.task_id` あり・閲覧可のとき）
+- **案件系:** 「案件を開く」のみ → `detailTab=apply`
+- **`NotificationController@index`:** `projectActionHref` / `projectActionLabel` / `taskActionHref` / `taskActionLabel` を付与
+- **`resources/js/Pages/Notifications/Index.tsx`:** 上記2リンクを横並び表示（`NotificationActionLink` 部品）
+- **`resources/js/Pages/Projects/Show.tsx`:** URL の `taskId` でタスクタブ表示＋`ProjectTaskDialog` 自動オープン
+- **`database/seeders/DemoWorkloadSeeder.php`:** 通知の `project_id` を受信者が `view` できる案件に限定。タスク系は `task_id` を付与
+- **`materials/manual/capture/manual-screenshot-bootstrap.php`:** 撮影用通知に `task_id` を追加
+- **`phpunit.xml`:** テスト時 `APP_URL=http://localhost`（`.env` の XAMPP 用サブディレクトリ URL による Feature テスト 404 を防止）
+- **ローカル手動確認用:** `scripts/local-setup.ps1`（`migrate:fresh --seed` + `npm run build`）、`scripts/check-notification-links.php`
+
+### 主要変更ファイル
+- `app/Support/NotificationActionUrl.php`
+- `app/Enums/NotificationType.php`（`isTaskRelated()`）
+- `app/Http/Controllers/NotificationController.php`
+- `resources/js/Pages/Notifications/Index.tsx`
+- `resources/js/Pages/Projects/Show.tsx`
+- `database/seeders/DemoWorkloadSeeder.php`
+- `tests/Feature/NotificationIndexTest.php`（新規）
+- `materials/Design/system_spec.md` §9（S-12 導線）
+
+### 検証
+- `php artisan test --filter=NotificationIndexTest` — 2 passed（確認依頼で project/task 両リンク、他部門はリンクなし）
+- ローカル: `migrate:fresh --seed` 後、`applicant@example.com` で `/notifications` のタスク通知から案件タブ・タスクモーダルへ遷移確認
+
+### 日次ドキュメント
+- `materials/daily_reports/implementation_schedule.md`（§1 追記）
+- `materials/daily_reports/development_schedule.md`（バグ修正ログ）
+- 本ファイル（本節）

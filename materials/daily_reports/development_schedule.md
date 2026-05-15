@@ -388,6 +388,7 @@ Cursor / Claude との協働でも必ず遵守。
 - [x] `/login` 画面下部にテストユーザー一覧（申請者 / 部門管理者 / 本部管理者）を表示
 - [x] `/login` 画面に `パスワード：password` 表示を追加
 - [x] `/notifications` で白画面になる不具合を修正
+- [x] 通知一覧のタスク導線修正（`NotificationActionUrl`・「案件を開く」は開発タブ `detailTab=tasks`、横並びで「タスクを開く」・`taskId` ディープリンク、`DemoWorkloadSeeder` の meta 整合、2026-05-15 追記）
 - [x] `/projects/3/edit`（案件編集）を `/projects/create` 準拠で再構成し、編集画面から申請できるよう修正
 - [x] 申請後の遷移先を `/projects?tab=approval` に統一（案件詳細への遷移を廃止）
 - [x] `/projects?tab=approval`（申請タブ）をモック寄せで調整（操作列削除、行 hover 遷移、下書き/申請済みの遷移分岐）
@@ -477,4 +478,5 @@ Cursor / Claude との協働でも必ず遵守。
 - [x] レフトナビ開閉（折りたたみ）機能（2026-05-11 完了）
 - [x] ログイン画面のテストユーザー表を `UserSeeder` と一元化（`loginDemoAccounts`・全10件・代表3件の折りたたみ、2026-05-14）
 - [x] `/projects?tab=approval` 一覧から下書き「削除」ボタン・操作列・確認ダイアログを廃止（下書き削除は編集画面のみ、`Index.tsx`、2026-05-14）
+- [x] 通知一覧（S-12）タスク系の二重導線（案件を開く＋タスクを開く）とリンク切れ対策（2026-05-15 追記）
 
