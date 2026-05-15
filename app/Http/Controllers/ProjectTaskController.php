@@ -237,8 +237,10 @@ class ProjectTaskController extends Controller
         $returnTo = $request->input('return_to');
 
         if (is_string($returnTo) && $returnTo !== '') {
-            $path = parse_url($returnTo, PHP_URL_PATH);
-            if (is_string($path) && str_starts_with($path, '/member-tasks')) {
+            $parsed = parse_url($returnTo);
+            $isRelativePath = !isset($parsed['scheme']) && !isset($parsed['host']);
+            $path = $parsed['path'] ?? '';
+            if ($isRelativePath && str_starts_with($path, '/member-tasks')) {
                 return $returnTo;
             }
         }
