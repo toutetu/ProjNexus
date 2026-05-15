@@ -1,5 +1,17 @@
 # Information
 
+> 提出用ファイル — デプロイ URL・テストアカウント・動作確認シナリオ等をまとめたファイル。
+> **レビュー対象:** `doc/` に置く **提出指定ファイル** と **本リポジトリのコード全体**。`doc/` には指定以外は置かない方針。
+> 実装・設計の編集正本は **`materials/`**（詳細は **`materials/Design/`**）。日常更新は `materials/` で行い、提出時は指定どおり `doc/` に同期します。
+
+---
+
+## 0. クイックスタート（採点者向け）
+
+1. **ログインURL**: <https://projnexus-main-butvrx.laravel.cloud/login>
+2. **ログインID**: 下表のメールアドレス（例: `applicant@example.com`）
+3. **パスワード**: **`password`**（**全 10 アカウント共通**）
+4. 最初に試すシナリオ: §3.1 基本フロー（申請 → 部門承認 → 本部承認）
 
 ---
 
@@ -7,21 +19,26 @@
 
 | 環境 | URL | 備考 |
 |---|---|---|
-| 本番 | https://projnexus-main-butvrx.laravel.cloud | Laravel Cloud |
+| 本番（トップ） | <https://projnexus-main-butvrx.laravel.cloud> | Laravel Cloud。未ログイン時は自動で `/login` に遷移 |
+| ログイン画面 | <https://projnexus-main-butvrx.laravel.cloud/login> | 採点時はこちらから直接アクセス推奨 |
 
-　GitHubの個人アカウントのプライベートリポジトリと連携
+- **提出本体**: GitLab `quest_1` リポジトリの `main` ブランチ（採点対象）。
+- **デプロイ連携元（参考）**: GitHub の個人プライベートリポジトリ `https://github.com/toutetu/ProjNexus` — Laravel Cloud との連携専用で、採点者のアクセスは不要です。
 
+---
 
 ## 2. テストアカウント
 
+> **ログインID = 下表のメールアドレス／パスワード = `password`（全 10 アカウント共通）**
+
 **正本**: `database/seeders/UserSeeder.php`。`database/seeders/DatabaseSeeder.php` では `DepartmentSeeder` → `RolePermissionSeeder` → **`UserSeeder`** の順で呼ばれる。メール・氏名・所属・ロールの変更があればシーダーを先に直し、下表を追随する。
 
-- **パスワード**: 下表の **全 10 アカウント** で共通 **`password`**（`UserSeeder` 内の各 `User::updateOrCreate` で `Hash::make('password')`）。
+- **パスワード（再掲）**: 下表の **全 10 アカウント** で共通 **`password`**（`UserSeeder` 内の各 `User::updateOrCreate` で `Hash::make('password')`）。
 - **部門**: `DepartmentSeeder` が `name` として投入する **`本部`**（`type` = 本部）と **`開発1部` / `開発2部` / `開発3部`**（いずれも部門タイプ）。`UserSeeder` は `Department::where(...)` で上記名のレコードを参照して `department_id` を付与する。
 - **ロール**: `syncRoles` に渡るのは `App\Enums\Role` の値（**`applicant`** / **`dept_manager`** / **`hq_manager`**）。画面表示は「申請者」「部門管理者」「本部管理者」に相当。
 - **投入ブロック**（`UserSeeder::run` とコメント一致）: 開発1部に申請者 4 名＋部門管理者 1 名、本部に本部管理者 1 名、続けて「他部門の検証用」として開発2部・開発3部に計 4 名。
 
-### 2.1 全アカウント一覧（`UserSeeder::run` 投入分・計 10 件）
+### 2.1 テストアカウント、全アカウント一覧（`UserSeeder::run` 投入分・計 10 件）
 
 | No | メール | 氏名 | ロール | 部門 | 備考 |
 |----|--------|------|--------|------|------|
@@ -42,10 +59,6 @@
 - **No 7〜10**: 開発2部・開発3部に所属する **境界検証用**（§3.5 など）。主シナリオのデータとは独立した部門に配置。
 
 ---
-> 提出用ファイル
-> デプロイ URL・テストアカウント・動作確認シナリオ等をまとめたファイル。
-> **レビュー対象:** `doc/` に置く **提出指定ファイル** と **本リポジトリのコード全体**。`doc/` には指定以外は置かない方針。
-> 実装・設計の編集正本は **`materials/`**（詳細は **`materials/Design/`**）。日常更新は `materials/` で行い、提出時は指定どおり `doc/` に同期してください。
 
 ## 3. 動作確認シナリオ
 
