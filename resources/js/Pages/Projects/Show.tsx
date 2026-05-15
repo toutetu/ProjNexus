@@ -15,7 +15,6 @@ import {
     ListChecks,
     Plus,
     Rows3,
-    Search,
     Send,
     Wallet,
     XCircle,
@@ -28,6 +27,7 @@ import ProjectAttachmentField from '@/Components/Form/ProjectAttachmentField';
 import ApprovalDialog from '@/Components/Modals/ApprovalDialog';
 import BudgetActualDialog from '@/Components/Modals/BudgetActualDialog';
 import KanbanBoard from '@/Components/MemberTasks/KanbanBoard';
+import TaskFilterBar from '@/Components/ProjectTasks/TaskFilterBar';
 import ProjectDetailTabBar, {
     PROJECT_DETAIL_TAB_CONTENT_CLASS,
     type ProjectDetailTab,
@@ -41,6 +41,12 @@ import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PROJECT_LIST_PAGE_TITLE } from '@/lib/projectListLabels';
 import { sectionNavTheme, sidebarHistoryTabTheme } from '@/lib/sidebarNavTheme';
+import {
+    emptyProjectTaskFilters,
+    isProjectTaskFilterActive,
+    matchesProjectTaskFilters,
+    type ProjectTaskFilterValues,
+} from '@/lib/projectTaskFilters';
 import { cn } from '@/lib/utils';
 import type { MemberTaskItem } from '@/types/memberTasks';
 
@@ -484,14 +490,7 @@ export default function ProjectsShow({
             new URLSearchParams(window.location.search).get('budgetInput'),
         );
     });
-    const [taskFilterKeyword, setTaskFilterKeyword] = useState('');
-    const [taskFilterType, setTaskFilterType] = useState<string>('');
-    const [taskFilterPriority, setTaskFilterPriority] = useState<string>('');
-    const [taskFilterStatus, setTaskFilterStatus] = useState<string>('');
-    const [taskFilterAssigneeId, setTaskFilterAssigneeId] = useState<string>('');
-    const [taskFilterReviewerId, setTaskFilterReviewerId] = useState<string>('');
-    const [taskFilterDueMode, setTaskFilterDueMode] = useState<string>('');
-    const [taskFilterDueDate, setTaskFilterDueDate] = useState<string>('');
+    const [taskFilters, setTaskFilters] = useState<ProjectTaskFilterValues>(emptyProjectTaskFilters);
     const [taskSort, setTaskSort] = useState<{ key: TaskSortKey | null; dir: TaskSortDir }>({
         key: null,
         dir: 'asc',
@@ -520,113 +519,40 @@ export default function ProjectsShow({
             .map(([id, name]) => ({ id, name }))
             .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
     }, [project.tasks]);
-    const taskFiltersActive = useMemo(
+    const taskFiltersActive = useMemo(() => isProjectTaskFilterActive(taskFilters), [taskFilters]);
+
+    const filteredTasks = useMemo(
         () =>
-            taskFilterKeyword.trim() !== '' ||
-            taskFilterType !== '' ||
-            taskFilterPriority !== '' ||
-            taskFilterStatus !== '' ||
-            taskFilterAssigneeId !== '' ||
-            taskFilterReviewerId !== '' ||
-            taskFilterDueMode !== '' ||
-            taskFilterDueDate !== '',
-        [
-            taskFilterKeyword,
-            taskFilterType,
-            taskFilterPriority,
-            taskFilterStatus,
-            taskFilterAssigneeId,
-            taskFilterReviewerId,
-            taskFilterDueMode,
-            taskFilterDueDate,
-        ],
+            project.tasks.filter((task) =>
+                matchesProjectTaskFilters(
+                    {
+                        id: task.id,
+                        title: task.title,
+                        description: task.description,
+                        taskType: task.taskType,
+                        priority: task.priority,
+                        status: task.status,
+                        assigneeId: task.assigneeId ?? null,
+                        assignee: task.assignee,
+                        reviewerId: task.reviewerId ?? null,
+                        reviewer: task.reviewer,
+                        dueDate: task.dueDate,
+                    },
+                    taskFilters,
+                    {
+                        projectId: project.id,
+                        keywordExtras: [
+                            taskTypeLabel[task.taskType],
+                            priorityLabel[task.priority],
+                            taskStatusLabel[task.status],
+                            task.estimatedDays != null ? String(task.estimatedDays) : '',
+                            String(task.actualDays ?? ''),
+                        ],
+                    },
+                ),
+            ),
+        [project.tasks, project.id, taskFilters],
     );
-
-    const clearTaskFilters = () => {
-        setTaskFilterKeyword('');
-        setTaskFilterType('');
-        setTaskFilterPriority('');
-        setTaskFilterStatus('');
-        setTaskFilterAssigneeId('');
-        setTaskFilterReviewerId('');
-        setTaskFilterDueMode('');
-        setTaskFilterDueDate('');
-    };
-
-    useEffect(() => {
-        if (taskFilterDueMode !== 'date' && taskFilterDueDate !== '') {
-            setTaskFilterDueDate('');
-        }
-    }, [taskFilterDueDate, taskFilterDueMode]);
-
-    const filteredTasks = useMemo(() => {
-        const q = taskFilterKeyword.trim().toLowerCase();
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        const dueLimitDays =
-            taskFilterDueMode === '3' ? 3 : taskFilterDueMode === '7' ? 7 : null;
-        return project.tasks.filter((task) => {
-            if (taskFilterType !== '' && task.taskType !== taskFilterType) return false;
-            if (taskFilterPriority !== '' && task.priority !== taskFilterPriority) return false;
-            if (taskFilterStatus !== '' && task.status !== taskFilterStatus) return false;
-            if (taskFilterAssigneeId !== '') {
-                if (taskFilterAssigneeId === '__unassigned') {
-                    if (task.assigneeId !== null) return false;
-                } else if (task.assigneeId !== Number(taskFilterAssigneeId)) {
-                    return false;
-                }
-            }
-            if (taskFilterReviewerId !== '') {
-                if (taskFilterReviewerId === '__unassigned') {
-                    if (task.reviewerId !== null) return false;
-                } else if (task.reviewerId !== Number(taskFilterReviewerId)) {
-                    return false;
-                }
-            }
-            if (taskFilterDueMode !== '') {
-                if (!task.dueDate) return false;
-                const due = new Date(`${task.dueDate}T00:00:00`).getTime();
-                if (Number.isNaN(due)) return false;
-                if (taskFilterDueMode === 'date') {
-                    if (taskFilterDueDate === '' || task.dueDate !== taskFilterDueDate) return false;
-                } else if (dueLimitDays !== null) {
-                    const diffDays = Math.floor((due - todayStart) / 86400000);
-                    if (diffDays < 0 || diffDays > dueLimitDays) return false;
-                }
-            }
-            if (!q) return true;
-            const code =
-                `TASK-${String(project.id).padStart(4, '0')}-${String(task.id).padStart(3, '0')}`.toLowerCase();
-            const blob = [
-                task.title,
-                task.description ?? '',
-                task.assignee ?? '',
-                task.reviewer ?? '',
-                taskTypeLabel[task.taskType],
-                priorityLabel[task.priority],
-                taskStatusLabel[task.status],
-                task.dueDate ?? '',
-                code,
-                String(task.id),
-                task.estimatedDays != null ? String(task.estimatedDays) : '',
-                String(task.actualDays ?? ''),
-            ]
-                .join('\u0000')
-                .toLowerCase();
-            return blob.includes(q);
-        });
-    }, [
-        project.tasks,
-        project.id,
-        taskFilterKeyword,
-        taskFilterType,
-        taskFilterPriority,
-        taskFilterStatus,
-        taskFilterAssigneeId,
-        taskFilterReviewerId,
-        taskFilterDueMode,
-        taskFilterDueDate,
-    ]);
     const sortedTasks = useMemo(() => {
         if (taskSort.key === null) {
             return filteredTasks;
@@ -1310,119 +1236,17 @@ export default function ProjectsShow({
                                             </Button>
                                         </div>
                                     </div>
-                                    <div className="space-y-2 border-b border-brand-border bg-brand-bg/30 px-4 py-2 sm:px-6">
-                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-                                            <div className="relative w-full min-w-[12rem] max-w-md flex-[1_1_14rem]">
-                                                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-muted" />
-                                                <Input
-                                                    type="search"
-                                                    value={taskFilterKeyword}
-                                                    onChange={(event) => setTaskFilterKeyword(event.target.value)}
-                                                    placeholder="キーワード（タイトル・説明・担当など）"
-                                                    className="h-8 border-brand-border bg-white py-1 pl-8 pr-2 text-xs placeholder:text-[11px]"
-                                                    aria-label="タスクキーワード検索"
-                                                />
-                                            </div>
-                                            <select
-                                                value={taskFilterType}
-                                                onChange={(event) => setTaskFilterType(event.target.value)}
-                                                className="h-8 min-w-[7.25rem] shrink-0 rounded-md border border-brand-border bg-white px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                                                aria-label="種類で絞り込み"
-                                            >
-                                                <option value="">種類：すべて</option>
-                                                <option value="task">タスク</option>
-                                                <option value="feature">機能追加</option>
-                                                <option value="improvement">改善</option>
-                                                <option value="bug">バグ</option>
-                                            </select>
-                                            <select
-                                                value={taskFilterPriority}
-                                                onChange={(event) => setTaskFilterPriority(event.target.value)}
-                                                className="h-8 min-w-[7.25rem] shrink-0 rounded-md border border-brand-border bg-white px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                                                aria-label="優先度で絞り込み"
-                                            >
-                                                <option value="">優先度：すべて</option>
-                                                <option value="high">高</option>
-                                                <option value="medium">中</option>
-                                                <option value="low">低</option>
-                                            </select>
-                                            <select
-                                                value={taskFilterStatus}
-                                                onChange={(event) => setTaskFilterStatus(event.target.value)}
-                                                className="h-8 min-w-[8.5rem] shrink-0 rounded-md border border-brand-border bg-white px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                                                aria-label="ステータスで絞り込み"
-                                            >
-                                                <option value="">ステータス：すべて</option>
-                                                <option value="open">未着手</option>
-                                                <option value="in_progress">進行中</option>
-                                                <option value="resolved">確認待ち</option>
-                                                <option value="closed">完了</option>
-                                            </select>
-                                            <select
-                                                value={taskFilterAssigneeId}
-                                                onChange={(event) => setTaskFilterAssigneeId(event.target.value)}
-                                                className="h-8 min-w-[8.5rem] shrink-0 rounded-md border border-brand-border bg-white px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                                                aria-label="担当で絞り込み"
-                                            >
-                                                <option value="">担当：すべて</option>
-                                                <option value="__unassigned">未割当</option>
-                                                {taskAssignees.map((u) => (
-                                                    <option key={u.id} value={String(u.id)}>
-                                                        {u.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <select
-                                                value={taskFilterReviewerId}
-                                                onChange={(event) => setTaskFilterReviewerId(event.target.value)}
-                                                className="h-8 min-w-[8.5rem] shrink-0 rounded-md border border-brand-border bg-white px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                                                aria-label="確認者で絞り込み"
-                                            >
-                                                <option value="">確認者：すべて</option>
-                                                <option value="__unassigned">未設定</option>
-                                                {taskReviewers.map((u) => (
-                                                    <option key={u.id} value={String(u.id)}>
-                                                        {u.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <select
-                                                value={taskFilterDueMode}
-                                                onChange={(event) => setTaskFilterDueMode(event.target.value)}
-                                                className="h-8 min-w-[9rem] shrink-0 rounded-md border border-brand-border bg-white px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                                                aria-label="期日で絞り込み"
-                                            >
-                                                <option value="">期日：すべて</option>
-                                                <option value="3">期日：3日以内</option>
-                                                <option value="7">期日：7日以内</option>
-                                                <option value="date">期日：日付指定</option>
-                                            </select>
-                                            {taskFilterDueMode === 'date' && (
-                                                <Input
-                                                    type="date"
-                                                    value={taskFilterDueDate}
-                                                    onChange={(event) => setTaskFilterDueDate(event.target.value)}
-                                                    className="h-8 min-w-[10rem] shrink-0 border-brand-border bg-white px-2 py-1 text-xs"
-                                                    aria-label="期日の日付指定"
-                                                />
-                                            )}
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 shrink-0 px-2.5 text-xs"
-                                                onClick={clearTaskFilters}
-                                                disabled={!taskFiltersActive}
-                                            >
-                                                クリア
-                                            </Button>
-                                        </div>
-                                        {sortedTasks.length === 0 && (
-                                            <p className="text-xs text-brand-muted">
-                                                条件に一致するタスクはありません。
-                                            </p>
-                                        )}
-                                    </div>
+                                    <TaskFilterBar
+                                        className="space-y-2 border-b border-brand-border bg-brand-bg/30 px-4 py-2 sm:px-6"
+                                        filters={taskFilters}
+                                        onChange={(patch) =>
+                                            setTaskFilters((prev) => ({ ...prev, ...patch }))
+                                        }
+                                        onClear={() => setTaskFilters(emptyProjectTaskFilters())}
+                                        assignees={taskAssignees}
+                                        reviewers={taskReviewers}
+                                        showEmptyMessage={sortedTasks.length === 0}
+                                    />
                                     {tasksViewMode === 'list' && sortedTasks.length > 0 ? (
                                         <>
                                             <p className="mb-2 px-4 text-xs text-brand-muted sm:px-6">

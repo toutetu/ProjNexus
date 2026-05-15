@@ -449,19 +449,19 @@ interface ViewToggleProps {
 - URLクエリ `?view=` と同期（`router.get(..., { replace: true, preserveState: true })`）
 - 初期値はロール依存（applicant=board / dept_manager・hq_manager=members）。**本部はタスク閲覧のみ**（方針・`implementation_schedule.md` §3 マスト #9）
 
-### MemberTasksFilterBar（S-14 共通）
-**役割**: S-14 の3ビュー共通フィルタ行。
-**実装位置（現状）**: `resources/js/Pages/MemberTasks/Index.tsx`（ページ内実装）
-**将来配置（推奨）**: `resources/js/Components/MemberTasks/FilterBar.tsx`
+### TaskFilterBar（S-04 / S-14 共通）
+**役割**: 案件詳細タスクタブ（S-04）とタスク一覧（S-14）の共通フィルタ行。
+**実装**: `resources/js/Components/ProjectTasks/TaskFilterBar.tsx`  
+**ロジック**: `resources/js/lib/projectTaskFilters.ts`（S-04 はクライアント、`MemberTaskController` はサーバ）
 
-**フィールド（実装準拠）**:
-- キーワード（`keyword`）: `キーワード（タイトル・説明・担当など）`
-- 部門（`department_id`）: HQは選択必須、部門管理者/申請者は固定
-- 担当者（`assignee_id`）
+**フィールド**:
+- キーワード / 種類 / 優先度 / ステータス / 担当（`__unassigned` 可）/ 確認者（`__unassigned` 可）
+- 期日: すべて / 期限超過 / 今週中 / 今月中 / 期日未設定 / 期日指定（`date` + 日付 input）
+- クリア（無効時はグレー）
+
+**S-14 追加入力**（`leadingExtras` / `trailingExtras`）:
+- 部門（`department_id`）: HQは選択必須、他ロールは固定
 - 案件（`project_id`）
-- 優先度（`priority`: all/high/medium/low）
-- 期日（`due`: all/overdue/soon/week/month/unset）
-- クリア
 
 **キーワード対象（サーバ実装）**:
 - `ProjectWorkItem.title`

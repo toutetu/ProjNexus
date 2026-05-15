@@ -1,13 +1,19 @@
 import { Head, router } from '@inertiajs/react';
-import { AlertCircle, GitBranch, Search } from 'lucide-react';
+import { AlertCircle, GitBranch } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import KanbanBoard from '@/Components/MemberTasks/KanbanBoard';
 import MemberMatrix from '@/Components/MemberTasks/MemberMatrix';
 import ViewToggle, { type ViewMode } from '@/Components/MemberTasks/ViewToggle';
 import ProjectTaskDialog, { type TaskListItem } from '@/Components/Modals/ProjectTaskDialog';
-import { Input } from '@/Components/ui/input';
+import TaskFilterBar from '@/Components/ProjectTasks/TaskFilterBar';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import {
+    memberTaskFilterPatchToQuery,
+    memberTaskFiltersFromServer,
+    memberTaskFiltersToQuery,
+    type MemberTasksServerFilters,
+} from '@/lib/memberTaskFilterQuery';
 import { buildMemberTasksReturnTo } from '@/lib/memberTasksReturnTo';
 import type { MemberTaskItem } from '@/types/memberTasks';
 
@@ -57,13 +63,7 @@ interface Props {
     memberCount: number;
     taskTotalCount: number;
     needsDepartmentSelection: boolean;
-    filters: {
-        keyword: string;
-        assignee_id: number | null;
-        project_id: number | null;
-        priority: string;
-        due: string;
-    };
+    filters: MemberTasksServerFilters;
     sort: string;
     kpis: Kpis | null;
     tasks: MemberTaskItem[];
@@ -162,32 +162,33 @@ export default function MemberTasksIndex({
     const [boardTasks, setBoardTasks] = useState<MemberTaskItem[]>(tasks);
     const [movingTaskId, setMovingTaskId] = useState<number | null>(null);
 
+    const taskFilterValues = useMemo(
+        () => memberTaskFiltersFromServer(filters),
+        [filters],
+    );
+
+    const reviewersForDept = useMemo(() => {
+        const map = new Map<number, string>();
+        for (const task of tasks) {
+            if (task.reviewerId == null || !task.reviewer) continue;
+            map.set(task.reviewerId, task.reviewer);
+        }
+        return Array.from(map.entries())
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    }, [tasks]);
+
     const queryParams = useMemo(() => {
-        const q: Record<string, string | number> = { view };
+        const q: Record<string, string | number> = { view, ...memberTaskFiltersToQuery(taskFilterValues, filters.project_id) };
         if (departmentId !== null) {
             q.department_id = departmentId;
-        }
-        if (filters.assignee_id !== null) {
-            q.assignee_id = filters.assignee_id;
-        }
-        if (filters.keyword.trim() !== '') {
-            q.keyword = filters.keyword.trim();
-        }
-        if (filters.project_id !== null) {
-            q.project_id = filters.project_id;
-        }
-        if (filters.priority !== 'all') {
-            q.priority = filters.priority;
-        }
-        if (filters.due !== 'all') {
-            q.due = filters.due;
         }
         if (view === 'members') {
             q.sort = sort;
         }
 
         return q;
-    }, [view, departmentId, filters, sort]);
+    }, [view, departmentId, filters.project_id, taskFilterValues, sort]);
 
     const navigate = useCallback(
         (patch: Partial<Record<string, string | number | undefined | null>>) => {
@@ -294,128 +295,89 @@ export default function MemberTasksIndex({
                     </div>
                 </div>
 
-                <div className="mb-5 space-y-2 rounded-lg border border-brand-border bg-white p-4">
-                    <div className="relative w-full min-w-[12rem] max-w-md">
-                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-muted" />
-                        <Input
-                            type="search"
-                            value={filters.keyword}
-                            onChange={(e) => navigate({ keyword: e.target.value })}
-                            placeholder="キーワード（タイトル・説明・担当など）"
-                            className="h-8 border-brand-border bg-white py-1 pl-8 pr-2 text-xs placeholder:text-[11px]"
-                            aria-label="タスクキーワード検索"
-                        />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                    {rolesMeta.isHqManager && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-brand-muted">部門</span>
+                <div className="mb-5 space-y-2 rounded-lg border border-brand-border bg-brand-bg/30 p-4">
+                    <TaskFilterBar
+                        filters={taskFilterValues}
+                        onChange={(patch) => navigate(memberTaskFilterPatchToQuery(patch))}
+                        onClear={() =>
+                            navigate({
+                                keyword: '',
+                                task_type: '',
+                                status: '',
+                                assignee_id: null,
+                                reviewer_id: null,
+                                project_id: null,
+                                priority: '',
+                                due: '',
+                                due_date: '',
+                            })
+                        }
+                        assignees={assigneesForDept}
+                        reviewers={reviewersForDept}
+                        leadingExtras={
+                            <>
+                                {rolesMeta.isHqManager ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-brand-muted">部門</span>
+                                        <select
+                                            value={departmentId ?? ''}
+                                            onChange={(e) =>
+                                                navigate({
+                                                    department_id:
+                                                        e.target.value === ''
+                                                            ? null
+                                                            : Number(e.target.value),
+                                                })
+                                            }
+                                            className="h-8 shrink-0 rounded-md border border-brand-border bg-white px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                        >
+                                            <option value="">選択してください</option>
+                                            {departments.map((d) => (
+                                                <option key={d.id} value={d.id}>
+                                                    {d.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-brand-muted">部門</span>
+                                        <select
+                                            disabled
+                                            value={departmentId ?? ''}
+                                            className="h-8 shrink-0 cursor-not-allowed rounded-md border border-brand-border bg-gray-50 px-2 py-0 pr-7 text-xs text-brand-muted"
+                                        >
+                                            <option>{departmentName ?? '—'}</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </>
+                        }
+                        trailingExtras={
                             <select
-                                value={departmentId ?? ''}
+                                value={filters.project_id ?? ''}
                                 onChange={(e) =>
                                     navigate({
-                                        department_id:
-                                            e.target.value === '' ? null : Number(e.target.value),
+                                        project_id:
+                                            e.target.value === ''
+                                                ? null
+                                                : Number(e.target.value),
                                     })
                                 }
-                                className="h-8 rounded-md border border-brand-border px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                className="h-8 min-w-[8.5rem] shrink-0 rounded-md border border-brand-border bg-white px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
+                                aria-label="案件で絞り込み"
                             >
-                                <option value="">選択してください</option>
-                                {departments.map((d) => (
-                                    <option key={d.id} value={d.id}>
-                                        {d.name}
+                                <option value="">案件：すべて</option>
+                                {approvedProjects.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        PRJ-{String(p.id).padStart(4, '0')} {p.title.slice(0, 40)}
+                                        {p.title.length > 40 ? '…' : ''}
                                     </option>
                                 ))}
                             </select>
-                        </div>
-                    )}
-                    {!rolesMeta.isHqManager && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-brand-muted">部門</span>
-                            <select
-                                disabled
-                                value={departmentId ?? ''}
-                                className="h-8 cursor-not-allowed rounded-md border border-brand-border bg-gray-50 px-2 py-0 pr-7 text-xs text-brand-muted"
-                            >
-                                <option>{departmentName ?? '—'}</option>
-                            </select>
-                        </div>
-                    )}
-                    <select
-                        value={filters.assignee_id ?? ''}
-                        onChange={(e) =>
-                            navigate({
-                                assignee_id:
-                                    e.target.value === '' ? undefined : Number(e.target.value),
-                            })
                         }
-                        className="h-8 min-w-[8.5rem] rounded-md border border-brand-border px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                    >
-                        <option value="">担当者：すべて</option>
-                        {assigneesForDept.map((u) => (
-                            <option key={u.id} value={u.id}>
-                                {u.name}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        value={filters.project_id ?? ''}
-                        onChange={(e) =>
-                            navigate({
-                                project_id:
-                                    e.target.value === '' ? undefined : Number(e.target.value),
-                            })
-                        }
-                        className="h-8 min-w-[8.5rem] rounded-md border border-brand-border px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                    >
-                        <option value="">案件：すべて</option>
-                        {approvedProjects.map((p) => (
-                            <option key={p.id} value={p.id}>
-                                PRJ-{String(p.id).padStart(4, '0')} {p.title.slice(0, 40)}
-                                {p.title.length > 40 ? '…' : ''}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        value={filters.priority}
-                        onChange={(e) => navigate({ priority: e.target.value })}
-                        className="h-8 min-w-[7.25rem] rounded-md border border-brand-border px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                    >
-                        <option value="all">優先度：すべて</option>
-                        <option value="high">高</option>
-                        <option value="medium">中</option>
-                        <option value="low">低</option>
-                    </select>
-                    <select
-                        value={filters.due}
-                        onChange={(e) => navigate({ due: e.target.value })}
-                        className="h-8 min-w-[9rem] rounded-md border border-brand-border px-2 py-0 pr-7 text-xs text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
-                    >
-                        <option value="all">期日：すべて</option>
-                        <option value="overdue">期限超過</option>
-                        <option value="soon">3日以内（早期警告）</option>
-                        <option value="week">今週中</option>
-                        <option value="month">今月中</option>
-                        <option value="unset">期日未設定</option>
-                    </select>
-                    <button
-                        type="button"
-                        onClick={() =>
-                            navigate({
-                                keyword: '',
-                                assignee_id: null,
-                                project_id: null,
-                                priority: 'all',
-                                due: 'all',
-                            })
-                        }
-                        className="ml-auto h-8 shrink-0 rounded-md border border-brand-red/35 px-2.5 text-xs text-brand-red transition hover:bg-brand-red/5"
-                    >
-                        クリア
-                    </button>
-                    </div>
+                    />
                 </div>
-
                 {needsDepartmentSelection && (
                     <div className="rounded-lg border border-dashed border-amber-400 bg-amber-50 px-6 py-12 text-center text-sm text-amber-900">
                         表示する部門を選択してください。

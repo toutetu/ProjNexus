@@ -84,7 +84,7 @@
 |------|-------------|
 | 案件一覧（タブ） | `/projects?tab=` に `approval` / `dev` / `budget` |
 | 承認待ち（独立画面なし） | `/projects?tab=approval&filter=pending` |
-| タスク一覧 S-14 | `/member-tasks?view=` に `board` / `members` / `list`（初期 view: applicant=`board`、dept_manager・hq_manager=`members`） |
+| タスク一覧 S-14 | `/member-tasks?view=` に `board` / `members` / `list`（初期 view: applicant=`board`、dept_manager・hq_manager=`members`）。共通フィルタ: `keyword`, `task_type`, `status`, `assignee_id`（`__unassigned` 可）, `reviewer_id`, `project_id`, `priority`, `due`（`overdue` / `week` / `month` / `unset` / `date`）, `due_date`（`due=date` 時） |
 | 案件詳細タブ | `/projects/{id}?detailTab=` に `apply` / `tasks` / `budget` / `history`（互換: `overview` ≒ `apply`） |
 | ダッシュボード | `/dashboard` |
 | 案件一覧（運用上のよく使う起点） | `/projects?tab=approval`（ナビ「申請・承認」等。Breeze ログイン直後の既定は `/dashboard`） |

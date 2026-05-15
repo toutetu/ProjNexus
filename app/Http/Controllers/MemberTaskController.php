@@ -6,6 +6,7 @@ use App\Enums\ProjectStatus;
 use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Enums\TaskType;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\ProjectWorkItem;
@@ -73,9 +74,16 @@ class MemberTaskController extends Controller
 
         $serializedTasks = $tasks->map(fn (ProjectWorkItem $task) => $this->serializeTask($task, $user))->values();
 
+        $assigneeFilterRaw = $request->query('assignee_id');
+        $assigneeFilterId = $this->parseAssigneeFilterId($assigneeFilterRaw);
+
         $matrixMembers = $needsDeptPick || $departmentId === null
             ? []
-            : $this->buildMatrixMembers($tasks, $members, $user, $sort);
+            : $this->buildMatrixMembers($tasks, $members, $user, $sort, $assigneeFilterId);
+
+        $displayMemberCount = $assigneeFilterId !== null
+            ? 1
+            : $members->count();
 
         $kpis = $view === 'members' && ! $needsDeptPick && $departmentId !== null
             ? $this->computeKpis($tasks)
@@ -117,20 +125,10 @@ class MemberTaskController extends Controller
             'departmentId' => $departmentId,
             'departmentName' => $departmentName,
             'departments' => $departments,
-            'memberCount' => $members->count(),
+            'memberCount' => $displayMemberCount,
             'taskTotalCount' => $tasks->count(),
             'needsDepartmentSelection' => $needsDeptPick,
-            'filters' => [
-                'keyword' => (string) $request->query('keyword', ''),
-                'assignee_id' => $request->query('assignee_id') !== null && $request->query('assignee_id') !== ''
-                    ? (int) $request->query('assignee_id')
-                    : null,
-                'project_id' => $request->query('project_id') !== null && $request->query('project_id') !== ''
-                    ? (int) $request->query('project_id')
-                    : null,
-                'priority' => $request->query('priority', 'all'),
-                'due' => $request->query('due', 'all'),
-            ],
+            'filters' => $this->resolveFilterProps($request),
             'sort' => $sort,
             'kpis' => $kpis,
             'tasks' => $serializedTasks,
@@ -277,8 +275,17 @@ class MemberTaskController extends Controller
         // 閲覧範囲は ProjectWorkItemPolicy::view（同部門承認済みは閲覧可）と整合。更新可否は canUpdate / Policy で分離。
 
         $assigneeFilter = $request->query('assignee_id');
-        if ($assigneeFilter !== null && $assigneeFilter !== '') {
+        if ($assigneeFilter === '__unassigned') {
+            $q->whereNull('assignee_id');
+        } elseif ($assigneeFilter !== null && $assigneeFilter !== '') {
             $q->where('assignee_id', (int) $assigneeFilter);
+        }
+
+        $reviewerFilter = $request->query('reviewer_id');
+        if ($reviewerFilter === '__unassigned') {
+            $q->whereNull('reviewer_id');
+        } elseif ($reviewerFilter !== null && $reviewerFilter !== '') {
+            $q->where('reviewer_id', (int) $reviewerFilter);
         }
 
         $projectFilter = $request->query('project_id');
@@ -286,8 +293,18 @@ class MemberTaskController extends Controller
             $q->where('project_id', (int) $projectFilter);
         }
 
-        $priorityFilter = $request->query('priority', 'all');
-        if (in_array($priorityFilter, TaskPriority::values(), true)) {
+        $taskTypeFilter = $request->query('task_type');
+        if (is_string($taskTypeFilter) && in_array($taskTypeFilter, TaskType::values(), true)) {
+            $q->where('task_type', $taskTypeFilter);
+        }
+
+        $statusFilter = $request->query('status');
+        if (is_string($statusFilter) && in_array($statusFilter, TaskStatus::values(), true)) {
+            $q->where('status', $statusFilter);
+        }
+
+        $priorityFilter = $request->query('priority');
+        if (is_string($priorityFilter) && in_array($priorityFilter, TaskPriority::values(), true)) {
             $q->where('priority', $priorityFilter);
         }
 
@@ -310,23 +327,22 @@ class MemberTaskController extends Controller
             });
         }
 
-        $dueFilter = $request->query('due', 'all');
+        $dueFilter = $request->query('due');
         $today = Carbon::today();
-        match ($dueFilter) {
-            'overdue' => $q->whereNotNull('due_date')
-                ->whereDate('due_date', '<', $today)
-                ->where('status', '!=', TaskStatus::Closed),
-            'soon' => $q->whereNotNull('due_date')
-                ->whereDate('due_date', '>=', $today)
-                ->whereDate('due_date', '<=', $today->copy()->addDays(3))
-                ->where('status', '!=', TaskStatus::Closed),
-            'week' => $q->whereNotNull('due_date')
-                ->whereBetween('due_date', [$today->copy()->startOfWeek(), $today->copy()->endOfWeek()]),
-            'month' => $q->whereNotNull('due_date')
-                ->whereBetween('due_date', [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()]),
-            'unset' => $q->whereNull('due_date'),
-            default => null,
-        };
+        if (is_string($dueFilter) && $dueFilter !== '') {
+            match ($dueFilter) {
+                'overdue' => $q->whereNotNull('due_date')
+                    ->whereDate('due_date', '<', $today)
+                    ->where('status', '!=', TaskStatus::Closed),
+                'week' => $q->whereNotNull('due_date')
+                    ->whereBetween('due_date', [$today->copy()->startOfWeek(), $today->copy()->endOfWeek()]),
+                'month' => $q->whereNotNull('due_date')
+                    ->whereBetween('due_date', [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()]),
+                'unset' => $q->whereNull('due_date'),
+                'date' => $this->applyDueDateFilter($q, $request->query('due_date')),
+                default => null,
+            };
+        }
 
         return $q->orderByDesc('updated_at');
     }
@@ -369,15 +385,81 @@ class MemberTaskController extends Controller
      * @param  Collection<int, User>  $members
      * @return list<array<string, mixed>>
      */
+    private function parseAssigneeFilterId(mixed $raw): ?int
+    {
+        if ($raw === null || $raw === '' || $raw === '__unassigned') {
+            return null;
+        }
+
+        return (int) $raw;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveFilterProps(Request $request): array
+    {
+        $assigneeRaw = $request->query('assignee_id');
+        $assigneeId = null;
+        if ($assigneeRaw === '__unassigned') {
+            $assigneeId = null;
+        } elseif ($assigneeRaw !== null && $assigneeRaw !== '') {
+            $assigneeId = (int) $assigneeRaw;
+        }
+
+        $reviewerRaw = $request->query('reviewer_id');
+        $reviewerId = null;
+        if ($reviewerRaw === '__unassigned') {
+            $reviewerId = '__unassigned';
+        } elseif ($reviewerRaw !== null && $reviewerRaw !== '') {
+            $reviewerId = (string) (int) $reviewerRaw;
+        }
+
+        return [
+            'keyword' => (string) $request->query('keyword', ''),
+            'task_type' => (string) $request->query('task_type', ''),
+            'status' => (string) $request->query('status', ''),
+            'assignee_id' => $assigneeId,
+            'assignee_unassigned' => $assigneeRaw === '__unassigned',
+            'reviewer_id' => $reviewerId,
+            'project_id' => $request->query('project_id') !== null && $request->query('project_id') !== ''
+                ? (int) $request->query('project_id')
+                : null,
+            'priority' => (string) $request->query('priority', ''),
+            'due' => (string) $request->query('due', ''),
+            'due_date' => (string) $request->query('due_date', ''),
+        ];
+    }
+
+    private function applyDueDateFilter(Builder $q, mixed $dueDate): void
+    {
+        if (! is_string($dueDate) || $dueDate === '') {
+            return;
+        }
+
+        try {
+            $parsed = Carbon::parse($dueDate)->toDateString();
+        } catch (\Throwable) {
+            return;
+        }
+
+        $q->whereDate('due_date', $parsed);
+    }
+
     private function buildMatrixMembers(
         Collection $tasks,
         Collection $members,
         User $viewer,
         string $sort,
+        ?int $assigneeFilterId = null,
     ): array {
         $today = Carbon::today();
 
-        $rows = $members->map(function (User $member) use ($tasks, $viewer, $today): array {
+        $scopedMembers = $assigneeFilterId !== null
+            ? $members->where('id', $assigneeFilterId)->values()
+            : $members;
+
+        $rows = $scopedMembers->map(function (User $member) use ($tasks, $viewer, $today): array {
             $memberTasks = $tasks->where('assignee_id', $member->id)->values();
 
             $activeTasks = $memberTasks->filter(static fn (ProjectWorkItem $t) => $t->status !== TaskStatus::Closed);
