@@ -31,12 +31,7 @@
 
 > **ログインID = 下表のメールアドレス／パスワード = `password`（全 10 アカウント共通）**
 
-**正本**: `database/seeders/UserSeeder.php`。`database/seeders/DatabaseSeeder.php` では `DepartmentSeeder` → `RolePermissionSeeder` → **`UserSeeder`** の順で呼ばれる。メール・氏名・所属・ロールの変更があればシーダーを先に直し、下表を追随する。
 
-- **パスワード（再掲）**: 下表の **全 10 アカウント** で共通 **`password`**（`UserSeeder` 内の各 `User::updateOrCreate` で `Hash::make('password')`）。
-- **部門**: `DepartmentSeeder` が `name` として投入する **`本部`**（`type` = 本部）と **`開発1部` / `開発2部` / `開発3部`**（いずれも部門タイプ）。`UserSeeder` は `Department::where(...)` で上記名のレコードを参照して `department_id` を付与する。
-- **ロール**: `syncRoles` に渡るのは `App\Enums\Role` の値（**`applicant`** / **`dept_manager`** / **`hq_manager`**）。画面表示は「申請者」「部門管理者」「本部管理者」に相当。
-- **投入ブロック**（`UserSeeder::run` とコメント一致）: 開発1部に申請者 4 名＋部門管理者 1 名、本部に本部管理者 1 名、続けて「他部門の検証用」として開発2部・開発3部に計 4 名。
 
 ### 2.1 テストアカウント、全アカウント一覧（`UserSeeder::run` 投入分・計 10 件）
 
@@ -52,6 +47,12 @@
 | 8 | `dept2@example.com` | 部門 慎二 | `dept_manager` | 開発2部 | 同上 |
 | 9 | `applicant3@example.com` | 申請 三郎 | `applicant` | 開発3部 | 同上 |
 | 10 | `dept3@example.com` | 部門 由美 | `dept_manager` | 開発3部 | 同上 |
+
+**正本**: `database/seeders/UserSeeder.php`。`database/seeders/DatabaseSeeder.php` では `DepartmentSeeder` → `RolePermissionSeeder` → **`UserSeeder`** の順で呼ばれる。メール・氏名・所属・ロールの変更があればシーダーを先に直し、下表を追随する。
+- **部門**: `DepartmentSeeder` が `name` として投入する **`本部`**（`type` = 本部）と **`開発1部` / `開発2部` / `開発3部`**（いずれも部門タイプ）。`UserSeeder` は `Department::where(...)` で上記名のレコードを参照して `department_id` を付与する。
+- **ロール**: `syncRoles` に渡るのは `App\Enums\Role` の値（**`applicant`** / **`dept_manager`** / **`hq_manager`**）。画面表示は「申請者」「部門管理者」「本部管理者」に相当。
+- **投入ブロック**（`UserSeeder::run` とコメント一致）: 開発1部に申請者 4 名＋部門管理者 1 名、本部に本部管理者 1 名、続けて「他部門の検証用」として開発2部・開発3部に計 4 名。
+- **パスワード（再掲）**: 下表の **全 10 アカウント** で共通 **`password`**（`UserSeeder` 内の各 `User::updateOrCreate` で `Hash::make('password')`）。
 
 ### 2.2 分類メモ（上表の読み方）
 
