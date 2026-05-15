@@ -18,287 +18,156 @@ use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
 /**
- * S-14 モック（s14b_member_tasks_toggle.html）に近い案件・タスク・通知のデモデータ。
+ * デモ用ワークロードシーダー。
+ *
+ * 担当範囲（`materials/Design/seed_scenarios.md` 準拠）：
+ *  - PRJ-DEMO-* の承認済案件 3 件（EAM / DASH / AUTH）の維持
+ *  - 全承認済案件（PRJ-SEED-* + PRJ-DEMO-*）に対するタスク投入
+ *    - T-01〜T-14 のシナリオを各案件で網羅
+ *    - 全ユーザー 10 名を担当者・確認者として巡回割当
+ *  - 通知 N-01〜N-09 を 9 タイプ × 未読/既読 × 全ユーザー網羅で投入
  */
 class DemoWorkloadSeeder extends Seeder
 {
+    /** @var array<string, User> */
+    private array $users = [];
+
+    /** @var array<int, User> 巡回割当用の順序付きリスト */
+    private array $userCycle = [];
+
+    private Carbon $base;
+
+    private Carbon $today;
+
     public function run(): void
     {
-        $hq = User::where('email', 'hq@example.com')->firstOrFail();
-        $natsume = User::where('email', 'dept@example.com')->firstOrFail();
-        $takahashi = User::where('email', 'applicant@example.com')->firstOrFail();
-        $sato = User::where('email', 'applicant-dev1-02@example.com')->firstOrFail();
-        $inoue = User::where('email', 'applicant-dev1-03@example.com')->firstOrFail();
-        $suzuki = User::where('email', 'applicant-dev1-04@example.com')->firstOrFail();
+        $this->loadUsers();
+        $this->base = Carbon::now()->subDays(14);
+        $this->today = Carbon::today();
 
-        $base = Carbon::now()->subDays(14);
+        $this->seedDemoProjects();
 
-        $prEam = $this->seedApprovedProject(
+        // タスクと通知は本シーダーが全権で管理する。既存データを全削除して再投入。
+        ProjectWorkItem::query()->delete();
+        Notification::query()->delete();
+
+        $this->seedTasksForApprovedProjects();
+        $this->seedNotifications();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // ユーザーのロード
+    // ─────────────────────────────────────────────────────────────
+    private function loadUsers(): void
+    {
+        $emails = [
+            'hq' => 'hq@example.com',
+            'takahashi' => 'applicant@example.com',
+            'sato' => 'applicant-dev1-02@example.com',
+            'inoue' => 'applicant-dev1-03@example.com',
+            'suzuki' => 'applicant-dev1-04@example.com',
+            'natsume' => 'dept@example.com',
+            'jiro' => 'applicant2@example.com',
+            'shinji' => 'dept2@example.com',
+            'saburo' => 'applicant3@example.com',
+            'yumi' => 'dept3@example.com',
+        ];
+
+        foreach ($emails as $alias => $email) {
+            $this->users[$alias] = User::where('email', $email)->firstOrFail();
+        }
+
+        // 巡回用：開発1部・開発2部・開発3部・本部の順で 10 名
+        $this->userCycle = [
+            $this->users['takahashi'],
+            $this->users['sato'],
+            $this->users['inoue'],
+            $this->users['suzuki'],
+            $this->users['natsume'],
+            $this->users['jiro'],
+            $this->users['shinji'],
+            $this->users['saburo'],
+            $this->users['yumi'],
+            $this->users['hq'],
+        ];
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // PRJ-DEMO-* の承認済案件（3 件）
+    // ─────────────────────────────────────────────────────────────
+    private function seedDemoProjects(): void
+    {
+        $this->seedApprovedDemoProject(
             code: 'PRJ-DEMO-EAM',
             attrs: [
-                'title' => '次世代EAMシステム開発',
+                'title' => '次世代 EAM システム開発',
                 'purpose' => '承認ワークフローと資産管理の統合',
                 'description' => 'モック PRJ-0042 相当の承認済み案件。',
-                'applicant_id' => $takahashi->id,
-                'department_id' => $takahashi->department_id,
-                'primary_assignee_id' => $takahashi->id,
+                'applicant_id' => $this->users['takahashi']->id,
+                'department_id' => $this->users['takahashi']->department_id,
+                'primary_assignee_id' => $this->users['takahashi']->id,
                 'estimated_amount' => 12_000_000,
                 'estimated_days' => 120,
                 'budget_amount' => 11_500_000,
                 'actual_amount' => 4_200_000,
-                'submitted_at' => $base->copy()->addDay(),
-                'approved_at' => $base->copy()->addDays(3),
+                'submitted_at' => $this->base->copy()->addDay(),
+                'approved_at' => $this->base->copy()->addDays(3),
             ],
-            deptApproverId: $natsume->id,
-            hqApproverId: $hq->id,
-            deptActedAt: $base->copy()->addDays(2),
-            hqActedAt: $base->copy()->addDays(3),
+            deptApproverId: $this->users['natsume']->id,
+            hqApproverId: $this->users['hq']->id,
+            deptActedAt: $this->base->copy()->addDays(2),
+            hqActedAt: $this->base->copy()->addDays(3),
         );
 
-        $prDash = $this->seedApprovedProject(
+        $this->seedApprovedDemoProject(
             code: 'PRJ-DEMO-DASH',
             attrs: [
-                'title' => '保全ダッシュボードPoC',
+                'title' => '保全ダッシュボード PoC',
                 'purpose' => '保全指標の可視化',
                 'description' => 'モック PRJ-0045 相当。',
-                'applicant_id' => $sato->id,
-                'department_id' => $sato->department_id,
-                'primary_assignee_id' => $sato->id,
+                'applicant_id' => $this->users['sato']->id,
+                'department_id' => $this->users['sato']->department_id,
+                'primary_assignee_id' => $this->users['sato']->id,
                 'estimated_amount' => 4_500_000,
                 'estimated_days' => 45,
                 'budget_amount' => 4_000_000,
                 'actual_amount' => 1_100_000,
-                'submitted_at' => $base->copy()->addDays(2),
-                'approved_at' => $base->copy()->addDays(5),
+                'submitted_at' => $this->base->copy()->addDays(2),
+                'approved_at' => $this->base->copy()->addDays(5),
             ],
-            deptApproverId: $natsume->id,
-            hqApproverId: $hq->id,
-            deptActedAt: $base->copy()->addDays(4),
-            hqActedAt: $base->copy()->addDays(5),
+            deptApproverId: $this->users['natsume']->id,
+            hqApproverId: $this->users['hq']->id,
+            deptActedAt: $this->base->copy()->addDays(4),
+            hqActedAt: $this->base->copy()->addDays(5),
         );
 
-        $prAuth = $this->seedApprovedProject(
+        $this->seedApprovedDemoProject(
             code: 'PRJ-DEMO-AUTH',
             attrs: [
                 'title' => '認証基盤刷新',
                 'purpose' => 'RoPo の統一と監査性向上',
                 'description' => 'モック PRJ-0048 相当。',
-                'applicant_id' => $inoue->id,
-                'department_id' => $inoue->department_id,
-                'primary_assignee_id' => $inoue->id,
+                'applicant_id' => $this->users['inoue']->id,
+                'department_id' => $this->users['inoue']->department_id,
+                'primary_assignee_id' => $this->users['inoue']->id,
                 'estimated_amount' => 8_800_000,
                 'estimated_days' => 90,
                 'budget_amount' => 8_500_000,
                 'actual_amount' => 2_000_000,
-                'submitted_at' => $base->copy()->addDays(3),
-                'approved_at' => $base->copy()->addDays(6),
+                'submitted_at' => $this->base->copy()->addDays(3),
+                'approved_at' => $this->base->copy()->addDays(6),
             ],
-            deptApproverId: $natsume->id,
-            hqApproverId: $hq->id,
-            deptActedAt: $base->copy()->addDays(5),
-            hqActedAt: $base->copy()->addDays(6),
-        );
-
-        ProjectWorkItem::query()->whereIn('project_id', [$prEam->id, $prDash->id, $prAuth->id])->delete();
-
-        $today = Carbon::today();
-
-        $rows = [
-            // --- open (5) ---
-            [
-                'project_id' => $prEam->id,
-                'title' => 'ログイン後のリダイレクト不具合の修正',
-                'task_type' => TaskType::Bug,
-                'priority' => TaskPriority::High,
-                'status' => TaskStatus::Open,
-                'progress_rate' => 0,
-                'assignee_id' => $takahashi->id,
-                'due_date' => $today->copy()->subDays(3),
-            ],
-            [
-                'project_id' => $prDash->id,
-                'title' => '予算実績入力の動作確認シナリオ作成',
-                'task_type' => TaskType::Task,
-                'priority' => TaskPriority::Medium,
-                'status' => TaskStatus::Open,
-                'progress_rate' => 0,
-                'assignee_id' => $sato->id,
-                'due_date' => $today->copy()->addDays(3),
-            ],
-            [
-                'project_id' => $prEam->id,
-                'title' => 'タスク変更履歴の自動記録（API設計）',
-                'task_type' => TaskType::Feature,
-                'priority' => TaskPriority::Medium,
-                'status' => TaskStatus::Open,
-                'progress_rate' => 0,
-                'assignee_id' => $inoue->id,
-                'due_date' => $today->copy()->addDays(14),
-            ],
-            [
-                'project_id' => $prAuth->id,
-                'title' => 'ER図のレビューコメント反映',
-                'task_type' => TaskType::Improvement,
-                'priority' => TaskPriority::Low,
-                'status' => TaskStatus::Open,
-                'progress_rate' => 0,
-                'assignee_id' => $takahashi->id,
-                'due_date' => $today->copy()->addDays(22),
-            ],
-            [
-                'project_id' => $prEam->id,
-                'title' => '運用マニュアル草案作成',
-                'task_type' => TaskType::Task,
-                'priority' => TaskPriority::Low,
-                'status' => TaskStatus::Open,
-                'progress_rate' => 0,
-                'assignee_id' => $natsume->id,
-                'due_date' => null,
-            ],
-            // --- in_progress (4) ---
-            [
-                'project_id' => $prEam->id,
-                'title' => '承認ステッパーUIの大型版実装',
-                'task_type' => TaskType::Feature,
-                'priority' => TaskPriority::High,
-                'status' => TaskStatus::InProgress,
-                'progress_rate' => 70,
-                'assignee_id' => $takahashi->id,
-                'due_date' => $today->copy()->subDays(2),
-            ],
-            [
-                'project_id' => $prAuth->id,
-                'title' => '部門管理者ロールでの編集権限の調整',
-                'task_type' => TaskType::Bug,
-                'priority' => TaskPriority::High,
-                'status' => TaskStatus::InProgress,
-                'progress_rate' => 25,
-                'assignee_id' => $inoue->id,
-                'due_date' => $today->copy()->addDays(7),
-            ],
-            [
-                'project_id' => $prDash->id,
-                'title' => 'ダッシュボードのカードレイアウト試作',
-                'task_type' => TaskType::Feature,
-                'priority' => TaskPriority::Low,
-                'status' => TaskStatus::InProgress,
-                'progress_rate' => 50,
-                'assignee_id' => $sato->id,
-                'due_date' => $today->copy()->addDays(10),
-            ],
-            [
-                'project_id' => $prDash->id,
-                'title' => 'インフラコスト試算シート連携',
-                'task_type' => TaskType::Improvement,
-                'priority' => TaskPriority::Medium,
-                'status' => TaskStatus::InProgress,
-                'progress_rate' => 35,
-                'assignee_id' => $suzuki->id,
-                'due_date' => $today->copy()->addDays(20),
-            ],
-            // --- resolved (2) ---
-            [
-                'project_id' => $prDash->id,
-                'title' => 'タスク通知（期限接近）の本番動作確認',
-                'task_type' => TaskType::Task,
-                'priority' => TaskPriority::Medium,
-                'status' => TaskStatus::Resolved,
-                'progress_rate' => 95,
-                'assignee_id' => $sato->id,
-                'due_date' => $today->copy()->addDays(2),
-                'updated_shift' => '-2 days',
-            ],
-            [
-                'project_id' => $prEam->id,
-                'title' => '承認後ロック処理の動作確認',
-                'task_type' => TaskType::Feature,
-                'priority' => TaskPriority::High,
-                'status' => TaskStatus::Resolved,
-                'progress_rate' => 90,
-                'assignee_id' => $takahashi->id,
-                'due_date' => $today->copy()->addDays(5),
-                'updated_shift' => '-3 days',
-            ],
-            // --- closed (3) ---
-            [
-                'project_id' => $prEam->id,
-                'title' => '案件詳細：開発タブ実装',
-                'task_type' => TaskType::Task,
-                'priority' => TaskPriority::High,
-                'status' => TaskStatus::Closed,
-                'progress_rate' => 100,
-                'assignee_id' => $takahashi->id,
-                'due_date' => $today->copy()->addDays(5),
-                'updated_shift' => '-3 days',
-            ],
-            [
-                'project_id' => $prDash->id,
-                'title' => '予算実績入力モーダルの実装',
-                'task_type' => TaskType::Feature,
-                'priority' => TaskPriority::Medium,
-                'status' => TaskStatus::Closed,
-                'progress_rate' => 100,
-                'assignee_id' => $sato->id,
-                'due_date' => $today->copy()->addDays(8),
-                'updated_shift' => '-6 days',
-            ],
-            [
-                'project_id' => $prEam->id,
-                'title' => '通知未読バッジの計算ずれ修正',
-                'task_type' => TaskType::Bug,
-                'priority' => TaskPriority::High,
-                'status' => TaskStatus::Closed,
-                'progress_rate' => 100,
-                'assignee_id' => $inoue->id,
-                'due_date' => $today->copy()->addDays(12),
-                'updated_shift' => '-10 days',
-            ],
-        ];
-
-        foreach ($rows as $spec) {
-            $updatedShift = $spec['updated_shift'] ?? null;
-            unset($spec['updated_shift']);
-
-            $baseEstimate = round(4 + (($spec['project_id'] + strlen((string) $spec['title'])) % 8) * 1.75, 2);
-            $actualDays = match ($spec['status']) {
-                TaskStatus::Closed => round($baseEstimate * 0.92, 2),
-                TaskStatus::Resolved => round($baseEstimate * 0.55, 2),
-                TaskStatus::InProgress => round($baseEstimate * 0.38, 2),
-                default => 0,
-            };
-
-            $task = ProjectWorkItem::query()->create([
-                ...$spec,
-                'estimated_days' => $baseEstimate,
-                'actual_days' => $actualDays,
-                'reviewer_id' => $natsume->id,
-                'created_by' => $natsume->id,
-            ]);
-
-            if ($updatedShift !== null) {
-                $task->timestamps = false;
-                $task->forceFill([
-                    'updated_at' => Carbon::now()->modify($updatedShift),
-                ])->saveQuietly();
-                $task->timestamps = true;
-            }
-        }
-
-        $this->seedNotifications(
-            $hq,
-            $natsume,
-            $takahashi,
-            $sato,
-            $inoue,
-            $prEam,
-            $prDash,
+            deptApproverId: $this->users['natsume']->id,
+            hqApproverId: $this->users['hq']->id,
+            deptActedAt: $this->base->copy()->addDays(5),
+            hqActedAt: $this->base->copy()->addDays(6),
         );
     }
 
     /**
      * @param  array<string, mixed>  $attrs
      */
-    private function seedApprovedProject(
+    private function seedApprovedDemoProject(
         string $code,
         array $attrs,
         int $deptApproverId,
@@ -340,38 +209,508 @@ class DemoWorkloadSeeder extends Seeder
         return $project->fresh();
     }
 
-    private function seedNotifications(
-        User $hq,
-        User $natsume,
-        User $takahashi,
-        User $sato,
-        User $inoue,
-        Project $prEam,
-        Project $prDash,
-    ): void {
-        $now = Carbon::now();
+    // ─────────────────────────────────────────────────────────────
+    // タスク（全承認済案件 × T-01〜T-14 × 全ユーザー巡回）
+    // ─────────────────────────────────────────────────────────────
+    private function seedTasksForApprovedProjects(): void
+    {
+        $projects = Project::query()
+            ->where('status', ProjectStatus::Approved->value)
+            ->orderBy('id')
+            ->get();
 
-        $samples = [
-            [$natsume->id, NotificationType::TaskResolved, 'タスクの確認依頼があります', '案件「'.$prDash->title.'」の確認待ちタスクがあります。', ['project_id' => $prDash->id], null],
-            [$natsume->id, NotificationType::TaskResolved, '確認待ち：承認後ロック', '案件「'.$prEam->title.'」で完了報告が届いています。', ['project_id' => $prEam->id], null],
-            [$takahashi->id, NotificationType::TaskReviewed, 'タスクが確認OKになりました', '確認者によりタスクがクローズされました。', ['project_id' => $prEam->id], $now->copy()->subDay()],
-            [$takahashi->id, NotificationType::TaskAssigned, 'タスクが割り当てられました', '新しいタスクが担当に設定されました。', ['project_id' => $prEam->id], $now->copy()->subDays(2)],
-            [$sato->id, NotificationType::TaskDueSoon, 'タスク期限が近づいています', '期限まであと数日のタスクがあります。', ['project_id' => $prDash->id], null],
-            [$sato->id, NotificationType::TaskCompleted, 'タスクが完了しました', '予算実績入力モーダルの実装が完了しました。', ['project_id' => $prDash->id], $now->copy()->subDays(6)],
-            [$inoue->id, NotificationType::TaskAssigned, 'タスクが割り当てられました', '権限調整タスクが割り当てられました。', ['project_id' => $prEam->id], null],
-            [$inoue->id, NotificationType::TaskDueSoon, 'タスク期限が近づいています', '本日期日のタスクがあります。', ['project_id' => $prEam->id], $now->copy()->subHours(3)],
-            [$hq->id, NotificationType::ProjectApproved, '本部承認が完了しました', 'デモ案件の承認が記録されています。', ['project_id' => $prEam->id], $now->copy()->subDays(8)],
-            [$takahashi->id, NotificationType::ProjectSubmitted, '申請を受け付けました', '案件を申請しました（デモ）。', ['project_id' => $prEam->id], $now->copy()->subDays(12)],
+        $assigneeCursor = 0;
+        $reviewerCursor = 4; // 担当者と確認者がなるべく重ならないようオフセット
+
+        foreach ($projects as $project) {
+            $deptManager = $this->resolveDeptManager($project);
+            $scenarios = $this->taskScenarios($project, $deptManager);
+
+            foreach ($scenarios as $scenario) {
+                $assignee = $scenario['assignee_null']
+                    ? null
+                    : $this->userCycle[$assigneeCursor % count($this->userCycle)];
+
+                $reviewer = $scenario['reviewer_dept_manager']
+                    ? $deptManager
+                    : $this->userCycle[$reviewerCursor % count($this->userCycle)];
+
+                // 担当者と確認者は同一にしない（同一になった場合は確認者を 1 ステップずらす）
+                if ($assignee !== null && $reviewer->id === $assignee->id) {
+                    $reviewer = $this->userCycle[($reviewerCursor + 1) % count($this->userCycle)];
+                }
+
+                $baseEstimate = round(4 + (($project->id + strlen($scenario['title'])) % 8) * 1.75, 2);
+                $actualDays = match ($scenario['status']) {
+                    TaskStatus::Closed => round($baseEstimate * 0.92, 2),
+                    TaskStatus::Resolved => round($baseEstimate * 0.55, 2),
+                    TaskStatus::InProgress => round($baseEstimate * 0.38, 2),
+                    default => 0.0,
+                };
+
+                ProjectWorkItem::query()->create([
+                    'project_id' => $project->id,
+                    'parent_id' => null,
+                    'assignee_id' => $assignee?->id,
+                    'reviewer_id' => $reviewer->id,
+                    'created_by' => $deptManager->id,
+                    'milestone_id' => null,
+                    'title' => $scenario['title'],
+                    'description' => $scenario['description'],
+                    'task_type' => $scenario['task_type'],
+                    'priority' => $scenario['priority'],
+                    'category' => null,
+                    'status' => $scenario['status'],
+                    'progress_rate' => $scenario['progress_rate'],
+                    'estimated_days' => $baseEstimate,
+                    'actual_days' => $actualDays,
+                    'start_date' => $scenario['start_date'],
+                    'due_date' => $scenario['due_date'],
+                ]);
+
+                if (! $scenario['assignee_null']) {
+                    $assigneeCursor++;
+                }
+                $reviewerCursor++;
+            }
+        }
+    }
+
+    /**
+     * 案件の `department_id` から部門管理者を解決。見つからなければ本部管理者を返す。
+     */
+    private function resolveDeptManager(Project $project): User
+    {
+        $deptId = $project->department_id;
+        foreach (['natsume', 'shinji', 'yumi'] as $alias) {
+            if ($this->users[$alias]->department_id === $deptId) {
+                return $this->users[$alias];
+            }
+        }
+
+        return $this->users['hq'];
+    }
+
+    /**
+     * @return list<array{title: string, description: string, task_type: TaskType, priority: TaskPriority, status: TaskStatus, progress_rate: int, start_date: Carbon, due_date: Carbon|null, assignee_null: bool, reviewer_dept_manager: bool}>
+     */
+    private function taskScenarios(Project $project, User $deptManager): array
+    {
+        $t = $this->today;
+        $b = $this->base;
+        $titlePrefix = sprintf('[%s] ', $this->shortProjectLabel($project));
+
+        return [
+            // T-01: 未着手・将来期限
+            [
+                'title' => $titlePrefix.'要件レビュー会の準備',
+                'description' => 'T-01：未着手・将来期限。',
+                'task_type' => TaskType::Task,
+                'priority' => TaskPriority::Medium,
+                'status' => TaskStatus::Open,
+                'progress_rate' => 0,
+                'start_date' => $b->copy(),
+                'due_date' => $t->copy()->addDays(18),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-02: 未着手・期限間近（3日以内）
+            [
+                'title' => $titlePrefix.'仕様レビュー指摘の整理',
+                'description' => 'T-02：未着手・期限間近（期限3日以内）。',
+                'task_type' => TaskType::Task,
+                'priority' => TaskPriority::High,
+                'status' => TaskStatus::Open,
+                'progress_rate' => 0,
+                'start_date' => $b->copy(),
+                'due_date' => $t->copy()->addDays(2),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-03: 未着手・期限超過
+            [
+                'title' => $titlePrefix.'対応漏れのインシデント追跡',
+                'description' => 'T-03：未着手・期限超過（赤色アラート）。',
+                'task_type' => TaskType::Bug,
+                'priority' => TaskPriority::High,
+                'status' => TaskStatus::Open,
+                'progress_rate' => 0,
+                'start_date' => $b->copy(),
+                'due_date' => $t->copy()->subDays(3),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-04: 未着手・期限未設定
+            [
+                'title' => $titlePrefix.'今後の改善アイデア整理',
+                'description' => 'T-04：未着手・期限未設定。',
+                'task_type' => TaskType::Improvement,
+                'priority' => TaskPriority::Low,
+                'status' => TaskStatus::Open,
+                'progress_rate' => 0,
+                'start_date' => $b->copy(),
+                'due_date' => null,
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-05: 進行中・初期段階
+            [
+                'title' => $titlePrefix.'基本設計ドキュメントの作成',
+                'description' => 'T-05：進行中・初期段階。',
+                'task_type' => TaskType::Task,
+                'priority' => TaskPriority::Medium,
+                'status' => TaskStatus::InProgress,
+                'progress_rate' => 22,
+                'start_date' => $b->copy(),
+                'due_date' => $t->copy()->addDays(7),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-06: 進行中・終盤
+            [
+                'title' => $titlePrefix.'結合テスト実施と不具合修正',
+                'description' => 'T-06：進行中・終盤（期限間近）。',
+                'task_type' => TaskType::Feature,
+                'priority' => TaskPriority::High,
+                'status' => TaskStatus::InProgress,
+                'progress_rate' => 75,
+                'start_date' => $b->copy()->subDays(5),
+                'due_date' => $t->copy()->addDays(2),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-07: 進行中・期限超過
+            [
+                'title' => $titlePrefix.'パフォーマンス改善対応',
+                'description' => 'T-07：進行中・期限超過。',
+                'task_type' => TaskType::Improvement,
+                'priority' => TaskPriority::Medium,
+                'status' => TaskStatus::InProgress,
+                'progress_rate' => 50,
+                'start_date' => $b->copy()->subDays(8),
+                'due_date' => $t->copy()->subDays(2),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-08: 確認待ち（resolved）
+            [
+                'title' => $titlePrefix.'機能実装の完了報告（確認待ち）',
+                'description' => 'T-08：確認待ち（実装者の完了報告後・確認者待ち）。',
+                'task_type' => TaskType::Feature,
+                'priority' => TaskPriority::Medium,
+                'status' => TaskStatus::Resolved,
+                'progress_rate' => 95,
+                'start_date' => $b->copy()->subDays(7),
+                'due_date' => $t->copy()->addDays(1),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-09: 完了（closed）
+            [
+                'title' => $titlePrefix.'リリースアナウンス（クローズ済み）',
+                'description' => 'T-09：完了（確認 OK 済み）。',
+                'task_type' => TaskType::Task,
+                'priority' => TaskPriority::Medium,
+                'status' => TaskStatus::Closed,
+                'progress_rate' => 100,
+                'start_date' => $b->copy()->subDays(10),
+                'due_date' => $t->copy()->subDays(5),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-10: 担当者未割当（バックログ）
+            [
+                'title' => $titlePrefix.'バックログ：詳細未確定のタスク',
+                'description' => 'T-10：担当者未割当（バックログ）。',
+                'task_type' => TaskType::Task,
+                'priority' => TaskPriority::Low,
+                'status' => TaskStatus::Open,
+                'progress_rate' => 0,
+                'start_date' => $b->copy(),
+                'due_date' => null,
+                'assignee_null' => true,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-11: 本部承認時自動投入「実装計画作成」（残置）
+            [
+                'title' => $titlePrefix.'実装計画作成（承認時自動投入相当）',
+                'description' => 'T-11：本部承認時に自動投入される初期タスク。',
+                'task_type' => TaskType::Task,
+                'priority' => TaskPriority::Medium,
+                'status' => TaskStatus::InProgress,
+                'progress_rate' => 40,
+                'start_date' => $b->copy(),
+                'due_date' => $t->copy()->addDays(10),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-12: バグ・高優先度
+            [
+                'title' => $titlePrefix.'高優先度バグの調査',
+                'description' => 'T-12：バグ・高優先度。',
+                'task_type' => TaskType::Bug,
+                'priority' => TaskPriority::High,
+                'status' => TaskStatus::InProgress,
+                'progress_rate' => 35,
+                'start_date' => $b->copy(),
+                'due_date' => $t->copy()->addDays(3),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-13: 改善・低優先度・遠い期限
+            [
+                'title' => $titlePrefix.'リファクタリング候補リスト整理',
+                'description' => 'T-13：改善・低優先度・遠い期限。',
+                'task_type' => TaskType::Improvement,
+                'priority' => TaskPriority::Low,
+                'status' => TaskStatus::Open,
+                'progress_rate' => 0,
+                'start_date' => $b->copy(),
+                'due_date' => $t->copy()->addDays(35),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => true,
+            ],
+            // T-14: 機能追加・確認者を巡回（部門管理者以外）
+            [
+                'title' => $titlePrefix.'機能追加：UI 改善対応',
+                'description' => 'T-14：機能追加・確認者は別ユーザーで巡回。',
+                'task_type' => TaskType::Feature,
+                'priority' => TaskPriority::Medium,
+                'status' => TaskStatus::Resolved,
+                'progress_rate' => 90,
+                'start_date' => $b->copy()->subDays(3),
+                'due_date' => $t->copy()->addDays(8),
+                'assignee_null' => false,
+                'reviewer_dept_manager' => false,
+            ],
+        ];
+    }
+
+    private function shortProjectLabel(Project $project): string
+    {
+        return $project->project_code ?: '#'.$project->id;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 通知（N-01〜N-09 × 未読/既読 × 全ユーザー網羅）
+    // ─────────────────────────────────────────────────────────────
+    private function seedNotifications(): void
+    {
+        $approved = Project::query()
+            ->where('status', ProjectStatus::Approved->value)
+            ->orderBy('id')
+            ->get();
+        $rejected = Project::query()
+            ->where('status', ProjectStatus::Rejected->value)
+            ->orderBy('id')
+            ->get();
+        $pendingHq = Project::query()
+            ->where('status', ProjectStatus::PendingHq->value)
+            ->orderBy('id')
+            ->get();
+
+        $now = Carbon::now();
+        $pickApproved = fn (int $i) => $approved[$i % max($approved->count(), 1)] ?? $approved->first();
+        $pickRejected = fn (int $i) => $rejected[$i % max($rejected->count(), 1)] ?? $rejected->first();
+        $pickPendingHq = fn (int $i) => $pendingHq[$i % max($pendingHq->count(), 1)] ?? $pendingHq->first();
+
+        $entries = [
+            // N-01: 申請提出
+            ...$this->buildNotificationPair(
+                type: NotificationType::ProjectSubmitted,
+                title: '申請を受け付けました',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」を申請しました。', $p->title),
+                receiversUnread: ['takahashi', 'jiro'],
+                receiversRead: ['saburo', 'natsume'],
+                projectsUnread: [$pickPendingHq(0), $pickPendingHq(1)],
+                projectsRead: [$pickApproved(0), $pickApproved(1)],
+                readShiftDays: 3,
+                now: $now,
+            ),
+
+            // N-02: 承認完了
+            ...$this->buildNotificationPair(
+                type: NotificationType::ProjectApproved,
+                title: '本部承認が完了しました',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」の本部承認が完了しました。', $p->title),
+                receiversUnread: ['takahashi', 'sato'],
+                receiversRead: ['jiro', 'inoue'],
+                projectsUnread: [$pickApproved(2), $pickApproved(3)],
+                projectsRead: [$pickApproved(4), $pickApproved(5)],
+                readShiftDays: 5,
+                now: $now,
+            ),
+
+            // N-03: 却下
+            ...$this->buildNotificationPair(
+                type: NotificationType::ProjectRejected,
+                title: '案件が却下されました',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」が却下されました。コメントを確認してください。', $p->title),
+                receiversUnread: ['sato', 'jiro'],
+                receiversRead: ['inoue', 'saburo'],
+                projectsUnread: [$pickRejected(0), $pickRejected(1)],
+                projectsRead: [$pickRejected(2), $pickRejected(3)],
+                readShiftDays: 7,
+                now: $now,
+            ),
+
+            // N-04: 取り戻し
+            ...$this->buildNotificationPair(
+                type: NotificationType::ProjectReturned,
+                title: '申請が下書きへ戻されました',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」が申請者により取り戻されました。', $p->title),
+                receiversUnread: ['natsume', 'shinji'],
+                receiversRead: ['yumi', 'hq'],
+                projectsUnread: [$pickPendingHq(0), $pickPendingHq(1)],
+                projectsRead: [$pickApproved(0), $pickApproved(1)],
+                readShiftDays: 4,
+                now: $now,
+            ),
+
+            // N-05: タスク担当割当
+            ...$this->buildNotificationPair(
+                type: NotificationType::TaskAssigned,
+                title: 'タスクが割り当てられました',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」で新しいタスクの担当に設定されました。', $p->title),
+                receiversUnread: ['inoue', 'suzuki'],
+                receiversRead: ['takahashi', 'sato'],
+                projectsUnread: [$pickApproved(0), $pickApproved(1)],
+                projectsRead: [$pickApproved(2), $pickApproved(3)],
+                readShiftDays: 2,
+                now: $now,
+            ),
+
+            // N-06: タスク期限間近
+            ...$this->buildNotificationPair(
+                type: NotificationType::TaskDueSoon,
+                title: 'タスク期限が近づいています',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」のタスクが期限間近です。', $p->title),
+                receiversUnread: ['suzuki', 'takahashi'],
+                receiversRead: ['sato', 'jiro'],
+                projectsUnread: [$pickApproved(4), $pickApproved(5)],
+                projectsRead: [$pickApproved(6), $pickApproved(7)],
+                readShiftDays: 1,
+                now: $now,
+            ),
+
+            // N-07: 確認依頼（resolved）
+            ...$this->buildNotificationPair(
+                type: NotificationType::TaskResolved,
+                title: 'タスクの確認依頼があります',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」で確認待ちのタスクがあります。', $p->title),
+                receiversUnread: ['natsume', 'shinji'],
+                receiversRead: ['yumi', 'natsume'],
+                projectsUnread: [$pickApproved(0), $pickApproved(1)],
+                projectsRead: [$pickApproved(2), $pickApproved(3)],
+                readShiftDays: 3,
+                now: $now,
+            ),
+
+            // N-08: 確認OK
+            ...$this->buildNotificationPair(
+                type: NotificationType::TaskReviewed,
+                title: 'タスクが確認OKになりました',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」のタスクが確認 OK でクローズされました。', $p->title),
+                receiversUnread: ['takahashi', 'inoue'],
+                receiversRead: ['jiro', 'sato'],
+                projectsUnread: [$pickApproved(4), $pickApproved(5)],
+                projectsRead: [$pickApproved(6), $pickApproved(7)],
+                readShiftDays: 6,
+                now: $now,
+            ),
+
+            // N-09: タスク完了（互換）
+            ...$this->buildNotificationPair(
+                type: NotificationType::TaskCompleted,
+                title: 'タスクが完了しました',
+                bodyFor: fn (Project $p) => sprintf('案件「%s」のタスクが完了しました。', $p->title),
+                receiversUnread: ['suzuki', 'saburo'],
+                receiversRead: ['takahashi', 'hq'],
+                projectsUnread: [$pickApproved(8 % max($approved->count(), 1)), $pickApproved(0)],
+                projectsRead: [$pickApproved(1), $pickApproved(2)],
+                readShiftDays: 8,
+                now: $now,
+            ),
         ];
 
-        foreach ($samples as [$userId, $type, $title, $body, $meta, $readAt]) {
-            Notification::query()->create([
-                'user_id' => $userId,
+        // 全ユーザー網羅の保険：全員に最低 1 件の未読を保証
+        $this->topUpUnreadPerUser($pickApproved, $now);
+
+        foreach ($entries as $entry) {
+            Notification::query()->create($entry);
+        }
+    }
+
+    /**
+     * @param  list<string>  $receiversUnread
+     * @param  list<string>  $receiversRead
+     * @param  list<Project>  $projectsUnread
+     * @param  list<Project>  $projectsRead
+     * @return list<array<string, mixed>>
+     */
+    private function buildNotificationPair(
+        NotificationType $type,
+        string $title,
+        \Closure $bodyFor,
+        array $receiversUnread,
+        array $receiversRead,
+        array $projectsUnread,
+        array $projectsRead,
+        int $readShiftDays,
+        Carbon $now,
+    ): array {
+        $entries = [];
+
+        foreach ($receiversUnread as $i => $alias) {
+            $project = $projectsUnread[$i % count($projectsUnread)];
+            if ($project === null) {
+                continue;
+            }
+            $entries[] = [
+                'user_id' => $this->users[$alias]->id,
                 'type' => $type,
                 'title' => $title,
-                'body' => $body,
-                'meta' => $meta,
-                'read_at' => $readAt,
+                'body' => $bodyFor($project),
+                'meta' => ['project_id' => $project->id, 'pattern' => 'A_unread'],
+                'read_at' => null,
+            ];
+        }
+
+        foreach ($receiversRead as $i => $alias) {
+            $project = $projectsRead[$i % count($projectsRead)];
+            if ($project === null) {
+                continue;
+            }
+            $entries[] = [
+                'user_id' => $this->users[$alias]->id,
+                'type' => $type,
+                'title' => $title,
+                'body' => $bodyFor($project),
+                'meta' => ['project_id' => $project->id, 'pattern' => 'B_read'],
+                'read_at' => $now->copy()->subDays($readShiftDays),
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * 全ユーザー網羅の保険：未読通知を一切受け取らないユーザーが出ないよう、追加で未読通知を入れる。
+     */
+    private function topUpUnreadPerUser(\Closure $pickApproved, Carbon $now): void
+    {
+        foreach ($this->userCycle as $i => $user) {
+            $project = $pickApproved($i);
+            if ($project === null) {
+                continue;
+            }
+            Notification::query()->create([
+                'user_id' => $user->id,
+                'type' => NotificationType::TaskAssigned,
+                'title' => 'タスクが割り当てられました',
+                'body' => sprintf('案件「%s」のタスクが新しく割り当てられました。', $project->title),
+                'meta' => ['project_id' => $project->id, 'pattern' => 'top_up_unread'],
+                'read_at' => null,
             ]);
         }
     }
