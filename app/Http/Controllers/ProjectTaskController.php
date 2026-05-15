@@ -11,6 +11,7 @@ use App\Models\ProjectWorkItem;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\TaskHistoryService;
+use App\Support\SafeReturnTo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -234,18 +235,7 @@ class ProjectTaskController extends Controller
 
     private function resolveTaskRedirectUrl(Request $request, Project $project): string
     {
-        $returnTo = $request->input('return_to');
-
-        if (is_string($returnTo) && $returnTo !== '') {
-            $parsed = parse_url($returnTo);
-            $isRelativePath = !isset($parsed['scheme']) && !isset($parsed['host']);
-            $path = $parsed['path'] ?? '';
-            if ($isRelativePath && str_starts_with($path, '/member-tasks')) {
-                return $returnTo;
-            }
-        }
-
-        return route('projects.show', $project);
+        return SafeReturnTo::memberTasksOr($request, route('projects.show', $project));
     }
 
     private function assertStatusTransition(User $user, ProjectWorkItem $task, TaskStatus $newStatus): void

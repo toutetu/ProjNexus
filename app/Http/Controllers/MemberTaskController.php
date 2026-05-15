@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\ProjectWorkItem;
 use App\Models\User;
 use App\Services\TaskHistoryService;
+use App\Support\SafeReturnTo;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -190,17 +191,7 @@ class MemberTaskController extends Controller
 
     private function resolveReturnTo(Request $request): string
     {
-        $returnTo = $request->input('return_to');
-        if (is_string($returnTo) && $returnTo !== '') {
-            $parsed = parse_url($returnTo);
-            $isRelativePath = !isset($parsed['scheme']) && !isset($parsed['host']);
-            $path = $parsed['path'] ?? '';
-            if ($isRelativePath && str_starts_with($path, '/member-tasks')) {
-                return $returnTo;
-            }
-        }
-
-        return route('member-tasks.index');
+        return SafeReturnTo::memberTasksOr($request, route('member-tasks.index'));
     }
 
     private function normalizedProgressRate(TaskStatus $status, int $progressRate): int

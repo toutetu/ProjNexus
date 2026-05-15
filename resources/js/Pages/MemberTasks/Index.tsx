@@ -8,6 +8,7 @@ import ViewToggle, { type ViewMode } from '@/Components/MemberTasks/ViewToggle';
 import ProjectTaskDialog, { type TaskListItem } from '@/Components/Modals/ProjectTaskDialog';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { buildMemberTasksReturnTo } from '@/lib/memberTasksReturnTo';
 import type { MemberTaskItem } from '@/types/memberTasks';
 
 interface DepartmentOption {
@@ -219,7 +220,7 @@ export default function MemberTasksIndex({
         `メンバー${memberCount}名`,
         `全${taskTotalCount}件`,
     ];
-    const memberTasksReturnTo = route('member-tasks.index', queryParams);
+    const memberTasksReturnTo = buildMemberTasksReturnTo(queryParams);
 
     useEffect(() => {
         setBoardTasks(tasks);
