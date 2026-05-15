@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Support\NotificationActionUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,15 +20,27 @@ class NotificationController extends Controller
             ->paginate(20);
 
         $notifications = [
-            'data' => $paginator->getCollection()->map(fn (Notification $notification) => [
-                'id' => $notification->id,
-                'type' => $notification->type->value,
-                'title' => $notification->title,
-                'body' => $notification->body,
-                'meta' => $notification->meta,
-                'readAt' => $notification->read_at?->toIso8601String(),
-                'createdAt' => $notification->created_at->toIso8601String(),
-            ])->values(),
+            'data' => $paginator->getCollection()->map(function (Notification $notification) use ($user) {
+                $actions = NotificationActionUrl::resolveActions(
+                    $user,
+                    $notification->type,
+                    $notification->meta,
+                );
+
+                return [
+                    'id' => $notification->id,
+                    'type' => $notification->type->value,
+                    'title' => $notification->title,
+                    'body' => $notification->body,
+                    'meta' => $notification->meta,
+                    'readAt' => $notification->read_at?->toIso8601String(),
+                    'createdAt' => $notification->created_at->toIso8601String(),
+                    'projectActionHref' => $actions['project']['href'] ?? null,
+                    'projectActionLabel' => $actions['project']['label'] ?? null,
+                    'taskActionHref' => $actions['task']['href'] ?? null,
+                    'taskActionLabel' => $actions['task']['label'] ?? null,
+                ];
+            })->values(),
             'links' => $paginator->linkCollection()->toArray(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),

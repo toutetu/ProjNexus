@@ -14,6 +14,28 @@ interface NotificationItem {
     meta: Record<string, unknown> | null;
     readAt: string | null;
     createdAt: string;
+    projectActionHref: string | null;
+    projectActionLabel: string | null;
+    taskActionHref: string | null;
+    taskActionLabel: string | null;
+}
+
+function NotificationActionLink({
+    href,
+    label,
+}: {
+    href: string;
+    label: string;
+}) {
+    return (
+        <Link
+            href={href}
+            className="inline-flex items-center gap-1 text-sm font-medium text-brand-blue hover:underline"
+        >
+            {label}
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+        </Link>
+    );
 }
 
 interface PaginationLink {
@@ -88,21 +110,6 @@ const notificationTypeBadge = (type: string): NotificationTypeBadgeStyle =>
         className: 'bg-[#E9ECEF] text-[#495057]',
     };
 
-function metaProjectId(meta: Record<string, unknown> | null): number | null {
-    if (!meta) {
-        return null;
-    }
-    const raw = meta.project_id;
-    if (typeof raw === 'number' && !Number.isNaN(raw)) {
-        return raw;
-    }
-    if (typeof raw === 'string') {
-        const parsed = Number.parseInt(raw, 10);
-        return Number.isNaN(parsed) ? null : parsed;
-    }
-    return null;
-}
-
 export default function NotificationsIndex({ notifications }: Props) {
     const { flash } = usePage<PageProps>().props;
 
@@ -150,7 +157,6 @@ export default function NotificationsIndex({ notifications }: Props) {
                     <ul className="divide-y divide-brand-border">
                         {notifications.data.map((item) => {
                             const unread = item.readAt === null;
-                            const projectId = metaProjectId(item.meta);
                             const typeBadge = notificationTypeBadge(item.type);
 
                             return (
@@ -192,15 +198,20 @@ export default function NotificationsIndex({ notifications }: Props) {
                                         {item.body && (
                                             <p className="mt-1 text-sm text-brand-muted">{item.body}</p>
                                         )}
-                                        {projectId !== null && (
-                                            <div className="mt-2">
-                                                <Link
-                                                    href={route('projects.show', projectId)}
-                                                    className="inline-flex items-center gap-1 text-sm font-medium text-brand-blue hover:underline"
-                                                >
-                                                    案件を開く
-                                                    <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                                                </Link>
+                                        {(item.projectActionHref || item.taskActionHref) && (
+                                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                {item.projectActionHref && item.projectActionLabel && (
+                                                    <NotificationActionLink
+                                                        href={item.projectActionHref}
+                                                        label={item.projectActionLabel}
+                                                    />
+                                                )}
+                                                {item.taskActionHref && item.taskActionLabel && (
+                                                    <NotificationActionLink
+                                                        href={item.taskActionHref}
+                                                        label={item.taskActionLabel}
+                                                    />
+                                                )}
                                             </div>
                                         )}
                                     </div>

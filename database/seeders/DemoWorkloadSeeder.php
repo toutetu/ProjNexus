@@ -16,6 +16,8 @@ use App\Models\ProjectWorkItem;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * デモ用ワークロードシーダー。
@@ -496,23 +498,7 @@ class DemoWorkloadSeeder extends Seeder
     // ─────────────────────────────────────────────────────────────
     private function seedNotifications(): void
     {
-        $approved = Project::query()
-            ->where('status', ProjectStatus::Approved->value)
-            ->orderBy('id')
-            ->get();
-        $rejected = Project::query()
-            ->where('status', ProjectStatus::Rejected->value)
-            ->orderBy('id')
-            ->get();
-        $pendingHq = Project::query()
-            ->where('status', ProjectStatus::PendingHq->value)
-            ->orderBy('id')
-            ->get();
-
         $now = Carbon::now();
-        $pickApproved = fn (int $i) => $approved[$i % max($approved->count(), 1)] ?? $approved->first();
-        $pickRejected = fn (int $i) => $rejected[$i % max($rejected->count(), 1)] ?? $rejected->first();
-        $pickPendingHq = fn (int $i) => $pendingHq[$i % max($pendingHq->count(), 1)] ?? $pendingHq->first();
 
         $entries = [
             // N-01: 申請提出
@@ -522,8 +508,8 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」を申請しました。', $p->title),
                 receiversUnread: ['takahashi', 'jiro'],
                 receiversRead: ['saburo', 'natsume'],
-                projectsUnread: [$pickPendingHq(0), $pickPendingHq(1)],
-                projectsRead: [$pickApproved(0), $pickApproved(1)],
+                poolUnread: 'pending_hq',
+                poolRead: 'approved',
                 readShiftDays: 3,
                 now: $now,
             ),
@@ -535,8 +521,8 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」の本部承認が完了しました。', $p->title),
                 receiversUnread: ['takahashi', 'sato'],
                 receiversRead: ['jiro', 'inoue'],
-                projectsUnread: [$pickApproved(2), $pickApproved(3)],
-                projectsRead: [$pickApproved(4), $pickApproved(5)],
+                poolUnread: 'approved',
+                poolRead: 'approved',
                 readShiftDays: 5,
                 now: $now,
             ),
@@ -548,8 +534,8 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」が却下されました。コメントを確認してください。', $p->title),
                 receiversUnread: ['sato', 'jiro'],
                 receiversRead: ['inoue', 'saburo'],
-                projectsUnread: [$pickRejected(0), $pickRejected(1)],
-                projectsRead: [$pickRejected(2), $pickRejected(3)],
+                poolUnread: 'rejected',
+                poolRead: 'rejected',
                 readShiftDays: 7,
                 now: $now,
             ),
@@ -561,8 +547,8 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」が申請者により取り戻されました。', $p->title),
                 receiversUnread: ['natsume', 'shinji'],
                 receiversRead: ['yumi', 'hq'],
-                projectsUnread: [$pickPendingHq(0), $pickPendingHq(1)],
-                projectsRead: [$pickApproved(0), $pickApproved(1)],
+                poolUnread: 'pending_hq',
+                poolRead: 'approved',
                 readShiftDays: 4,
                 now: $now,
             ),
@@ -574,8 +560,9 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」で新しいタスクの担当に設定されました。', $p->title),
                 receiversUnread: ['inoue', 'suzuki'],
                 receiversRead: ['takahashi', 'sato'],
-                projectsUnread: [$pickApproved(0), $pickApproved(1)],
-                projectsRead: [$pickApproved(2), $pickApproved(3)],
+                poolUnread: 'approved',
+                poolRead: 'approved',
+                withTaskMeta: true,
                 readShiftDays: 2,
                 now: $now,
             ),
@@ -587,8 +574,9 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」のタスクが期限間近です。', $p->title),
                 receiversUnread: ['suzuki', 'takahashi'],
                 receiversRead: ['sato', 'jiro'],
-                projectsUnread: [$pickApproved(4), $pickApproved(5)],
-                projectsRead: [$pickApproved(6), $pickApproved(7)],
+                poolUnread: 'approved',
+                poolRead: 'approved',
+                withTaskMeta: true,
                 readShiftDays: 1,
                 now: $now,
             ),
@@ -600,8 +588,9 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」で確認待ちのタスクがあります。', $p->title),
                 receiversUnread: ['natsume', 'shinji'],
                 receiversRead: ['yumi', 'natsume'],
-                projectsUnread: [$pickApproved(0), $pickApproved(1)],
-                projectsRead: [$pickApproved(2), $pickApproved(3)],
+                poolUnread: 'approved',
+                poolRead: 'approved',
+                withTaskMeta: true,
                 readShiftDays: 3,
                 now: $now,
             ),
@@ -613,8 +602,9 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」のタスクが確認 OK でクローズされました。', $p->title),
                 receiversUnread: ['takahashi', 'inoue'],
                 receiversRead: ['jiro', 'sato'],
-                projectsUnread: [$pickApproved(4), $pickApproved(5)],
-                projectsRead: [$pickApproved(6), $pickApproved(7)],
+                poolUnread: 'approved',
+                poolRead: 'approved',
+                withTaskMeta: true,
                 readShiftDays: 6,
                 now: $now,
             ),
@@ -626,15 +616,16 @@ class DemoWorkloadSeeder extends Seeder
                 bodyFor: fn (Project $p) => sprintf('案件「%s」のタスクが完了しました。', $p->title),
                 receiversUnread: ['suzuki', 'saburo'],
                 receiversRead: ['takahashi', 'hq'],
-                projectsUnread: [$pickApproved(8 % max($approved->count(), 1)), $pickApproved(0)],
-                projectsRead: [$pickApproved(1), $pickApproved(2)],
+                poolUnread: 'approved',
+                poolRead: 'approved',
+                withTaskMeta: true,
                 readShiftDays: 8,
                 now: $now,
             ),
         ];
 
         // 全ユーザー網羅の保険：全員に最低 1 件の未読を保証
-        $this->topUpUnreadPerUser($pickApproved, $now);
+        $this->topUpUnreadPerUser($now);
 
         foreach ($entries as $entry) {
             Notification::query()->create($entry);
@@ -644,8 +635,6 @@ class DemoWorkloadSeeder extends Seeder
     /**
      * @param  list<string>  $receiversUnread
      * @param  list<string>  $receiversRead
-     * @param  list<Project>  $projectsUnread
-     * @param  list<Project>  $projectsRead
      * @return list<array<string, mixed>>
      */
     private function buildNotificationPair(
@@ -654,39 +643,42 @@ class DemoWorkloadSeeder extends Seeder
         \Closure $bodyFor,
         array $receiversUnread,
         array $receiversRead,
-        array $projectsUnread,
-        array $projectsRead,
+        string $poolUnread,
+        string $poolRead,
         int $readShiftDays,
         Carbon $now,
+        bool $withTaskMeta = false,
     ): array {
         $entries = [];
 
         foreach ($receiversUnread as $i => $alias) {
-            $project = $projectsUnread[$i % count($projectsUnread)];
+            $user = $this->users[$alias];
+            $project = $this->pickProjectForUser($user, $poolUnread, $i);
             if ($project === null) {
                 continue;
             }
             $entries[] = [
-                'user_id' => $this->users[$alias]->id,
+                'user_id' => $user->id,
                 'type' => $type,
                 'title' => $title,
                 'body' => $bodyFor($project),
-                'meta' => ['project_id' => $project->id, 'pattern' => 'A_unread'],
+                'meta' => $this->buildNotificationMeta($user, $project, $withTaskMeta, $i, 'A_unread'),
                 'read_at' => null,
             ];
         }
 
         foreach ($receiversRead as $i => $alias) {
-            $project = $projectsRead[$i % count($projectsRead)];
+            $user = $this->users[$alias];
+            $project = $this->pickProjectForUser($user, $poolRead, $i);
             if ($project === null) {
                 continue;
             }
             $entries[] = [
-                'user_id' => $this->users[$alias]->id,
+                'user_id' => $user->id,
                 'type' => $type,
                 'title' => $title,
                 'body' => $bodyFor($project),
-                'meta' => ['project_id' => $project->id, 'pattern' => 'B_read'],
+                'meta' => $this->buildNotificationMeta($user, $project, $withTaskMeta, $i, 'B_read'),
                 'read_at' => $now->copy()->subDays($readShiftDays),
             ];
         }
@@ -694,22 +686,101 @@ class DemoWorkloadSeeder extends Seeder
         return $entries;
     }
 
+    private function pickProjectForUser(User $user, string $pool, int $index): ?Project
+    {
+        $status = match ($pool) {
+            'approved' => ProjectStatus::Approved,
+            'rejected' => ProjectStatus::Rejected,
+            'pending_hq' => ProjectStatus::PendingHq,
+            default => null,
+        };
+
+        if ($status === null) {
+            return null;
+        }
+
+        $visible = $this->visibleProjectsFor($user, $status);
+        if ($visible->isEmpty()) {
+            return null;
+        }
+
+        return $visible[$index % $visible->count()];
+    }
+
+    /**
+     * @return Collection<int, Project>
+     */
+    private function visibleProjectsFor(User $user, ProjectStatus $status): Collection
+    {
+        return Project::query()
+            ->where('status', $status->value)
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (Project $project) => Gate::forUser($user)->allows('view', $project))
+            ->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildNotificationMeta(
+        User $user,
+        Project $project,
+        bool $withTaskMeta,
+        int $index,
+        string $pattern,
+    ): array {
+        $meta = [
+            'project_id' => $project->id,
+            'pattern' => $pattern,
+        ];
+
+        if (! $withTaskMeta) {
+            return $meta;
+        }
+
+        $task = ProjectWorkItem::query()
+            ->where('project_id', $project->id)
+            ->where(function ($query) use ($user): void {
+                $query
+                    ->where('assignee_id', $user->id)
+                    ->orWhere('reviewer_id', $user->id);
+            })
+            ->orderBy('id')
+            ->first();
+
+        if ($task === null) {
+            $task = ProjectWorkItem::query()
+                ->where('project_id', $project->id)
+                ->orderBy('id')
+                ->skip($index)
+                ->first();
+        }
+
+        if ($task !== null) {
+            $meta['task_id'] = $task->id;
+        }
+
+        return $meta;
+    }
+
     /**
      * 全ユーザー網羅の保険：未読通知を一切受け取らないユーザーが出ないよう、追加で未読通知を入れる。
      */
-    private function topUpUnreadPerUser(\Closure $pickApproved, Carbon $now): void
+    private function topUpUnreadPerUser(Carbon $now): void
     {
         foreach ($this->userCycle as $i => $user) {
-            $project = $pickApproved($i);
+            $project = $this->pickProjectForUser($user, 'approved', $i);
             if ($project === null) {
                 continue;
             }
+
             Notification::query()->create([
                 'user_id' => $user->id,
                 'type' => NotificationType::TaskAssigned,
                 'title' => 'タスクが割り当てられました',
                 'body' => sprintf('案件「%s」のタスクが新しく割り当てられました。', $project->title),
-                'meta' => ['project_id' => $project->id, 'pattern' => 'top_up_unread'],
+                'meta' => $this->buildNotificationMeta($user, $project, true, $i, 'top_up_unread'),
                 'read_at' => null,
             ]);
         }

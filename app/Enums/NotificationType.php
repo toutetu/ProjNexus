@@ -21,4 +21,16 @@ enum NotificationType: string
     {
         return array_map(fn (self $type) => $type->value, self::cases());
     }
+
+    public function isTaskRelated(): bool
+    {
+        return match ($this) {
+            self::TaskAssigned,
+            self::TaskCompleted,
+            self::TaskDueSoon,
+            self::TaskResolved,
+            self::TaskReviewed => true,
+            default => false,
+        };
+    }
 }

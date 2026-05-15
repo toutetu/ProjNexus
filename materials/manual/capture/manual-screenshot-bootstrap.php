@@ -35,7 +35,15 @@ Notification::query()->create([
 ]);
 
 $demoPid = $pid('PRJ-DEMO-EAM');
-$notifMeta = $demoPid ? ['project_id' => $demoPid] : null;
+$demoTaskId = $demoPid
+    ? ProjectWorkItem::query()->where('project_id', $demoPid)->orderBy('id')->value('id')
+    : null;
+$notifMeta = $demoPid
+    ? array_filter([
+        'project_id' => $demoPid,
+        'task_id' => $demoTaskId,
+    ], static fn ($value) => $value !== null)
+    : null;
 Notification::query()
     ->where('user_id', $applicant->id)
     ->where('title', 'like', 'マニュアル撮影用通知｜%')

@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     CalendarDays,
     CheckCircle2,
@@ -374,6 +374,14 @@ const parseDetailTab = (raw: string | null): DetailTab => {
 const parseBudgetInputOpen = (raw: string | null): boolean =>
     raw === '1' || raw === 'true';
 
+const parseTaskId = (raw: string | null): number | null => {
+    if (raw === null || raw === '') {
+        return null;
+    }
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+};
+
 
 const formatDateTime = (value: string | null): string => {
     if (!value) return '日時不明';
@@ -469,6 +477,7 @@ export default function ProjectsShow({
     });
     const [taskDialogOpen, setTaskDialogOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const taskDeepLinkHandled = useRef(false);
     const [budgetDialogOpen, setBudgetDialogOpen] = useState(() => {
         if (typeof window === 'undefined') return false;
         return parseBudgetInputOpen(
@@ -853,6 +862,23 @@ export default function ProjectsShow({
             window.history.replaceState({}, '', url.toString());
         }
     }, [activeTab, project.status]);
+
+    useEffect(() => {
+        if (taskDeepLinkHandled.current) return;
+        if (project.status !== 'approved') return;
+        if (typeof window === 'undefined') return;
+
+        const taskId = parseTaskId(new URLSearchParams(window.location.search).get('taskId'));
+        if (taskId === null) return;
+
+        const task = project.tasks.find((item) => item.id === taskId);
+        if (!task) return;
+
+        taskDeepLinkHandled.current = true;
+        setActiveTab('tasks');
+        setEditingTaskId(taskId);
+        setTaskDialogOpen(true);
+    }, [project.status, project.tasks]);
 
     return (
         <AuthenticatedLayout
