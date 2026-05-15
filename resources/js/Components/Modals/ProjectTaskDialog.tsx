@@ -258,10 +258,15 @@ export default function ProjectTaskDialog({
         setPendingCommentScroll(false);
     }, [open, pendingCommentScroll, task, task?.comments?.length]);
 
+    useEffect(() => {
+        if (status === 'resolved' || status === 'closed') {
+            setProgressRate(100);
+        }
+    }, [status]);
+
     const effectiveProgress = useMemo(() => {
         if (status === 'open') return 0;
-        if (status === 'closed') return 100;
-        if (status === 'resolved') return progressRate;
+        if (status === 'resolved' || status === 'closed') return 100;
         return progressRate;
     }, [progressRate, status]);
 

@@ -196,7 +196,7 @@ class MemberTaskController extends Controller
     {
         return match ($status) {
             TaskStatus::Open => 0,
-            TaskStatus::Closed => 100,
+            TaskStatus::Resolved, TaskStatus::Closed => 100,
             default => $progressRate,
         };
     }

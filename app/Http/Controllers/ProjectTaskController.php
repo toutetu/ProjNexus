@@ -402,7 +402,7 @@ class ProjectTaskController extends Controller
     {
         return match ($status) {
             TaskStatus::Open->value => 0,
-            TaskStatus::Closed->value => 100,
+            TaskStatus::Resolved->value, TaskStatus::Closed->value => 100,
             default => $progressRate,
         };
     }

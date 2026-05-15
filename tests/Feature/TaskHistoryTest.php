@@ -133,4 +133,61 @@ class TaskHistoryTest extends TestCase
             'new_value' => '30%',
         ]);
     }
+
+    public function test_task_update_sets_progress_to_100_when_status_is_resolved_or_closed(): void
+    {
+        [$user, $project] = $this->applicantWithApprovedProject();
+
+        $task = ProjectWorkItem::query()->create([
+            'project_id' => $project->id,
+            'title' => '進捗正規化',
+            'task_type' => TaskType::Task,
+            'priority' => TaskPriority::Medium,
+            'status' => TaskStatus::InProgress,
+            'progress_rate' => 40,
+            'assignee_id' => $user->id,
+            'reviewer_id' => $user->id,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)->put(
+            route('projects.tasks.update', [$project, $task], absolute: false),
+            [
+                'title' => '進捗正規化',
+                'task_type' => 'task',
+                'priority' => 'medium',
+                'status' => 'resolved',
+                'progress_rate' => 40,
+                'assignee_id' => $user->id,
+                'reviewer_id' => $user->id,
+                'due_date' => null,
+                'description' => null,
+                'estimated_days' => null,
+                'actual_days' => 0,
+            ],
+        )->assertRedirect(route('projects.show', $project, absolute: false));
+
+        $this->assertSame(100, $task->fresh()->progress_rate);
+
+        $task->update(['status' => TaskStatus::Resolved]);
+
+        $this->actingAs($user)->put(
+            route('projects.tasks.update', [$project, $task], absolute: false),
+            [
+                'title' => '進捗正規化',
+                'task_type' => 'task',
+                'priority' => 'medium',
+                'status' => 'closed',
+                'progress_rate' => 50,
+                'assignee_id' => $user->id,
+                'reviewer_id' => $user->id,
+                'due_date' => null,
+                'description' => null,
+                'estimated_days' => null,
+                'actual_days' => 0,
+            ],
+        )->assertRedirect(route('projects.show', $project, absolute: false));
+
+        $this->assertSame(100, $task->fresh()->progress_rate);
+    }
 }

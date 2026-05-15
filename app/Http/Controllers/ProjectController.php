@@ -18,6 +18,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -189,7 +190,9 @@ class ProjectController extends Controller
                         $taskQuery->where('status', TaskStatus::Open->value);
                     },
                 ])
-                ->withMin('tasks', 'due_date');
+                ->withMin(['tasks' => static function ($taskQuery): void {
+                    $taskQuery->where('status', '!=', TaskStatus::Closed->value);
+                }], 'due_date');
         }
 
         if ($tab === 'approval' && $filter === 'pending') {
@@ -338,7 +341,9 @@ class ProjectController extends Controller
                     'closedTaskCount' => (int) ($project->closed_tasks_count ?? 0),
                     'inProgressTaskCount' => (int) ($project->in_progress_tasks_count ?? 0),
                     'openTaskCount' => (int) ($project->open_tasks_count ?? 0),
-                    'nearestTaskDueDate' => $project->tasks_min_due_date,
+                    'nearestTaskDueDate' => $project->tasks_min_due_date !== null
+                        ? Carbon::parse($project->tasks_min_due_date)->toDateString()
+                        : null,
                     'canEdit' => $user->can('update', $project),
                     'canDeleteDraft' => $user->can('delete', $project),
                     'rejectedAt' => $rejectedAt,
