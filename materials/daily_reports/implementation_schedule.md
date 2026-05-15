@@ -13,6 +13,7 @@
 - **手動確認** … マスト #5 ほか Phase 5 項目は `materials/daily_reports/development_schedule.md` で完了チェック済み。最終日は本ファイル **§3** のスモーク・提出で取りこぼしがないか確認する
 - **2026-05-15 実施済み:** 提出物確定・本番 3 ロールスモーク・`return_to` / `/manual` 修正・日報締め（詳細は `daily_technical_report.md` 2026-05-15 節）
 - **2026-05-15 実施済み:** 通知一覧（S-12）のリンク切れ修正 — `NotificationActionUrl`・タスク系の「案件を開く」（`detailTab=tasks`）＋「タスクを開く」（`taskId`）の2ボタン、`Show.tsx` ディープリンク、`DemoWorkloadSeeder` の meta 整合。ローカル確認は `scripts/local-setup.ps1`（詳細は `daily_technical_report.md` 同節）
+- **2026-05-15 実施済み:** 開発進捗一覧（`/projects?tab=dev`）の期日列 — 未完了タスク（`status != closed`）の `due_date` 最小値のみ表示。タスクモーダルで確認待ち・完了時に進捗 100%（`normalizedProgressRate`・`ProjectTaskDialog`）。詳細は `daily_technical_report.md`「開発進捗一覧の期日・タスクモーダル進捗率」節
 - **調査のみ（未着手）:** サイドバー「申請・承認／開発管理」のアクティブ表示（`activeKey` と `approvalActive` / `devActive` の整理）。着手する場合は `AI.md` のプラン確認後にブランチを切る
 
 ---

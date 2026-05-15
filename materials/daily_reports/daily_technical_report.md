@@ -493,3 +493,37 @@
 - `materials/daily_reports/implementation_schedule.md`（§1 追記）
 - `materials/daily_reports/development_schedule.md`（バグ修正ログ）
 - 本ファイル（本節）
+
+---
+
+## 2026-05-15 追記 — 開発進捗一覧の期日・タスクモーダル進捗率
+
+### 背景
+- `/projects?tab=dev` の期日列が、**完了（`closed`）タスクの期日**も `withMin('tasks', 'due_date')` に含めており、直近の未完了期限とずれる
+- 案件詳細（S-04）のタスクモーダルでステータスを **確認待ち（`resolved`）** または **完了（`closed`）** にしたとき、進行度が 100% にならないケースがある
+
+### 実装概要（開発タブ・期日）
+- **`ProjectController@index`（`tab=dev`）:** `withMin` の対象を `status != closed` のタスクに限定。`nearestTaskDueDate` は `Y-m-d` 形式で返却
+- **`tests/Feature/ProjectDevTabDueDateTest.php`（新規）:** 完了タスクが最早期日でも未完了タスクの期日を表示／未完了に期日がなければ `null`
+
+### 実装概要（タスクモーダル・進捗率）
+- **`ProjectTaskController` / `MemberTaskController`:** `normalizedProgressRate()` で `resolved`・`closed` を **100%** に正規化（`open` は 0%、`in_progress` は入力値）
+- **`ProjectTaskDialog.tsx`:** ステータスが確認待ち・完了のとき送信値を 100% にし、切替時にスライダー状態も同期
+- カンバン等の `updateStatus` 経由も同一ロジック
+
+### 主要変更ファイル
+- `app/Http/Controllers/ProjectController.php`
+- `app/Http/Controllers/ProjectTaskController.php`
+- `app/Http/Controllers/MemberTaskController.php`
+- `resources/js/Components/Modals/ProjectTaskDialog.tsx`
+- `tests/Feature/ProjectDevTabDueDateTest.php`
+- `tests/Feature/TaskHistoryTest.php`（進捗正規化の追加分）
+
+### 検証
+- `php artisan test --filter=ProjectDevTabDueDateTest` — 2 passed
+- `php artisan test --filter=TaskHistoryTest` — 3 passed（進捗 100% 含む）
+
+### 日次ドキュメント
+- `materials/daily_reports/implementation_schedule.md`（§1 追記）
+- `materials/daily_reports/development_schedule.md`（バグ修正ログ）
+- 本ファイル（本節）
