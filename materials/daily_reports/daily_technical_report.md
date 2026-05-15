@@ -418,3 +418,39 @@
 - `materials/daily_reports/implementation_schedule.md`（§1 現在地の文言調整）
 - `materials/daily_reports/development_schedule.md`（完了済みへ追記）
 - 本ファイル（本節）
+
+---
+
+## 2026-05-15（金）— 最終日・提出締め・return_to 修正・公開面
+
+### 実装概要（return_to / S-14）
+- **背景:** タスク更新後の `return_to` が Ziggy の `route()` 由来の**絶対 URL** になり、サーバー側のオープンリダイレクト対策で拒否され、案件詳細へフォールバックしていた
+- **`app/Support/SafeReturnTo.php`（新規）:** `/member-tasks` 配下のみ許可。相対パス・同一ホストの絶対 URL を許可し、`//evil.example/...` や外部ホストはフォールバック
+- **`MemberTaskController` / `ProjectTaskController`:** リダイレクト先決定を `SafeReturnTo::memberTasksOr()` に統一
+- **`resources/js/lib/memberTasksReturnTo.ts`（新規）:** `buildMemberTasksReturnTo()` で**相対パスのみ**組み立て（`view` / `department_id` 等のクエリを保持）
+- **`MemberTasks/Index.tsx`:** タスク保存時に上記ヘルパーで `return_to` を付与
+- **`tests/Feature/MemberTasksTaskUpdateReturnToTest.php`（新規）:** 相対・同一ホスト絶対・外部 URL・プロトコル相対の 4 ケース
+
+### セキュリティ追記（同日・先行コミット）
+- `return_to` 検証で `parse_url` の path のみ見て元 URL を返していた実装を修正。`scheme` / `host` の有無で相対か判定し、外部へ飛ぶ URL はデフォルトへフォールバック（`75585bfa`）
+
+### 不具合修正（/manual）
+- `resources/views/app.blade.php`: Manual ページで存在しない Vite マニフェストキーを参照していたため、`@vite` を `app.tsx` のみに変更し本番のマニフェストエラーを解消
+
+### 提出用 doc
+- `doc/Information.md`（提出用注記位置の調整）
+- `doc/presentation_高橋朋子.pdf` 更新、`materials/presentation_drafts/` に pptx 下書き
+- `doc/利用マニュアル 簡易版.pdf` 追加、ER 図 PDF ファイル名の全角表記統一
+
+### 検証
+- `php artisan test` — 54 passed
+- `npm run build`（最終コミット後に実施）
+
+### Git（参考）
+- `fix/member-tasks-return-to-after-edit` → `main` マージ（`07163f79`, `d06e1f80`）
+- 同日: `ff603325`（manual Vite）、`4a6c9459`（提出 doc）、`75585bfa`（return_to 脆弱性）
+
+### 日次ドキュメント
+- `materials/daily_reports/daily_report.md`（本日・最終日）
+- `materials/daily_reports/implementation_schedule.md`（§1 日付・Phase 5 完了）
+- 本ファイル（本節）
