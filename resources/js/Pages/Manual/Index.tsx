@@ -4,15 +4,26 @@ import mermaid from 'mermaid';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
-import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, Menu, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, Info, Menu, X } from 'lucide-react';
 
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Infotip } from '@/Components/ui/infotip';
+import PortfolioEmbed from '@/Pages/Manual/PortfolioEmbed';
 
 interface Props {
     markdown: string;
     updatedAt: string | null;
+    portfolioUrl: string;
 }
+
+type ManualView = 'about' | 'manual';
+
+const viewFromLocation = (): ManualView => {
+    if (typeof window === 'undefined') return 'manual';
+    return new URLSearchParams(window.location.search).get('view') === 'about'
+        ? 'about'
+        : 'manual';
+};
 
 interface TocItem {
     id: string;
@@ -326,6 +337,7 @@ const PRINT_STYLES = `
 
     header,
     aside,
+    .manual-view-switcher,
     .manual-print-hide,
     #detailed,
     #detailed ~ * {
@@ -406,11 +418,12 @@ const formatUpdatedAt = (iso: string | null): string => {
     return `${yyyy}/${mm}/${dd}`;
 };
 
-export default function ManualIndex({ markdown, updatedAt }: Props) {
+export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props) {
     const [tocTree, setTocTree] = useState<TocItem[]>([]);
     const [expandedH2Ids, setExpandedH2Ids] = useState<Set<string>>(() => new Set());
     const [activeId, setActiveId] = useState<string>('');
     const [mobileTocOpen, setMobileTocOpen] = useState<boolean>(false);
+    const [activeView, setActiveView] = useState<ManualView>(viewFromLocation);
 
     const { manualMarkdown, showQuickManualIntroInfotip } = useMemo(() => {
         const stripped = markdown.replace(QUICK_MANUAL_OPTIONAL_BLOCKQUOTE, '# 利用マニュアル（簡易版）\n\n');
@@ -428,6 +441,24 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
         window.history.replaceState(null, '', `#${id}`);
         setActiveId(id);
         setMobileTocOpen(false);
+    }, []);
+
+    const switchView = useCallback((view: ManualView) => {
+        setActiveView(view);
+        setMobileTocOpen(false);
+
+        const url = new URL(window.location.href);
+        if (view === 'about') url.searchParams.set('view', 'about');
+        else url.searchParams.delete('view');
+        url.hash = '';
+        window.history.pushState({ manualView: view }, '', `${url.pathname}${url.search}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, []);
+
+    useEffect(() => {
+        const handlePopState = () => setActiveView(viewFromLocation());
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
     }, []);
 
     const toggleChapter = useCallback((id: string) => {
@@ -452,6 +483,8 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
     }, [tocTree]);
 
     useEffect(() => {
+        if (activeView !== 'manual') return;
+
         const article = document.querySelector('article#manual-body');
         if (!article) return;
         const headings = Array.from(
@@ -483,7 +516,7 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
         );
         headings.forEach((h) => observer.observe(h));
         return () => observer.disconnect();
-    }, [manualMarkdown]);
+    }, [activeView, manualMarkdown]);
 
     useEffect(() => {
         if (!activeId || tocTree.length === 0) return;
@@ -511,7 +544,7 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
 
     return (
         <>
-            <Head title="利用マニュアル" />
+            <Head title={activeView === 'about' ? 'このアプリについて' : '利用マニュアル'} />
             <style>{PRINT_STYLES}</style>
             <div className="min-h-screen bg-jpt-bg text-jpt-dark">
                 <header className="sticky top-0 z-20 border-b border-jpt-border bg-jpt-dark text-white">
@@ -529,16 +562,20 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                                 </span>
                             </span>
                             <span
-                                className="ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                className="ml-2 hidden items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:inline-flex"
                                 style={{ backgroundColor: ACCENT_BG, color: ACCENT_TEXT }}
                             >
-                                <BookOpen className="h-3 w-3" />
-                                利用マニュアル
+                                {activeView === 'about' ? (
+                                    <Info className="h-3 w-3" />
+                                ) : (
+                                    <BookOpen className="h-3 w-3" />
+                                )}
+                                {activeView === 'about' ? 'このアプリについて' : '利用マニュアル'}
                             </span>
                         </Link>
                         <Link
                             href={route('dashboard')}
-                            className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-white/80 hover:bg-white/10 hover:text-white"
+                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs text-white/80 hover:bg-white/10 hover:text-white sm:px-3"
                         >
                             <ArrowLeft className="h-3.5 w-3.5" />
                             アプリへ戻る
@@ -546,9 +583,51 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                     </div>
                 </header>
 
-                <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8 sm:px-6 md:py-12">
+                <nav
+                    className="manual-view-switcher sticky top-14 z-10 border-b border-jpt-border bg-white/95 backdrop-blur"
+                    aria-label="コンテンツ切り替え"
+                >
+                    <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2.5 sm:px-6">
+                        <button
+                            type="button"
+                            onClick={() => switchView('about')}
+                            aria-pressed={activeView === 'about'}
+                            className={`inline-flex min-h-10 items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+                                activeView === 'about'
+                                    ? 'bg-jpt-dark text-white shadow-sm'
+                                    : 'text-jpt-dark hover:bg-jpt-bg'
+                            }`}
+                        >
+                            <Info className="h-4 w-4" aria-hidden />
+                            このアプリについて
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => switchView('manual')}
+                            aria-pressed={activeView === 'manual'}
+                            className={`inline-flex min-h-10 items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+                                activeView === 'manual'
+                                    ? 'bg-jpt-dark text-white shadow-sm'
+                                    : 'text-jpt-dark hover:bg-jpt-bg'
+                            }`}
+                        >
+                            <BookOpen className="h-4 w-4" aria-hidden />
+                            操作マニュアル
+                        </button>
+                    </div>
+                </nav>
+
+                {activeView === 'about' ? (
+                    <main
+                        className="mx-auto max-w-[1340px] px-4 py-6 sm:px-6 md:py-8"
+                        style={{ overflowAnchor: 'none' }}
+                    >
+                        <PortfolioEmbed portfolioUrl={portfolioUrl} />
+                    </main>
+                ) : (
+                    <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8 sm:px-6 md:py-12">
                     <aside className="hidden w-72 shrink-0 lg:block">
-                        <nav className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
+                        <nav className="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto pr-2">
                             <p
                                 className="mb-2 text-xs font-semibold uppercase tracking-wider"
                                 style={{ color: ACCENT_TEXT }}
@@ -864,7 +943,8 @@ export default function ManualIndex({ markdown, updatedAt }: Props) {
                             </ReactMarkdown>
                         </article>
                     </main>
-                </div>
+                    </div>
+                )}
             </div>
         </>
     );

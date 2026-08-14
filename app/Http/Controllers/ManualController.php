@@ -32,6 +32,7 @@ class ManualController extends Controller
         return Inertia::render('Manual/Index', [
             'markdown' => $markdown,
             'updatedAt' => $updatedAt,
+            'portfolioUrl' => asset('portfolio/index.html'),
         ]);
     }
 
