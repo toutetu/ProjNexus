@@ -2,22 +2,27 @@
 
 # ProjNexus
 
-### 申請・承認・開発進捗・予算を、一つの業務フローへ
+### 
+---
 
-経理・管理会計・事業推進で培った業務理解を、  
-データ設計・ロール別認可・画面設計・実装へ落とし込んだ業務 Web アプリです。
+## アプリ名
 
-[Live Demo](https://projnexus-main-butvrx.laravel.cloud/login) ｜ [GitHub](https://github.com/toutetu/ProjNexus_continue)
+ProjNexus
 
-</div>
-
-<p align="center">
-  <img src="materials/manual/images/24_member_tasks_board.png" alt="ProjNexusの4状態カンバン画面" width="900">
-</p>
 
 ---
 
-## このアプリで解決したいこと
+## 目的
+
+大手企業での手作業での事務負担を軽くするために、
+申請業務・開発進捗管理・予算管理を一つの画面にして、業績管理をしやすくする。
+
+経理・管理会計・事業推進で培った業務理解を、
+データ設計・ロール別認可・画面設計・実装へ落とし込んだ業務 Web アプリです。
+
+---
+
+## 作成背景　（このアプリで解決したいこと）
 
 これまでの経理・管理会計・事業推進の経験から、情報が複数の帳票やツールに分かれる課題を感じてきました。
 
@@ -34,6 +39,20 @@ ProjNexus は、案件データを中心に、申請から承認・タスク・�
 
 > 本作は架空企業の業務シナリオを題材とした PoC です。  
 > 実運用による工数削減率などの効果測定は行っていません。
+
+---
+
+---
+
+## 代表画面
+
+[Live Demo](https://projnexus-main-butvrx.laravel.cloud/login) ｜ [GitHub](https://github.com/toutetu/ProjNexus_continue)
+
+</div>
+
+<p align="center">
+  <img src="materials/manual/images/24_member_tasks_board.png" alt="ProjNexusの4状態カンバン画面" width="900">
+</p>
 
 ---
 
