@@ -13,7 +13,7 @@
 
 ProjNexus
 
-<img width="116" height="60" alt="image" src="https://github.com/user-attachments/assets/33584e2a-3f12-4920-af57-e7dc59561b37" />
+<img width="300" height="150" alt="image" src="https://github.com/user-attachments/assets/33584e2a-3f12-4920-af57-e7dc59561b37" />
 
 
 
