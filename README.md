@@ -51,10 +51,15 @@ ProjNexus は、案件データを中心に、申請から承認・タスク・�
 ---
 
 
-## 代表画面
+## デモストレーション
 
 [Live Demo](https://projnexus-main-butvrx.laravel.cloud/login) ｜ [GitHub](https://github.com/toutetu/ProjNexus_continue)
 
+
+---
+
+
+## 代表画面
 
 <p align="center">
   <img src="materials/manual/images/24_member_tasks_board.png" alt="ProjNexusの4状態カンバン画面" width="900">
