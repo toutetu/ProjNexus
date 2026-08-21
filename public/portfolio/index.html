@@ -1,0 +1,1541 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="高橋朋子による業務Webアプリ ProjNexus のポートフォリオ・ケーススタディ">
+  <title>ProjNexus Portfolio | 高橋 朋子</title>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('embedded') !== '1') return;
+
+      document.documentElement.classList.add('is-embedded');
+
+      const fitPagesToViewport = () => {
+        const a4LandscapeWidth = 297 * 96 / 25.4;
+        const availableWidth = Math.max(320, document.documentElement.clientWidth - 32);
+        const scale = Math.min(1, availableWidth / a4LandscapeWidth);
+        document.documentElement.style.setProperty('--embed-scale', scale.toFixed(4));
+      };
+
+      fitPagesToViewport();
+      window.addEventListener('resize', fitPagesToViewport, { passive: true });
+    })();
+  </script>
+  <style>
+    :root {
+      --ink: #15182a;
+      --muted: #4e586b;
+      --paper: #fbfaf6;
+      --white: #ffffff;
+      --line: #aeb7c5;
+      --navy: #22245f;
+      --blue: #0876b9;
+      --cyan: #14a0b4;
+      --cyan-soft: #e8f7fa;
+      --amber: #e7a62a;
+      --amber-soft: #fff5dc;
+      --red: #df0017;
+      --red-soft: #fff0f2;
+      --green: #159455;
+      --green-soft: #e9f8f0;
+      --shadow: 0 18px 50px rgba(22, 28, 45, .18);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      background: #dfe4ea;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #dfe4ea;
+      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+      font-feature-settings: "palt" 1;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+    img { display: block; max-width: 100%; }
+
+    .print-toolbar {
+      position: fixed;
+      z-index: 100;
+      top: 18px;
+      right: 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 12px 10px 18px;
+      color: #fff;
+      background: rgba(21, 24, 42, .94);
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
+      backdrop-filter: blur(10px);
+    }
+
+    .print-toolbar span {
+      font-size: 12px;
+      letter-spacing: .03em;
+      opacity: .78;
+    }
+
+    .print-toolbar button {
+      border: 0;
+      padding: 10px 18px;
+      color: #fff;
+      background: var(--red);
+      border-radius: 999px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .deck {
+      display: grid;
+      gap: 12mm;
+      justify-content: center;
+      padding: 18mm 0;
+    }
+
+    .is-embedded {
+      --embed-scale: 1;
+    }
+
+    .is-embedded .print-toolbar {
+      display: none;
+    }
+
+    .is-embedded .deck {
+      gap: calc(12mm * var(--embed-scale));
+      padding: calc(10mm * var(--embed-scale)) 16px;
+    }
+
+    .is-embedded .page {
+      zoom: var(--embed-scale);
+    }
+
+    .page {
+      position: relative;
+      width: 297mm;
+      height: 210mm;
+      overflow: hidden;
+      padding: 15mm 17mm 13mm;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      page-break-after: always;
+      break-after: page;
+      isolation: isolate;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    .page::before {
+      content: "";
+      position: absolute;
+      z-index: -2;
+      inset: 0 0 auto;
+      height: 1.2mm;
+      background: linear-gradient(90deg, var(--cyan), var(--blue) 45%, var(--navy));
+    }
+
+    .page-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 8mm;
+      margin-bottom: 3mm;
+      color: #075f96;
+      letter-spacing: .02em;
+    }
+
+    .page-label::before {
+      content: "";
+      width: 10mm;
+      height: 3px;
+      background: currentColor;
+    }
+
+    .chapter-no {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .12em;
+    }
+
+    .chapter-title {
+      font-size: 19px;
+      line-height: 1.2;
+      font-weight: 900;
+    }
+
+    .page-no {
+      position: absolute;
+      right: 17mm;
+      bottom: 7mm;
+      color: #586275;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .16em;
+    }
+
+    .source-note {
+      position: absolute;
+      left: 17mm;
+      bottom: 7mm;
+      max-width: 220mm;
+      color: #586275;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      margin-bottom: 6mm;
+      font-size: 31px;
+      line-height: 1.16;
+      letter-spacing: -.045em;
+    }
+
+    h2 {
+      max-width: 245mm;
+      margin-bottom: 4mm;
+      font-size: 26px;
+      line-height: 1.28;
+      letter-spacing: -.035em;
+    }
+
+    h3 {
+      margin-bottom: 2mm;
+      font-size: 16px;
+      line-height: 1.4;
+      letter-spacing: -.02em;
+    }
+
+    .lead {
+      max-width: 236mm;
+      margin-bottom: 7mm;
+      color: #30364a;
+      font-size: 15px;
+      line-height: 1.75;
+      font-weight: 600;
+    }
+
+    .sentence-line {
+      display: block;
+    }
+
+    .sentence-line + .sentence-line {
+      margin-top: .7mm;
+    }
+
+    .lead .sentence-line,
+    .subcopy .sentence-line {
+      white-space: nowrap;
+    }
+
+    .accent { color: var(--red); }
+    .cyan { color: var(--cyan); }
+    .blue { color: var(--blue); }
+    .amber { color: #c87f00; }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 3mm;
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2.2mm;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 7mm;
+      padding: 0 3.5mm;
+      border: 1.5px solid #aeb7c5;
+      border-radius: 999px;
+      color: #41485b;
+      background: rgba(255, 255, 255, .82);
+      font-size: 10.5px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chip.strong {
+      border-color: transparent;
+      color: #fff;
+      background: var(--navy);
+    }
+
+    .rule {
+      width: 100%;
+      height: 2px;
+      margin: 4mm 0;
+      background: var(--line);
+    }
+
+    .callout {
+      padding: 4mm 5mm;
+      border-left: 3px solid var(--amber);
+      color: #293043;
+      background: var(--amber-soft);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .callout strong { color: var(--ink); }
+    .callout > strong:first-child {
+      display: block;
+      margin-bottom: .7mm;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8mm;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5mm;
+    }
+
+    .card {
+      border: 1.5px solid var(--line);
+      background: rgba(255, 255, 255, .82);
+    }
+
+    .card-pad { padding: 5mm; }
+
+    .metric {
+      display: flex;
+      align-items: baseline;
+      gap: 2mm;
+    }
+
+    .metric strong {
+      font-size: 25px;
+      letter-spacing: -.04em;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    ul.clean {
+      display: grid;
+      gap: 2.6mm;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    ul.clean li {
+      position: relative;
+      padding-left: 5mm;
+      color: #424a5f;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    ul.clean li::before {
+      content: "";
+      position: absolute;
+      top: .72em;
+      left: 0;
+      width: 2.2mm;
+      height: 2.2mm;
+      background: var(--cyan);
+      border-radius: 50%;
+    }
+
+    .shot-frame {
+      position: relative;
+      overflow: hidden;
+      border: 1.5px solid #aeb7c5;
+      background: #edf1f5;
+      box-shadow: 0 6px 18px rgba(23, 29, 45, .12);
+    }
+
+    .shot-frame img {
+      position: absolute;
+      max-width: none;
+      user-select: none;
+    }
+
+    .shot-caption {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4mm;
+      margin-top: 2.5mm;
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .shot-caption strong {
+      color: var(--ink);
+      font-size: 11.5px;
+    }
+
+    .number-tag {
+      display: inline-grid;
+      place-items: center;
+      width: 8mm;
+      height: 8mm;
+      flex: 0 0 auto;
+      color: #fff;
+      background: var(--navy);
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    /* Cover */
+    .cover {
+      padding-top: 19mm;
+      color: #fff;
+      background:
+        radial-gradient(circle at 16% 18%, rgba(20, 160, 180, .35), transparent 30%),
+        linear-gradient(127deg, #15182a 0%, #23265f 56%, #0876b9 100%);
+    }
+
+    .cover::before { background: var(--amber); }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      right: -35mm;
+      bottom: -45mm;
+      width: 150mm;
+      height: 150mm;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 20mm rgba(255, 255, 255, .025),
+        0 0 0 44mm rgba(255, 255, 255, .018);
+    }
+
+    .cover-grid {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 12mm;
+      align-items: center;
+      height: 159mm;
+    }
+
+    .product-name {
+      margin: 0 0 5mm;
+      font-size: 42px;
+      line-height: 1;
+      letter-spacing: -.06em;
+    }
+
+    .product-name span { color: #55c3d5; }
+
+    .cover h1 {
+      max-width: 112mm;
+      margin-bottom: 7mm;
+      font-size: 28px;
+      line-height: 1.32;
+      letter-spacing: -.04em;
+    }
+
+    .cover .subcopy {
+      max-width: 105mm;
+      margin-bottom: 8mm;
+      color: rgba(255, 255, 255, .9);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .cover .chips { max-width: 110mm; }
+    .cover .chip {
+      color: #fff;
+      border-color: rgba(255, 255, 255, .25);
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .cover-shot {
+      position: relative;
+      height: 129mm;
+      overflow: hidden;
+      border: 1.5px solid rgba(255, 255, 255, .55);
+      border-radius: 2mm;
+      background: #fff;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, .28);
+      transform: none;
+    }
+
+    .cover-shot img {
+      position: absolute;
+      top: -4%;
+      left: -18%;
+      width: 132%;
+      max-width: none;
+    }
+
+    .cover-note {
+      position: absolute;
+      right: 8mm;
+      bottom: 7mm;
+      width: 77mm;
+      padding: 3mm 4mm;
+      color: var(--ink);
+      background: rgba(255, 255, 255, .94);
+      font-size: 10.5px;
+      font-weight: 600;
+      line-height: 1.55;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
+    }
+
+    .cover-meta {
+      position: absolute;
+      left: 17mm;
+      right: 17mm;
+      bottom: 8mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: rgba(255, 255, 255, .88);
+      font-size: 10.5px;
+      letter-spacing: .08em;
+    }
+
+    /* Page 2 */
+    .fragment-map {
+      display: grid;
+      grid-template-columns: 63mm 22mm 1fr;
+      gap: 3mm 6mm;
+      align-items: stretch;
+      margin-top: 5mm;
+    }
+
+    .source-box,
+    .pain-box {
+      min-height: 27mm;
+      padding: 4mm 5mm;
+      border: 1.5px solid var(--line);
+      background: var(--white);
+    }
+
+    .source-box {
+      display: flex;
+      align-items: center;
+      gap: 4mm;
+    }
+
+    .source-icon {
+      display: grid;
+      place-items: center;
+      width: 11mm;
+      height: 11mm;
+      flex: 0 0 auto;
+      color: #fff;
+      background: var(--navy);
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .source-box small,
+    .pain-box small {
+      display: block;
+      margin-bottom: 1mm;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .source-box strong,
+    .pain-box strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .pain-box p {
+      margin: 1.2mm 0 0;
+      color: #343d50;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .map-arrow {
+      position: relative;
+      align-self: center;
+      height: 2px;
+      background: #778295;
+    }
+
+    .map-arrow::after {
+      content: "";
+      position: absolute;
+      top: -2.2mm;
+      right: -1px;
+      width: 4mm;
+      height: 4mm;
+      border-top: 2px solid #778295;
+      border-right: 2px solid #778295;
+      transform: rotate(45deg);
+    }
+
+    /* Page 3 */
+    .solution-flow {
+      display: grid;
+      grid-template-columns: 1fr 15mm 1fr 15mm 1fr 15mm 1fr;
+      align-items: center;
+      margin: 6mm 0 8mm;
+    }
+
+    .flow-node {
+      position: relative;
+      min-height: 38mm;
+      padding: 5mm;
+      border-top: 3px solid var(--cyan);
+      background: var(--white);
+      box-shadow: 0 6px 16px rgba(24, 32, 50, .08);
+    }
+
+    .flow-node:nth-of-type(3) { border-color: var(--blue); }
+    .flow-node:nth-of-type(5) { border-color: var(--navy); }
+    .flow-node:nth-of-type(7) { border-color: var(--amber); }
+
+    .flow-node b {
+      display: block;
+      margin-bottom: 2mm;
+      font-size: 15px;
+    }
+
+    .flow-node span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .flow-line {
+      height: 2px;
+      background: #778295;
+    }
+
+    .flow-line::after {
+      content: "›";
+      display: block;
+      margin-top: -4.7mm;
+      color: #7c8595;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .value-strip {
+      display: grid;
+      grid-template-columns: 37mm 1fr;
+      min-height: 27mm;
+      margin-top: 5mm;
+      color: #fff;
+      background: var(--navy);
+    }
+
+    .value-strip strong {
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      background: var(--amber);
+      font-size: 11px;
+      letter-spacing: .1em;
+    }
+
+    .value-strip p {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      margin: 0;
+      padding: 4mm 6mm;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    /* Page 4 */
+    .role-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5mm;
+      margin: 4mm 0 6mm;
+    }
+
+    .role {
+      position: relative;
+      min-height: 38mm;
+      padding: 5mm;
+      border-top: 3px solid var(--cyan);
+      background: var(--white);
+    }
+
+    .role:nth-child(2) { border-color: var(--blue); }
+    .role:nth-child(3) { border-color: var(--navy); }
+
+    .role small {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .role h3 { margin-top: 1mm; }
+    .role p {
+      margin: 0;
+      color: #343d50;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    table.matrix {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      background: var(--white);
+      font-size: 10.5px;
+    }
+
+    .matrix th,
+    .matrix td {
+      padding: 2.3mm 3mm;
+      border: 1.5px solid var(--line);
+      text-align: center;
+    }
+
+    .matrix th {
+      color: #fff;
+      background: var(--navy);
+      font-weight: 800;
+    }
+
+    .matrix td:first-child {
+      width: 48mm;
+      color: var(--ink);
+      background: #f2f4f7;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .allow { color: var(--green); font-weight: 900; }
+    .limited { color: #a05d00; font-weight: 900; }
+    .deny { color: #667085; font-weight: 700; }
+
+    /* Page 5 */
+    .approval-layout {
+      display: grid;
+      grid-template-columns: 90mm 1fr;
+      gap: 7mm;
+      align-items: start;
+      margin-top: 4mm;
+    }
+
+    .approval-principles {
+      display: grid;
+      gap: 3.5mm;
+    }
+
+    .principle {
+      display: grid;
+      grid-template-columns: 9mm 1fr;
+      gap: 4mm;
+      padding: 4mm;
+      border-bottom: 1.5px solid var(--line);
+      background: rgba(255, 255, 255, .62);
+    }
+
+    .principle p {
+      margin: 0;
+      color: #343d50;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .approval-shot {
+      height: 109mm;
+    }
+
+    .approval-shot img {
+      top: -1%;
+      left: -19%;
+      width: 120%;
+    }
+
+    /* Page 6 */
+    .state-line {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      margin: 4mm 0;
+      border: 1.5px solid var(--line);
+      background: var(--white);
+    }
+
+    .state-line div {
+      position: relative;
+      padding: 3.2mm 4mm;
+      border-right: 1.5px solid var(--line);
+    }
+
+    .state-line div:last-child { border-right: 0; }
+    .state-line small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .1em;
+    }
+
+    .state-line strong { font-size: 13px; }
+    .state-line div:nth-child(1) strong { color: #687386; }
+    .state-line div:nth-child(2) strong { color: var(--blue); }
+    .state-line div:nth-child(3) strong { color: #6b35d5; }
+    .state-line div:nth-child(4) strong { color: var(--green); }
+
+    .task-layout {
+      display: grid;
+      grid-template-columns: 1.55fr .75fr;
+      gap: 5mm;
+      align-items: start;
+    }
+
+    .task-shot { height: 105mm; }
+    .task-shot img {
+      top: -6%;
+      left: -20%;
+      width: 128%;
+    }
+
+    .member-shot { height: 55mm; }
+    .member-shot img {
+      top: -5%;
+      left: -21%;
+      width: 130%;
+    }
+
+    /* Page 7 */
+    .budget-layout {
+      display: grid;
+      grid-template-columns: 1.38fr .72fr;
+      gap: 7mm;
+      align-items: start;
+      margin-top: 4mm;
+    }
+
+    .budget-shot { height: 118mm; }
+    .budget-shot img {
+      top: -1%;
+      left: -18%;
+      width: 119%;
+    }
+
+    .data-rules {
+      display: grid;
+      gap: 3.5mm;
+    }
+
+    .data-rule {
+      padding: 4mm;
+      border-left: 3px solid var(--cyan);
+      background: var(--white);
+    }
+
+    .data-rule:nth-child(2) { border-color: var(--blue); }
+    .data-rule:nth-child(3) { border-color: var(--amber); }
+    .data-rule h3 { margin-bottom: 1mm; }
+    .data-rule p {
+      margin: 0;
+      color: #343d50;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    /* Page 8 */
+    .architecture {
+      display: grid;
+      grid-template-columns: 1fr 14mm 1fr 14mm 1fr 14mm 1fr;
+      align-items: stretch;
+      margin: 7mm 0 8mm;
+    }
+
+    .arch-node {
+      min-height: 46mm;
+      padding: 5mm;
+      border-top: 4px solid var(--cyan);
+      background: var(--white);
+      box-shadow: 0 5px 14px rgba(22, 30, 48, .08);
+    }
+
+    .arch-node:nth-of-type(3) { border-color: var(--blue); }
+    .arch-node:nth-of-type(5) { border-color: var(--navy); }
+    .arch-node:nth-of-type(7) { border-color: var(--amber); }
+
+    .arch-node small {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .arch-node h3 { margin: 2mm 0; }
+    .arch-node p {
+      margin: 0;
+      color: #343d50;
+      font-size: 10.5px;
+      line-height: 1.55;
+    }
+
+    .arch-arrow {
+      display: grid;
+      place-items: center;
+      color: #586275;
+      font-size: 25px;
+    }
+
+    .quality-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5mm;
+    }
+
+    .quality-row .card {
+      min-height: 38mm;
+      padding: 4.5mm;
+    }
+
+    .quality-row p {
+      margin: 0;
+      color: #343d50;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    /* Page 9 */
+    .process-line {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      margin: 5mm 0 7mm;
+    }
+
+    .process-step {
+      position: relative;
+      min-height: 34mm;
+      padding: 4mm 4mm 4mm 6mm;
+      border-top: 2px solid var(--cyan);
+      border-right: 1.5px solid var(--line);
+      background: var(--white);
+    }
+
+    .process-step:last-child { border-right: 0; }
+    .process-step:nth-child(2) { border-top-color: #1290be; }
+    .process-step:nth-child(3) { border-top-color: var(--blue); }
+    .process-step:nth-child(4) { border-top-color: var(--navy); }
+    .process-step:nth-child(5) { border-top-color: var(--amber); }
+
+    .process-step small {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .11em;
+    }
+
+    .process-step strong {
+      display: block;
+      margin: 1mm 0;
+      font-size: 13.5px;
+    }
+
+    .process-step p {
+      margin: 0;
+      color: #343d50;
+      font-size: 10.5px;
+      line-height: 1.5;
+    }
+
+    .ai-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7mm;
+      align-items: stretch;
+    }
+
+    .responsibility {
+      min-height: 61mm;
+      padding: 5mm;
+      border: 1.5px solid var(--line);
+      background: rgba(255, 255, 255, .82);
+    }
+
+    .responsibility.human { border-top: 4px solid var(--amber); }
+    .responsibility.ai { border-top: 4px solid var(--cyan); }
+
+    .responsibility .owner {
+      display: flex;
+      align-items: center;
+      gap: 4mm;
+      margin-bottom: 4mm;
+    }
+
+    .owner-mark {
+      display: grid;
+      place-items: center;
+      width: 13mm;
+      height: 13mm;
+      color: #fff;
+      background: var(--navy);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .human .owner-mark { color: var(--ink); background: var(--amber); }
+    .ai .owner-mark { background: var(--cyan); }
+
+    .responsibility p {
+      margin: 0;
+      color: #343d50;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    /* Page 10 */
+    .final {
+      color: #fff;
+      background:
+        radial-gradient(circle at 85% 15%, rgba(20, 160, 180, .28), transparent 28%),
+        linear-gradient(132deg, #15182a, #23265f 58%, #086899);
+    }
+
+    .final::before { background: var(--amber); }
+
+    .final .page-label { color: #8be3ee; }
+    .final h2 {
+      max-width: 225mm;
+      margin-bottom: 7mm;
+      font-size: 31px;
+      line-height: 1.35;
+    }
+
+    .final-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 10mm;
+      align-items: start;
+    }
+
+    .final-values {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4mm;
+    }
+
+    .final-value {
+      min-height: 47mm;
+      padding: 5mm;
+      border-top: 3px solid var(--cyan);
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .final-value:nth-child(2) { border-color: var(--amber); }
+    .final-value:nth-child(3) { border-color: #55c3d5; }
+
+    .final-value h3 { color: #fff; }
+    .final-value p {
+      margin: 0;
+      color: rgba(255, 255, 255, .88);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .links {
+      display: grid;
+      gap: 4mm;
+    }
+
+    .link-card {
+      display: block;
+      min-height: 28mm;
+      padding: 4mm 5mm;
+      border: 1.5px solid rgba(255, 255, 255, .55);
+      color: #fff;
+      background: rgba(255, 255, 255, .08);
+      text-decoration: none;
+    }
+
+    .link-card small {
+      display: block;
+      margin-bottom: 1.5mm;
+      color: #9be8f1;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .link-card strong {
+      display: block;
+      margin-bottom: 1mm;
+      font-size: 13px;
+    }
+
+    .link-card span {
+      display: block;
+      overflow-wrap: anywhere;
+      color: rgba(255, 255, 255, .86);
+      font-family: Consolas, monospace;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .final-note {
+      margin-top: 7mm;
+      padding-top: 4mm;
+      border-top: 1.5px solid rgba(255, 255, 255, .48);
+      color: rgba(255, 255, 255, .84);
+      font-size: 10px;
+      line-height: 1.6;
+    }
+
+    .final .page-no,
+    .final .source-note { color: rgba(255, 255, 255, .78); }
+
+    @media screen and (max-width: 1200px) {
+      .deck { justify-content: start; padding-left: 18px; padding-right: 18px; }
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    @media print {
+      html, body {
+        width: 297mm;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+      }
+
+      body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .print-toolbar { display: none !important; }
+      .deck { display: block; padding: 0; }
+
+      .page {
+        margin: 0;
+        box-shadow: none;
+      }
+
+      a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-toolbar" aria-label="印刷設定">
+    <span>A4横／背景グラフィックを有効にしてください</span>
+    <button type="button" onclick="window.print()">印刷・PDF保存</button>
+  </div>
+
+  <main class="deck">
+    <section class="page cover" aria-label="表紙">
+      <div class="cover-grid">
+        <div>
+          <span class="eyebrow">業務Webアプリ開発ポートフォリオ / 2026</span>
+          <div class="product-name">Proj<span>Nexus</span>.</div>
+          <h1>申請・承認・開発進捗・予算を、<br>一つの業務フローへ。</h1>
+          <p class="subcopy">
+            <span class="sentence-line">経理・管理会計・事業推進で培った業務理解を活用。</span>
+            <span class="sentence-line">データ設計から認可・画面・実装まで担った個人開発です。</span>
+          </p>
+          <div class="chips" aria-label="技術と開発情報">
+            <span class="chip">Laravel 12</span>
+            <span class="chip">React 18</span>
+            <span class="chip">TypeScript</span>
+            <span class="chip">Inertia.js</span>
+            <span class="chip">MySQL</span>
+            <span class="chip">Laravel Cloud</span>
+          </div>
+        </div>
+
+        <div class="cover-shot" aria-label="ProjNexusのタスク管理画面">
+          <img src="assets/24_member_tasks_board.png" alt="未着手・進行中・確認待ち・完了を並べたProjNexusのカンバン画面">
+          <div class="cover-note"><strong>代表画面：4状態カンバン</strong><br>更新と状況把握を、同じデータで支える。</div>
+        </div>
+      </div>
+
+      <div class="cover-meta">
+        <span>高橋 朋子 / Takahashi Tomoko</span>
+        <span>個人開発｜初期PoC 100時間枠＋継続改善</span>
+      </div>
+    </section>
+
+    <section class="page" aria-label="背景と課題">
+      <div class="page-label"><span class="chapter-no">01</span><span class="chapter-title">背景と課題</span></div>
+      <h2>管理手段が分かれると、<span class="accent">転記・確認・集約</span>が仕事になる。</h2>
+      <p class="lead">
+        <span class="sentence-line">これまでの経理・管理会計・事業推進の経験から、情報分断の課題を感じてきました。</span>
+        <span class="sentence-line">分断は、転記と確認の手間を増やします。</span>
+        <span class="sentence-line">判断に必要な流れも見えにくくします。</span>
+      </p>
+
+      <div class="fragment-map" role="presentation">
+        <div class="source-box">
+          <div class="source-icon">申</div>
+          <div><small>Application</small><strong>申請システム</strong></div>
+        </div>
+        <div class="map-arrow"></div>
+        <div class="pain-box"><small>Pain 01</small><strong>承認の現在地が見えにくい</strong><p>判断待ちの相手を、個別に確認する。</p></div>
+
+        <div class="source-box">
+          <div class="source-icon">XL</div>
+          <div><small>Progress</small><strong>部門別Excel</strong></div>
+        </div>
+        <div class="map-arrow"></div>
+        <div class="pain-box"><small>Pain 02</small><strong>進捗を再入力・再集約する</strong><p>様式差と、本部への報告作業が残る。</p></div>
+
+        <div class="source-box">
+          <div class="source-icon">¥</div>
+          <div><small>Budget</small><strong>予算管理Excel</strong></div>
+        </div>
+        <div class="map-arrow"></div>
+        <div class="pain-box"><small>Pain 03</small><strong>最新の執行状況を追いにくい</strong><p>進捗と予算を、別々に確認する。</p></div>
+      </div>
+
+      <div class="callout" style="margin-top: 6mm;">
+        <strong>現場経験から置いた設計仮説</strong>
+        <span class="sentence-line">単機能の置き換えだけでは、Excelに戻りやすい。</span>
+        <span class="sentence-line">申請から開発・予算までを、同じ案件データでつなぐ必要がある。</span>
+      </div>
+
+      <div class="source-note">題材：採用課題で提示された架空企業の業務シナリオ</div>
+      <div class="page-no">02 / 10</div>
+    </section>
+
+    <section class="page" aria-label="解決方針">
+      <div class="page-label"><span class="chapter-no">02</span><span class="chapter-title">解決方針</span></div>
+      <h2>案件を中心に、<span class="blue">一度の登録を次の業務へつなぐ。</span></h2>
+      <p class="lead">
+        <span class="sentence-line">申請時のデータを、承認後のタスク・予算管理へ引き継ぎます。</span>
+        <span class="sentence-line">関係者が、同じ情報から次の行動を判断できる構造です。</span>
+      </p>
+
+      <div class="solution-flow" aria-label="申請から予算管理までの業務フロー">
+        <div class="flow-node"><b>01 申請</b><span><span class="sentence-line">目的・概算予算・担当部門を登録する。</span><span class="sentence-line">下書き保存と取り戻しにも対応する。</span></span></div>
+        <div class="flow-line"></div>
+        <div class="flow-node"><b>02 承認</b><span><span class="sentence-line">部門・本部の承認を、一つの流れで管理する。</span><span class="sentence-line">却下と再申請も追跡する。</span></span></div>
+        <div class="flow-line"></div>
+        <div class="flow-node"><b>03 開発</b><span><span class="sentence-line">4状態でタスクを管理する。</span><span class="sentence-line">担当者・確認者・期限・履歴を持つ。</span></span></div>
+        <div class="flow-line"></div>
+        <div class="flow-node"><b>04 予算</b><span><span class="sentence-line">予算額と実績額を入力する。</span><span class="sentence-line">消費率は最新値から算出する。</span></span></div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card card-pad">
+          <div class="metric"><strong>3</strong><span>ロール</span></div>
+          <p style="margin: 1mm 0 0; color: var(--muted); font-size: 11px; line-height: 1.5;">3ロールの責任を、操作範囲へ変換。</p>
+        </div>
+        <div class="card card-pad">
+          <div class="metric"><strong>4</strong><span>承認ステップ</span></div>
+          <p style="margin: 1mm 0 0; color: var(--muted); font-size: 11px; line-height: 1.5;">承認の現在地と、次の判断者を表示。</p>
+        </div>
+        <div class="card card-pad">
+          <div class="metric"><strong>3</strong><span>タスク表示</span></div>
+          <p style="margin: 1mm 0 0; color: var(--muted); font-size: 11px; line-height: 1.5;">3つの表示で、管理目的の違いに対応。</p>
+        </div>
+      </div>
+
+      <div class="value-strip">
+        <strong>VALUE</strong>
+        <p><span class="sentence-line">転記を減らす。</span><span class="sentence-line">ロールごとに、今見ること・今行うことを同じデータから判断できる。</span></p>
+      </div>
+
+      <div class="source-note">狙いを示したものであり、実運用による削減率の効果測定は未実施</div>
+      <div class="page-no">03 / 10</div>
+    </section>
+
+    <section class="page" aria-label="利用者と認可">
+      <div class="page-label"><span class="chapter-no">03</span><span class="chapter-title">利用者と権限</span></div>
+      <h2>役割と責任を、<span class="accent">「誰が・どのデータに・何をできるか」</span>へ置き換える。</h2>
+      <p class="lead">
+        <span class="sentence-line">画面を隠すだけでは不十分です。</span>
+        <span class="sentence-line">Laravel Policyで、サーバー側の操作可否を判断します。</span>
+        <span class="sentence-line">部門境界と業務責任を、認可ルールにしました。</span>
+      </p>
+
+      <div class="role-row">
+        <article class="role"><small>Applicant</small><h3>申請者</h3><p><span class="sentence-line">自分の案件を申請する。</span><span class="sentence-line">承認後は、タスクと予算実績を更新する。</span></p></article>
+        <article class="role"><small>Department Manager</small><h3>部門管理者</h3><p><span class="sentence-line">所属部門の申請を一次承認する。</span><span class="sentence-line">タスクと予算状況も管理する。</span></p></article>
+        <article class="role"><small>Headquarters Manager</small><h3>本部管理者</h3><p><span class="sentence-line">全部門の案件を最終承認する。</span><span class="sentence-line">全体状況を閲覧し、タスクは編集しない。</span></p></article>
+      </div>
+
+      <table class="matrix" aria-label="ロール別の操作マトリクス">
+        <thead><tr><th>主な操作</th><th>申請者</th><th>部門管理者</th><th>本部管理者</th></tr></thead>
+        <tbody>
+          <tr><td>案件の新規申請</td><td class="allow">● 自分の案件</td><td class="allow">● 自分の案件</td><td class="deny">—</td></tr>
+          <tr><td>承認・却下</td><td class="deny">—</td><td class="limited">● 自部門の一次承認</td><td class="allow">● 最終承認</td></tr>
+          <tr><td>案件の閲覧</td><td class="limited">● 自分・同部門の承認済</td><td class="limited">● 自部門</td><td class="allow">● 全部門</td></tr>
+          <tr><td>タスクの編集・状態変更</td><td class="limited">● 担当・確認対象</td><td class="limited">● 自部門</td><td class="deny">閲覧のみ</td></tr>
+          <tr><td>予算実績の更新</td><td class="limited">● 担当案件</td><td class="limited">● 自部門</td><td class="deny">閲覧のみ</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout" style="margin-top: 5mm;">
+        <strong>設計上のポイント</strong>
+        <span class="sentence-line">UIの表示条件と、Policyの判定を分ける。</span>
+        <span class="sentence-line">URL直打ちや他部門データの操作は、サーバー側で拒否する。</span>
+      </div>
+
+      <div class="source-note">実装：ProjectPolicy / ProjectWorkItemPolicy / Feature tests</div>
+      <div class="page-no">04 / 10</div>
+    </section>
+
+    <section class="page" aria-label="承認設計">
+      <div class="page-label"><span class="chapter-no">04</span><span class="chapter-title">承認フローの設計</span></div>
+      <h2>承認を、<span class="blue">通過点ではなく説明可能なプロセス</span>として設計する。</h2>
+      <p class="lead">
+        <span class="sentence-line">結論だけでなく、誰が・いつ・どの段階で判断したかを残します。</span>
+        <span class="sentence-line">却下後の再申請も、元案件との関係を保って追跡できます。</span>
+      </p>
+
+      <div class="approval-layout">
+        <div class="approval-principles">
+          <div class="principle"><span class="number-tag">1</span><div><h3>監査証跡</h3><p><span class="sentence-line">承認者・段階・日時・コメントをapprovalsへ記録する。</span><span class="sentence-line">後から判断の根拠を説明できる。</span></p></div></div>
+          <div class="principle"><span class="number-tag" style="background: var(--amber); color: var(--ink);">2</span><div><h3>却下と再申請</h3><p><span class="sentence-line">元案件を履歴として残す。</span><span class="sentence-line">新しい案件をparent_project_idでつなぐ。</span></p></div></div>
+          <div class="principle"><span class="number-tag" style="background: var(--red);">3</span><div><h3>自己承認防止</h3><p>部門管理者本人の一次承認を省き、本部承認へ渡す。</p></div></div>
+          <div class="principle"><span class="number-tag" style="background: var(--cyan);">4</span><div><h3>現在地の可視化</h3><p>4段階のステッパーで、承認の現在地を示す。</p></div></div>
+        </div>
+
+        <figure style="margin: 0;">
+          <div class="shot-frame approval-shot">
+            <img src="assets/04_projects_show_approved_apply.png" alt="申請、部門承認、本部承認、承認済の4段階を表示する承認ステッパー">
+          </div>
+          <figcaption class="shot-caption"><strong>承認済案件の実画面</strong><span>申請→部門承認→本部承認→承認済</span></figcaption>
+        </figure>
+      </div>
+
+      <div class="source-note">主要データ：projects / approvals / parent_project_id</div>
+      <div class="page-no">05 / 10</div>
+    </section>
+
+    <section class="page" aria-label="進捗管理設計">
+      <div class="page-label"><span class="chapter-no">05</span><span class="chapter-title">進捗管理の設計</span></div>
+      <h2><span class="accent">4状態 × 3ビュー × 確認工程</span>で、更新しやすさと見通しを両立する。</h2>
+
+      <div class="state-line" aria-label="タスクの4状態">
+        <div><small>STEP 01</small><strong>未着手</strong></div>
+        <div><small>STEP 02</small><strong>進行中</strong></div>
+        <div><small>STEP 03</small><strong>確認待ち</strong></div>
+        <div><small>STEP 04</small><strong>完了</strong></div>
+      </div>
+
+      <div class="task-layout">
+        <figure style="margin: 0;">
+          <div class="shot-frame task-shot">
+            <img src="assets/24_member_tasks_board.png" alt="未着手、進行中、確認待ち、完了の4列で表示されたタスク管理画面">
+          </div>
+          <figcaption class="shot-caption"><strong>カンバン</strong><span>状態別に停滞・期限超過・確認待ちを把握</span></figcaption>
+        </figure>
+
+        <div>
+          <figure style="margin: 0 0 4mm;">
+            <div class="shot-frame member-shot">
+              <img src="assets/25_member_tasks_members.png" alt="担当者ごとの負荷とタスクを表示するメンバー別画面">
+            </div>
+            <figcaption class="shot-caption"><strong>メンバー別</strong><span>担当の偏りと期限を把握</span></figcaption>
+          </figure>
+          <ul class="clean">
+            <li><span class="sentence-line"><strong>担当者</strong>は自分の作業を更新する。</span><span class="sentence-line">完了報告は「確認待ち」へ送る。</span></li>
+            <li><span class="sentence-line"><strong>確認者</strong>が内容を確かめ、「完了」にする。</span><span class="sentence-line">担当者だけの自己完結を防ぐ。</span></li>
+            <li><span class="sentence-line">変更は履歴へ自動記録する。</span><span class="sentence-line">報告と監査に利用できる。</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="source-note">表示切替：カンバン / メンバー別 / 一覧</div>
+      <div class="page-no">06 / 10</div>
+    </section>
+
+    <section class="page" aria-label="予算とデータ設計">
+      <div class="page-label"><span class="chapter-no">06</span><span class="chapter-title">予算・データ設計</span></div>
+      <h2>経理の視点から、<span class="blue">現在値・履歴・算出値</span>を分けて持つ。</h2>
+      <p class="lead">
+        <span class="sentence-line">数字を複数の場所で重複管理しないことを重視しました。</span>
+        <span class="sentence-line">入力する事実と、そこから導く指標を分けました。</span>
+        <span class="sentence-line">最新状態と変更経緯の両方を扱えます。</span>
+      </p>
+
+      <div class="budget-layout">
+        <figure style="margin: 0;">
+          <div class="shot-frame budget-shot">
+            <img src="assets/14_hq_manager_budget_overview.png" alt="本部管理者向けに案件別の予算額、実績額、消費率を並べた予算一覧画面">
+          </div>
+          <figcaption class="shot-caption"><strong>本部管理者向け予算一覧</strong><span>案件別の予算・実績・消費率を同じ画面で確認</span></figcaption>
+        </figure>
+
+        <div class="data-rules">
+          <article class="data-rule"><h3>1. 入力値を正本にする</h3><p><span class="sentence-line">予算額と実績額を保持する。</span><span class="sentence-line">消費率は都度算出し、不整合を避ける。</span></p></article>
+          <article class="data-rule"><h3>2. 判断履歴を分離する</h3><p><span class="sentence-line">承認はapprovalsへ記録する。</span><span class="sentence-line">タスク変更はtask_historiesへ記録する。</span></p></article>
+          <article class="data-rule"><h3>3. 異常を視覚化する</h3><p><span class="sentence-line">消費率70%・100%で色を変える。</span><span class="sentence-line">注意すべき案件を見つけやすくする。</span></p></article>
+          <div class="callout"><strong>正規化の具体例</strong><span class="sentence-line">案件本体に履歴を詰め込まず、承認・作業・予算変更を分ける。</span></div>
+        </div>
+      </div>
+
+      <div class="source-note">主要データ：projects / project_budget_histories / task_histories</div>
+      <div class="page-no">07 / 10</div>
+    </section>
+
+    <section class="page" aria-label="技術構成と実装品質">
+      <div class="page-label"><span class="chapter-no">07</span><span class="chapter-title">技術構成と実装品質</span></div>
+      <h2>業務ルールを、<span class="accent">入力検証・認可・データ処理</span>の各層へ反映する。</h2>
+      <p class="lead">
+        <span class="sentence-line">Inertia.jsを採用し、独立REST APIは設けていません。</span>
+        <span class="sentence-line">画面操作は、ルートからController・Policyまで一貫して処理します。</span>
+        <span class="sentence-line">入力検証はForm Request、データ処理はEloquentが担います。</span>
+      </p>
+
+      <div class="architecture" aria-label="技術構成">
+        <div class="arch-node"><small>Frontend</small><h3>React 18<br>TypeScript</h3><p><span class="sentence-line">画面状態とフォームを管理する。</span><span class="sentence-line">表示切替も部品化する。</span></p></div>
+        <div class="arch-arrow">›</div>
+        <div class="arch-node"><small>Bridge</small><h3>Inertia.js</h3><p><span class="sentence-line">LaravelとReactを接続する。</span><span class="sentence-line">画面データはPropsで渡す。</span></p></div>
+        <div class="arch-arrow">›</div>
+        <div class="arch-node"><small>Backend</small><h3>Laravel 12<br>PHP 8.2+</h3><p><span class="sentence-line">入力検証と業務処理を担う。</span><span class="sentence-line">認可・通知・履歴も管理する。</span></p></div>
+        <div class="arch-arrow">›</div>
+        <div class="arch-node"><small>Data / Deploy</small><h3>MySQL<br>Laravel Cloud</h3><p><span class="sentence-line">DB構造はマイグレーションで管理する。</span><span class="sentence-line">Laravel Cloudへデプロイする。</span></p></div>
+      </div>
+
+      <div class="quality-row">
+        <article class="card"><h3>サーバー側認可</h3><p>ロール・部門・案件状態・担当関係をPolicyで判定する。</p></article>
+        <article class="card"><h3>状態遷移と履歴</h3><p><span class="sentence-line">承認・再申請・完了確認を状態遷移にする。</span><span class="sentence-line">変更履歴も自動保存する。</span></p></article>
+        <article class="card"><h3>Feature tests</h3><p>承認・再申請・閲覧制限・部門境界・履歴を検証する。</p></article>
+      </div>
+
+      <div class="callout" style="margin-top: 5mm;"><strong>技術選定の見せ方</strong><span class="sentence-line">技術の列挙ではなく、業務ルールをどの層で守るかを示す。</span></div>
+
+      <div class="source-note">Source code: GitHub / Deployment: Laravel Cloud</div>
+      <div class="page-no">08 / 10</div>
+    </section>
+
+    <section class="page" aria-label="開発プロセスとAI活用">
+      <div class="page-label"><span class="chapter-no">08</span><span class="chapter-title">開発プロセスとAI活用</span></div>
+      <h2>仕様・モック・テストを先にそろえ、<span class="blue">AI支援を判断可能な開発</span>にする。</h2>
+      <p class="lead">
+        <span class="sentence-line">要件・設計判断・受入基準・最終レビューは、本人が担当しました。</span>
+        <span class="sentence-line">AIは、比較検討・実装補助・不具合調査・改善に活用しました。</span>
+      </p>
+
+      <div class="process-line" aria-label="開発プロセス">
+        <div class="process-step"><small>01 Discover</small><strong>業務を分解</strong><p>責任とデータの流れを整理した。</p></div>
+        <div class="process-step"><small>02 Specify</small><strong>仕様を正本化</strong><p>設計判断を仕様書とER図に残した。</p></div>
+        <div class="process-step"><small>03 Prototype</small><strong>先に画面化</strong><p>9画面のモックで導線を確認した。</p></div>
+        <div class="process-step"><small>04 Implement</small><strong>差分を実装</strong><p>AIの差分を読み、修正した。</p></div>
+        <div class="process-step"><small>05 Verify</small><strong>受入れ確認</strong><p>権限境界と業務フローを検証した。</p></div>
+      </div>
+
+      <div class="ai-layout">
+        <article class="responsibility human">
+          <div class="owner"><div class="owner-mark">私</div><div><span class="eyebrow" style="margin: 0; color: #c87f00;">Human / Owner</span><h3 style="margin: 0;">本人が担うこと</h3></div></div>
+          <ul class="clean">
+            <li>課題の解釈、要件、優先順位、スコープを決める。</li>
+            <li>DB・認可・UIの設計判断と受入基準を管理する。</li>
+            <li>生成差分を読み、テストし、最終責任を持つ。</li>
+          </ul>
+        </article>
+
+        <article class="responsibility ai">
+          <div class="owner"><div class="owner-mark">AI</div><div><span class="eyebrow" style="margin: 0;">AI / Copilot</span><h3 style="margin: 0;">AIに支援させること</h3></div></div>
+          <ul class="clean">
+            <li>仕様の言語化や設計案の比較材料を作る。</li>
+            <li>実装案、差分修正、テスト作成を補助する。</li>
+            <li>不具合原因の仮説とリファクタリング案を提示する。</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="grid-3" style="margin-top: 5mm;">
+        <div class="card card-pad"><div class="metric"><strong>31h</strong><span>初期設計・環境・DB</span></div></div>
+        <div class="card card-pad"><div class="metric"><strong>9</strong><span>主要HTMLモック</span></div></div>
+        <div class="card card-pad"><div class="metric"><strong>10</strong><span>画面ポリシー</span></div></div>
+      </div>
+
+      <div class="source-note">初期PoC時の作業記録に基づく数値</div>
+      <div class="page-no">09 / 10</div>
+    </section>
+
+    <section class="page final" aria-label="まとめとリンク">
+      <div class="page-label"><span class="chapter-no">09</span><span class="chapter-title">まとめ</span></div>
+      <h2>業務を理解し、データと権限に分解し、<br><span style="color: #70d1df;">説明できる実装へつなぐ。</span></h2>
+
+      <div class="final-grid">
+        <div>
+          <div class="final-values">
+            <article class="final-value"><h3>業務理解</h3><p>分断を、判断フローの問題として整理しました。</p></article>
+            <article class="final-value"><h3>設計判断</h3><p>監査証跡や再申請を、データと状態遷移へ反映しました。</p></article>
+            <article class="final-value"><h3>自力実装</h3><p>画面からデプロイまで、主要工程を自ら構築しました。</p></article>
+          </div>
+
+          <div class="callout" style="margin-top: 6mm; color: #fff; background: rgba(255, 255, 255, .08); border-left-color: var(--amber);">
+            <strong style="color: #fff;">現在の到達点</strong>
+            <span class="sentence-line">申請・承認、認可、進捗、予算、通知・履歴を実装しました。</span>
+            <span class="sentence-line">実データ集計、運用フィードバック、テスト拡充を続けます。</span>
+          </div>
+        </div>
+
+        <div class="links">
+          <a class="link-card" href="https://projnexus-main-butvrx.laravel.cloud/login" target="_blank" rel="noreferrer">
+            <small>Live Demo</small>
+            <strong>ProjNexusをブラウザで見る</strong>
+            <span>projnexus-main-butvrx.laravel.cloud/login</span>
+          </a>
+          <a class="link-card" href="https://github.com/toutetu/ProjNexus" target="_blank" rel="noreferrer">
+            <small>Source Code</small>
+            <strong>GitHubで設計・実装を見る</strong>
+            <span>github.com/toutetu/ProjNexus</span>
+          </a>
+          <div class="link-card">
+            <small>Role</small>
+            <strong>高橋 朋子</strong>
+            <span>要件整理 / DB設計 / UI設計 / 実装 / テスト / デプロイ</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="final-note">
+        <span class="sentence-line">※本作は、採用課題で提示された架空企業を題材とした個人開発です。</span>
+        <span class="sentence-line">画面内の名称・金額・利用者はデモデータです。</span>
+        <span class="sentence-line">実運用による工数削減率などの効果測定は行っていません。</span>
+        <span class="sentence-line">デモとGitHubは、2026年8月13日時点で応答を確認しています。</span>
+      </p>
+
+      <div class="source-note">ProjNexus Portfolio Case Study / Takahashi Tomoko</div>
+      <div class="page-no">10 / 10</div>
+    </section>
+  </main>
+</body>
+</html>
