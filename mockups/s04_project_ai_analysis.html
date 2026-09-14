@@ -1,0 +1,1928 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>未実装レビュー案 — ProjNexus AIプロジェクト分析</title>
+  <style>
+    :root {
+      --jpt-red: #e60013;
+      --jpt-dark: #212429;
+      --jpt-bg: #f8f9fa;
+      --jpt-muted: #6c757d;
+      --jpt-border: #dee2e6;
+      --jpt-white: #ffffff;
+      --jpt-accent: #edb100;
+      --jpt-blue: #106ebe;
+      --jpt-purple: #6d28d9;
+      --dev-surface: #eff6ff;
+      --success: #16a34a;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --shadow: 0 1px 3px rgba(33, 36, 41, 0.09);
+      --shadow-raised: 0 8px 24px rgba(33, 36, 41, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color-scheme: light;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--jpt-bg);
+      color: var(--jpt-dark);
+      font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
+      line-height: 1.55;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    select,
+    summary {
+      touch-action: manipulation;
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid rgba(16, 110, 190, 0.35);
+      outline-offset: 2px;
+    }
+
+    button {
+      min-height: 40px;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .review-banner {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 38px;
+      padding: 7px 16px;
+      border-bottom: 1px solid #fde68a;
+      background: #fffbeb;
+      color: #713f12;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .review-banner small {
+      font-weight: 500;
+    }
+
+    .review-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--jpt-border);
+      background: var(--jpt-white);
+      font-size: 13px;
+    }
+
+    .review-controls label {
+      font-weight: 700;
+    }
+
+    .review-controls select {
+      min-height: 40px;
+      min-width: 250px;
+      padding: 7px 34px 7px 10px;
+      border: 1px solid #aeb7c2;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--jpt-dark);
+    }
+
+    .review-state-description {
+      color: var(--jpt-muted);
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      min-height: calc(100vh - 98px);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--jpt-border);
+      background: #fff;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 64px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--jpt-border);
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--jpt-red);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .brand-kicker {
+      color: var(--jpt-muted);
+      font-size: 10px;
+      line-height: 1.1;
+    }
+
+    .brand-name {
+      margin-top: 1px;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .side-nav {
+      flex: 1;
+      padding: 16px 10px;
+    }
+
+    .nav-group {
+      margin-bottom: 22px;
+    }
+
+    .nav-label {
+      margin: 0 8px 7px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 40px;
+      margin: 2px 0;
+      padding: 9px 11px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: var(--jpt-muted);
+      font-size: 13px;
+    }
+
+    .nav-item.active {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+
+    .nav-child {
+      margin-left: 26px;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--jpt-border);
+      font-size: 12px;
+    }
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--jpt-red);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .user-meta {
+      color: var(--jpt-muted);
+      font-size: 10px;
+    }
+
+    .workspace {
+      min-width: 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      padding: 10px 28px;
+      border-bottom: 1px solid var(--jpt-border);
+      background: #fff;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      color: var(--jpt-muted);
+      font-size: 13px;
+    }
+
+    .breadcrumbs strong {
+      overflow: hidden;
+      color: var(--jpt-dark);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      color: var(--jpt-muted);
+      font-size: 18px;
+    }
+
+    .content {
+      width: min(1280px, 100%);
+      margin: 0 auto;
+      padding: 26px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .page-title-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(21px, 2.4vw, 28px);
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+    }
+
+    .status-pill,
+    .meta-pill,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      padding: 4px 9px;
+      background: #dcfce7;
+      color: #166534;
+      font-size: 11px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .project-code {
+      margin-top: 6px;
+      color: var(--jpt-muted);
+      font-family: Consolas, "Roboto Mono", monospace;
+      font-size: 12px;
+    }
+
+    .sample-time {
+      padding-top: 3px;
+      color: var(--jpt-muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .detail-shell {
+      overflow: hidden;
+      border: 1px solid var(--jpt-border);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .tabs {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 8px 10px 0;
+      border-bottom: 1px solid var(--jpt-border);
+      background: #fff;
+    }
+
+    .tab {
+      min-height: 42px;
+      padding: 9px 16px;
+      border: 0;
+      border-radius: 10px 10px 0 0;
+      background: #fff;
+      color: var(--jpt-muted);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      background: var(--dev-surface);
+      color: #1d4ed8;
+    }
+
+    .tab[aria-disabled="true"] {
+      cursor: default;
+    }
+
+    .tab-spacer {
+      min-width: 18px;
+      flex: 1;
+    }
+
+    .tab-count {
+      margin-left: 4px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #dbeafe;
+      font-size: 10px;
+    }
+
+    .dev-summary {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--jpt-border);
+      background: var(--dev-surface);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .summary-card {
+      padding: 15px;
+      border: 1px solid var(--jpt-border);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--jpt-muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 11px;
+    }
+
+    .stat-label {
+      color: var(--jpt-muted);
+      font-size: 10px;
+    }
+
+    .stat-value {
+      margin-top: 2px;
+      font-family: Consolas, "Roboto Mono", monospace;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .progress-track {
+      height: 9px;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e9ecef;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--success);
+      transition: width 180ms ease;
+    }
+
+    .progress-number {
+      color: #166534;
+      font-family: Consolas, "Roboto Mono", monospace;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .progress-note {
+      margin: 7px 0 0;
+      color: var(--jpt-muted);
+      font-size: 11px;
+    }
+
+    .ai-wrap {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--jpt-border);
+      background: #fff;
+    }
+
+    .ai-card {
+      overflow: hidden;
+      border: 1px solid rgba(109, 40, 217, 0.28);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .ai-card[aria-busy="true"] {
+      border-color: rgba(16, 110, 190, 0.48);
+    }
+
+    .ai-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 17px 18px;
+      border-bottom: 1px solid rgba(109, 40, 217, 0.16);
+      background: linear-gradient(110deg, rgba(109, 40, 217, 0.075), rgba(16, 110, 190, 0.045));
+    }
+
+    .ai-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ai-icon {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      border-radius: 8px;
+      background: var(--jpt-purple);
+      color: #fff;
+      font-size: 17px;
+    }
+
+    .ai-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .prototype-badge {
+      padding: 3px 8px;
+      border: 1px solid #ddd6fe;
+      border-radius: 999px;
+      background: #f5f3ff;
+      color: #5b21b6;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .ai-subtitle {
+      margin: 4px 0 0 38px;
+      color: var(--jpt-muted);
+      font-size: 11px;
+    }
+
+    .ai-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 7px;
+      color: var(--jpt-muted);
+      font-size: 11px;
+      text-align: right;
+    }
+
+    .meta-pill {
+      padding: 3px 8px;
+      border: 1px solid var(--jpt-border);
+      background: #fff;
+      color: var(--jpt-dark);
+      font-size: 10px;
+    }
+
+    .meta-pill.fresh {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .meta-pill.stale {
+      border-color: #fed7aa;
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .meta-pill.busy {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .ai-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--jpt-border);
+      background: #fff;
+    }
+
+    .check-label {
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: var(--jpt-dark);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .check-label input {
+      width: 17px;
+      height: 17px;
+      margin: 1px 0 0;
+      accent-color: var(--jpt-purple);
+    }
+
+    .check-help {
+      display: block;
+      margin-top: 1px;
+      color: var(--jpt-muted);
+      font-size: 10px;
+    }
+
+    .button-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 13px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      transition: box-shadow 150ms ease, transform 150ms ease, background 150ms ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      box-shadow: 0 5px 14px rgba(33, 36, 41, 0.13);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+    }
+
+    .btn-ai {
+      border: 1px solid rgba(109, 40, 217, 0.45);
+      background: #fff;
+      color: var(--jpt-purple);
+    }
+
+    .btn-ai:hover:not(:disabled) {
+      background: #f5f3ff;
+    }
+
+    .btn-neutral {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: var(--jpt-dark);
+    }
+
+    .data-details {
+      margin: 0 18px;
+      border-bottom: 1px solid var(--jpt-border);
+    }
+
+    .data-details summary {
+      padding: 12px 0;
+      color: var(--jpt-blue);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 0 0 14px;
+    }
+
+    .data-box {
+      padding: 10px 12px;
+      border: 1px solid var(--jpt-border);
+      border-radius: 7px;
+      background: var(--jpt-bg);
+      font-size: 11px;
+    }
+
+    .data-box strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .data-box ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .privacy-warning {
+      grid-column: 1 / -1;
+      margin: 0;
+      padding: 9px 11px;
+      border-left: 3px solid var(--jpt-accent);
+      background: #fffbeb;
+      color: #713f12;
+      font-size: 11px;
+    }
+
+    .state-panel {
+      margin: 16px 18px;
+      padding: 18px;
+      border: 1px dashed #c4b5fd;
+      border-radius: 9px;
+      background: #faf8ff;
+      text-align: center;
+    }
+
+    .state-symbol {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      margin: 0 auto 9px;
+      border-radius: 50%;
+      background: #ede9fe;
+      color: var(--jpt-purple);
+      font-size: 21px;
+      font-weight: 800;
+    }
+
+    .state-panel h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .state-panel p {
+      max-width: 660px;
+      margin: 6px auto 0;
+      color: var(--jpt-muted);
+      font-size: 12px;
+    }
+
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin: 14px 18px 0;
+      padding: 11px 12px;
+      border: 1px solid;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+
+    .notice strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .notice-warning {
+      border-color: #fed7aa;
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .notice-error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .notice-info {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1e40af;
+    }
+
+    .loading-panel {
+      padding: 20px 18px;
+    }
+
+    .loading-line {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 13px;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #bfdbfe;
+      border-top-color: var(--jpt-blue);
+      border-radius: 50%;
+      animation: spin 800ms linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .skeleton {
+      height: 12px;
+      margin: 9px 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #eef2f7 25%, #dfe7f1 45%, #eef2f7 65%);
+      background-size: 220% 100%;
+      animation: shimmer 1.2s linear infinite;
+    }
+
+    .skeleton.short { width: 58%; }
+    .skeleton.medium { width: 78%; }
+
+    @keyframes shimmer {
+      to { background-position: -220% 0; }
+    }
+
+    .results {
+      padding: 16px 18px 18px;
+    }
+
+    .context-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    .tag {
+      padding: 4px 8px;
+      border: 1px solid var(--jpt-border);
+      background: var(--jpt-bg);
+      color: var(--jpt-dark);
+      font-size: 10px;
+    }
+
+    .tag.system {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1e40af;
+    }
+
+    .tag.ai {
+      border-color: #ddd6fe;
+      background: #f5f3ff;
+      color: #5b21b6;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 13px;
+    }
+
+    .result-section {
+      padding: 14px;
+      border: 1px solid var(--jpt-border);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .result-section.full {
+      grid-column: 1 / -1;
+    }
+
+    .result-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .result-copy {
+      margin: 0;
+      color: #374151;
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .overdue-list,
+    .risk-list,
+    .question-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .overdue-item,
+    .risk-item,
+    .question-item {
+      padding: 10px 11px;
+      border: 1px solid var(--jpt-border);
+      border-radius: 7px;
+      background: var(--jpt-bg);
+      font-size: 11px;
+    }
+
+    .item-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .item-title {
+      font-weight: 800;
+    }
+
+    .item-meta,
+    .item-detail {
+      margin-top: 3px;
+      color: var(--jpt-muted);
+    }
+
+    .days-overdue {
+      color: var(--danger);
+      font-family: Consolas, "Roboto Mono", monospace;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .severity {
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .severity.high {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .severity.medium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .question-number {
+      display: inline-grid;
+      place-items: center;
+      width: 21px;
+      height: 21px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: #ede9fe;
+      color: #5b21b6;
+      font-family: Consolas, monospace;
+      font-weight: 800;
+    }
+
+    .weekly-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .weekly-report {
+      margin: 0;
+      padding: 13px;
+      border: 1px solid var(--jpt-border);
+      border-radius: 7px;
+      background: var(--jpt-bg);
+      color: #374151;
+      font-family: "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+      font-size: 11px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+    }
+
+    .ai-disclaimer {
+      margin: 12px 0 0;
+      padding-top: 10px;
+      border-top: 1px solid var(--jpt-border);
+      color: var(--jpt-muted);
+      font-size: 10px;
+    }
+
+    .task-section {
+      background: #fff;
+    }
+
+    .task-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--jpt-border);
+    }
+
+    .task-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .task-help {
+      margin: 2px 0 0;
+      color: var(--jpt-muted);
+      font-size: 10px;
+    }
+
+    .btn-primary {
+      border: 1px solid var(--jpt-red);
+      background: var(--jpt-red);
+      color: #fff;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 910px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--jpt-border);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background: var(--jpt-bg);
+      color: #4b5563;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .mono {
+      font-family: Consolas, "Roboto Mono", monospace;
+    }
+
+    .task-name {
+      font-weight: 800;
+    }
+
+    .task-id {
+      margin-top: 2px;
+      color: var(--jpt-muted);
+      font-size: 9px;
+    }
+
+    .task-status {
+      display: inline-flex;
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .closed { background: #dcfce7; color: #166534; }
+    .in-progress { background: #dbeafe; color: #1d4ed8; }
+    .resolved { background: #ede9fe; color: #5b21b6; }
+    .open { background: #e9ecef; color: #4b5563; }
+
+    .mini-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 118px;
+    }
+
+    .mini-progress .progress-track {
+      height: 6px;
+    }
+
+    .mini-progress span {
+      width: 30px;
+      font-family: Consolas, monospace;
+      font-size: 9px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .due-over {
+      color: var(--danger);
+      font-weight: 800;
+    }
+
+    .due-soon {
+      color: var(--warning);
+      font-weight: 800;
+    }
+
+    .empty-row td {
+      padding: 28px 12px;
+      color: var(--jpt-muted);
+      text-align: center;
+    }
+
+    .mobile-brand {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+    }
+
+    noscript {
+      display: block;
+      padding: 12px;
+      background: #fef2f2;
+      color: #991b1b;
+      text-align: center;
+    }
+
+    @media (max-width: 1024px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .mobile-brand {
+        display: flex;
+      }
+
+      .breadcrumbs {
+        display: none;
+      }
+
+      .topbar {
+        padding-inline: 18px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .review-banner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 1px;
+        text-align: left;
+      }
+
+      .review-controls {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .review-controls select {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .content {
+        padding: 16px 10px 26px;
+      }
+
+      .page-header,
+      .ai-header,
+      .ai-actions,
+      .task-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .sample-time,
+      .ai-meta {
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .summary-grid,
+      .result-grid,
+      .data-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .privacy-warning,
+      .result-section.full {
+        grid-column: auto;
+      }
+
+      .dev-summary,
+      .ai-wrap {
+        padding: 13px 10px;
+      }
+
+      .ai-header,
+      .ai-actions,
+      .results {
+        padding-inline: 13px;
+      }
+
+      .data-details {
+        margin-inline: 13px;
+      }
+
+      .notice,
+      .state-panel {
+        margin-inline: 13px;
+      }
+
+      .button-row,
+      .button-row .btn {
+        width: 100%;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stats > div:first-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="review-banner" role="note">
+    <span>⚠ 未実装レビュー用サンプル</span>
+    <small>API通信・認証操作・DB更新は行いません。ボタンはこの画面内のデモ状態だけを切り替えます。</small>
+  </div>
+
+  <div class="review-controls">
+    <label for="demo-state">AIカードの状態を確認</label>
+    <select id="demo-state" aria-controls="ai-card">
+      <option value="initial">1. 初期（未生成）</option>
+      <option value="loading">2. 生成中</option>
+      <option value="success">3. 成功</option>
+      <option value="stale">4. 古い結果</option>
+      <option value="failure">5. 失敗（旧結果保持）</option>
+      <option value="readonly">6. 生成権限なし（閲覧専用）</option>
+      <option value="empty">7. タスク0件</option>
+      <option value="disabled">8. 設定無効</option>
+    </select>
+    <span id="review-state-description" class="review-state-description" aria-live="polite">
+      保存済み分析がない初期状態です。
+    </span>
+  </div>
+
+  <noscript>状態切替デモにはJavaScriptが必要です。外部通信は行いません。</noscript>
+
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="サンプルナビゲーション">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">PN</div>
+        <div>
+          <div class="brand-kicker">開発管理アプリ</div>
+          <div class="brand-name">ProjNexus</div>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <section class="nav-group" aria-label="申請・承認">
+          <h2 class="nav-label">申請・承認</h2>
+          <div class="nav-item">▧ 新規申請</div>
+          <div class="nav-item">☷ 申請状況一覧</div>
+          <div class="nav-child">↳ 案件詳細</div>
+        </section>
+
+        <section class="nav-group" aria-label="開発管理">
+          <h2 class="nav-label">開発管理</h2>
+          <div class="nav-item">☑ タスク一覧</div>
+          <div class="nav-item active" aria-current="page">☷ 開発進捗一覧</div>
+          <div class="nav-child">↳ 案件詳細</div>
+        </section>
+
+        <section class="nav-group" aria-label="予算管理">
+          <h2 class="nav-label">予算管理</h2>
+          <div class="nav-item">▦ ダッシュボード</div>
+          <div class="nav-item">▣ 予算状況一覧</div>
+        </section>
+      </nav>
+
+      <div class="user-card">
+        <div class="avatar" aria-hidden="true">高</div>
+        <div>
+          <strong>高橋 朋子</strong>
+          <div class="user-meta">申請者 / 開発1部</div>
+          <div class="user-meta">レビュー用表示</div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div class="mobile-brand">
+          <span class="brand-mark" aria-hidden="true">PN</span>
+          ProjNexus
+        </div>
+        <nav class="breadcrumbs" aria-label="パンくず">
+          <span>⌘ 開発管理</span>
+          <span aria-hidden="true">›</span>
+          <span>開発進捗一覧</span>
+          <span aria-hidden="true">›</span>
+          <strong>案件詳細：社内申請ポータル改善</strong>
+        </nav>
+        <div class="top-actions" aria-hidden="true">
+          <span>▢</span><span>♢</span>
+        </div>
+      </header>
+
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <div class="page-title-line">
+              <h1>社内申請ポータル改善</h1>
+              <span class="status-pill"><span class="status-dot"></span>承認済</span>
+            </div>
+            <div class="project-code">案件ID PRJ-0042</div>
+          </div>
+          <div class="sample-time">
+            レビュー基準日時<br>
+            <strong>2026-09-14 10:00 JST</strong>
+          </div>
+        </header>
+
+        <section class="detail-shell" aria-label="案件詳細">
+          <div class="tabs" role="tablist" aria-label="案件詳細タブ">
+            <button type="button" class="tab" role="tab" aria-selected="false" aria-disabled="true">▧ 申請</button>
+            <button type="button" class="tab active" role="tab" aria-selected="true">⌘ 開発 <span id="tab-task-count" class="tab-count">4</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false" aria-disabled="true">▣ 予算</button>
+            <span class="tab-spacer" aria-hidden="true"></span>
+            <button type="button" class="tab" role="tab" aria-selected="false" aria-disabled="true">◷ 履歴</button>
+          </div>
+
+          <section role="tabpanel" aria-label="開発">
+            <div class="dev-summary">
+              <div class="summary-grid">
+                <article class="summary-card">
+                  <p class="eyebrow">工数サマリー</p>
+                  <div class="stats">
+                    <div>
+                      <div class="stat-label">入力済み見積</div>
+                      <div class="stat-value">3.0 人日</div>
+                    </div>
+                    <div>
+                      <div class="stat-label">入力済み実績</div>
+                      <div class="stat-value">4.5 人日</div>
+                    </div>
+                    <div>
+                      <div class="stat-label">予算消費</div>
+                      <div class="stat-value">85%</div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="summary-card">
+                  <p class="eyebrow">進捗</p>
+                  <div class="progress-row">
+                    <div class="progress-track" aria-hidden="true">
+                      <div id="project-progress-bar" class="progress-fill" style="width:25%"></div>
+                    </div>
+                    <span id="project-progress-value" class="progress-number">25%</span>
+                  </div>
+                  <p id="project-progress-note" class="progress-note">
+                    完了 1 / 全4件 — closed件数÷全件数。平均進捗率ではありません。
+                  </p>
+                </article>
+              </div>
+            </div>
+
+            <div class="ai-wrap">
+              <article id="ai-card" class="ai-card" aria-busy="false">
+                <header class="ai-header">
+                  <div>
+                    <div class="ai-title-row">
+                      <span class="ai-icon" aria-hidden="true">✦</span>
+                      <h2 class="ai-title">AIプロジェクト分析</h2>
+                      <span class="prototype-badge">未実装レビュー案</span>
+                    </div>
+                    <p class="ai-subtitle">現在データの要約、リスク、次に確認すべき事項を整理します。</p>
+                  </div>
+                  <div class="ai-meta">
+                    <span id="analysis-time">未生成</span>
+                    <span id="analysis-status" class="meta-pill">未生成</span>
+                  </div>
+                </header>
+
+                <div class="ai-actions">
+                  <label class="check-label">
+                    <input id="weekly-checkbox" type="checkbox">
+                    <span>
+                      週次報告の下書きを含める
+                      <span class="check-help">次回の生成リクエストに適用（初期値OFF）。前週比較や今週実績は推測しません。</span>
+                    </span>
+                  </label>
+                  <div class="button-row">
+                    <button id="generate-button" type="button" class="btn btn-ai">
+                      <span aria-hidden="true">✦</span>
+                      <span id="generate-label">AI分析を生成</span>
+                    </button>
+                  </div>
+                </div>
+
+                <details class="data-details">
+                  <summary>LLM APIへ送信する項目と、送信しない項目を確認</summary>
+                  <div class="data-grid">
+                    <div class="data-box">
+                      <strong>送信する</strong>
+                      <ul>
+                        <li>案件名、タスク名</li>
+                        <li>進捗、期限、工数</li>
+                        <li>予算額、実績額</li>
+                      </ul>
+                    </div>
+                    <div class="data-box">
+                      <strong>送信しない</strong>
+                      <ul>
+                        <li>自由記述本文、コメント</li>
+                        <li>氏名、メール、添付</li>
+                      </ul>
+                    </div>
+                    <p class="privacy-warning">
+                      <strong>注意:</strong>
+                      案件名・タスク名に機密情報や個人情報が含まれる場合、その自動検知・除去は保証されません。生成前にタイトルを確認してください。
+                    </p>
+                  </div>
+                </details>
+
+                <div id="stale-notice" class="notice notice-warning" hidden>
+                  <span aria-hidden="true">△</span>
+                  <div>
+                    <strong>分析後にプロジェクトデータが更新されています</strong>
+                    旧結果は参照できます。現在データへ合わせるには再生成してください。
+                  </div>
+                </div>
+
+                <div id="failure-notice" class="notice notice-error" role="alert" hidden>
+                  <span aria-hidden="true">!</span>
+                  <div>
+                    <strong>再生成に失敗しました</strong>
+                    サーバーがこの要求をfailedとして確定しました。旧結果は削除せず表示しています。「再生成」は新しいrequest_idで開始します。
+                  </div>
+                </div>
+
+                <div id="readonly-notice" class="notice notice-info" hidden>
+                  <span aria-hidden="true">i</span>
+                  <div>
+                    <strong>AI分析は閲覧専用です</strong>
+                    同部門の案件を閲覧できますが、起票者・主担当・同部門の部門管理者・本部管理者のいずれにも該当しないため生成できません。
+                  </div>
+                </div>
+
+                <div id="loading-panel" class="loading-panel" aria-live="polite" hidden>
+                  <div class="loading-line">
+                    <span class="spinner" aria-hidden="true"></span>
+                    <span id="loading-text">案件データを整理し、AI分析を生成しています…</span>
+                  </div>
+                  <div id="loading-skeleton" aria-hidden="true">
+                    <div class="skeleton medium"></div>
+                    <div class="skeleton"></div>
+                    <div class="skeleton short"></div>
+                  </div>
+                </div>
+
+                <div id="initial-panel" class="state-panel">
+                  <div class="state-symbol" aria-hidden="true">✦</div>
+                  <h3>AI分析はまだ生成されていません</h3>
+                  <p>送信対象を確認してから生成してください。期限超過はLaravelが確定し、要約・リスク・次の確認事項はAIが整理します。</p>
+                </div>
+
+                <div id="empty-panel" class="state-panel" hidden>
+                  <div class="state-symbol" aria-hidden="true">0</div>
+                  <h3>分析対象のタスクがありません</h3>
+                  <p>進捗要約を生成するには、承認済み案件へタスクを1件以上登録してください。</p>
+                </div>
+
+                <div id="disabled-panel" class="state-panel" hidden>
+                  <div class="state-symbol" aria-hidden="true">—</div>
+                  <h3>AI機能は現在無効です</h3>
+                  <p>管理者設定でLLM連携が無効になっています。既存の案件・タスク機能はそのまま利用できます。</p>
+                </div>
+
+                <div id="results" class="results" hidden>
+                  <div class="context-strip" aria-label="分析対象の集計値">
+                    <span class="tag">基準 2026-09-14 10:00 JST</span>
+                    <span class="tag">完了率 25%（1/4件）</span>
+                    <span class="tag">予算 ¥1,000,000 / 実績 ¥850,000</span>
+                    <span class="tag system">システム判定: 期限超過2件</span>
+                  </div>
+
+                  <div class="result-grid">
+                    <section class="result-section">
+                      <h3 class="result-heading">
+                        期限超過
+                        <span class="tag system">システム判定</span>
+                      </h3>
+                      <ul class="overdue-list">
+                        <li class="overdue-item">
+                          <div class="item-top">
+                            <span class="item-title">TASK-202 進捗API実装</span>
+                            <span class="days-overdue">3日超過</span>
+                          </div>
+                          <div class="item-meta">期限 2026-09-11 / 進行中 40%</div>
+                        </li>
+                        <li class="overdue-item">
+                          <div class="item-top">
+                            <span class="item-title">TASK-203 画面レビュー</span>
+                            <span class="days-overdue">2日超過</span>
+                          </div>
+                          <div class="item-meta">期限 2026-09-12 / 確認待ち 100%</div>
+                        </li>
+                      </ul>
+                      <p class="ai-disclaimer">期限超過は、期限とclosed以外のステータスからLaravelが算出します。</p>
+                    </section>
+
+                    <section class="result-section">
+                      <h3 class="result-heading">
+                        現在の進捗要約
+                        <span class="tag ai">AI生成</span>
+                      </h3>
+                      <p class="result-copy">
+                        4件中1件が完了し、完了率は25%です。進捗API実装と画面レビューの2件が期限を超過しています。進捗API実装は見積工数を上回っており、9月17日期限の結合テストは担当者が未設定です。残作業と担当体制の確認が必要です。
+                      </p>
+                    </section>
+
+                    <section class="result-section full">
+                      <h3 class="result-heading">
+                        リスク
+                        <span class="tag ai">AI生成</span>
+                      </h3>
+                      <ul class="risk-list">
+                        <li class="risk-item">
+                          <div class="item-top">
+                            <span class="item-title">期限超過と工数超過が重なっている</span>
+                            <span class="severity high">高</span>
+                          </div>
+                          <div class="item-detail">進捗API実装の残作業量が把握できないと、完了見通しが立ちにくくなる可能性があります。</div>
+                          <div class="item-detail">根拠: タスク202は期限2026-09-11を3日超過し、進捗40%、見積3.00日に対して実績4.50日です。</div>
+                          <div class="item-detail"><strong>推奨:</strong> 残作業と阻害要因を確認し、完了見込みを担当者とすり合わせる。</div>
+                        </li>
+                        <li class="risk-item">
+                          <div class="item-top">
+                            <span class="item-title">期限が近いテストの担当者が未設定</span>
+                            <span class="severity medium">中</span>
+                          </div>
+                          <div class="item-detail">結合テストの担当が決まらない場合、着手が遅れる可能性があります。</div>
+                          <div class="item-detail">根拠: タスク204はopen、進捗0%、期限2026-09-17で、担当者は未設定です。</div>
+                          <div class="item-detail"><strong>推奨:</strong> 担当者と着手予定を決め、必要な準備状況を確認する。</div>
+                        </li>
+                      </ul>
+                    </section>
+
+                    <section class="result-section full">
+                      <h3 class="result-heading">
+                        次に確認すべき事項
+                        <span class="tag ai">AI生成</span>
+                      </h3>
+                      <ol class="question-list">
+                        <li class="question-item"><span class="question-number">1</span><strong>画面レビューの確認完了予定</strong><div class="item-detail">作業済みの画面レビューについて、確認者に未確認事項と確認予定日を確認する。</div></li>
+                        <li class="question-item"><span class="question-number">2</span><strong>残予算で残作業を実施できるか</strong><div class="item-detail">残作業に必要な費用を確認する。現時点の数値だけで予算超過とは断定しない。</div></li>
+                      </ol>
+                    </section>
+
+                    <section id="weekly-section" class="result-section full">
+                      <div class="weekly-header">
+                        <h3 class="result-heading" style="margin:0">
+                          週次報告の下書き
+                          <span class="tag ai">AI生成・要確認</span>
+                        </h3>
+                        <button id="copy-button" type="button" class="btn btn-neutral">▣ 下書きをコピー</button>
+                      </div>
+                      <pre id="weekly-report" class="weekly-report">【2026年9月14日現在の報告下書き】
+現況：全4タスク中1件が完了し、完了率は25%です。期限超過は進捗API実装と画面レビューの2件です。
+課題：進捗API実装は見積3日に対して実績4.5日で、進捗は40%です。9月17日期限の結合テストは担当者が未設定です。
+次の対応案：実装の残作業・完了見込み、レビューの確認予定、結合テストの担当者と着手予定を確認します。残予算15万円と残作業費用の照合も必要です。
+※基準日現在の情報に基づく下書きです。前週比較や今週の完了実績を集計したものではありません。</pre>
+                      <span id="copy-status" class="sr-only" aria-live="polite"></span>
+                    </section>
+
+                    <section id="weekly-omitted" class="result-section full" hidden>
+                      <h3 class="result-heading">週次報告の下書き</h3>
+                      <p class="result-copy">今回の生成では「週次報告の下書きを含める」が選択されていません。</p>
+                    </section>
+                  </div>
+
+                  <p class="ai-disclaimer">
+                    ✦ AI生成内容は判断支援のための候補です。タスク・期限・工数・予算の原データを確認し、必要に応じて修正して利用してください。
+                  </p>
+                </div>
+              </article>
+            </div>
+
+            <section class="task-section" aria-labelledby="task-list-heading">
+              <header class="task-header">
+                <div>
+                  <h2 id="task-list-heading" class="task-title">☑ タスク一覧 <span id="task-count-label" class="tab-count">4件</span></h2>
+                  <p class="task-help">AIカードは全タスクの現況を対象にします。フィルター表示中の行だけを送信しません。</p>
+                </div>
+                <button type="button" class="btn btn-primary" disabled title="静的レビュー用サンプルでは操作できません">＋ タスク追加</button>
+              </header>
+              <div class="table-scroll">
+                <table>
+                  <caption class="sr-only">AI分析サンプルに使用する4件のタスク</caption>
+                  <thead>
+                    <tr>
+                      <th>タスク</th>
+                      <th>ステータス</th>
+                      <th>進捗</th>
+                      <th>担当</th>
+                      <th>期限</th>
+                      <th>見積工数</th>
+                      <th>実績工数</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="task-data-row">
+                      <td><div class="task-name">要件整理</div><div class="task-id mono">TASK-201</div></td>
+                      <td><span class="task-status closed">完了</span></td>
+                      <td><div class="mini-progress"><div class="progress-track"><div class="progress-fill" style="width:100%"></div></div><span>100%</span></div></td>
+                      <td>担当済</td>
+                      <td>2026-09-10</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                    <tr class="task-data-row">
+                      <td><div class="task-name">進捗API実装</div><div class="task-id mono">TASK-202</div></td>
+                      <td><span class="task-status in-progress">進行中</span></td>
+                      <td><div class="mini-progress"><div class="progress-track"><div class="progress-fill" style="width:40%;background:#106ebe"></div></div><span>40%</span></div></td>
+                      <td>担当済</td>
+                      <td class="due-over">2026-09-11<br><small>3日超過</small></td>
+                      <td class="mono">3.0人日</td>
+                      <td class="mono">4.5人日</td>
+                    </tr>
+                    <tr class="task-data-row">
+                      <td><div class="task-name">画面レビュー</div><div class="task-id mono">TASK-203</div></td>
+                      <td><span class="task-status resolved">確認待ち</span></td>
+                      <td><div class="mini-progress"><div class="progress-track"><div class="progress-fill" style="width:100%;background:#edb100"></div></div><span>100%</span></div></td>
+                      <td>担当済</td>
+                      <td class="due-over">2026-09-12<br><small>2日超過</small></td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                    <tr class="task-data-row">
+                      <td><div class="task-name">結合テスト</div><div class="task-id mono">TASK-204</div></td>
+                      <td><span class="task-status open">未着手</span></td>
+                      <td><div class="mini-progress"><div class="progress-track"><div class="progress-fill" style="width:0%"></div></div><span>0%</span></div></td>
+                      <td><strong>未割当</strong></td>
+                      <td class="due-soon">2026-09-17</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                    <tr id="empty-task-row" class="empty-row" hidden>
+                      <td colspan="7">タスクはまだ登録されていません。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var stateSelect = document.getElementById("demo-state");
+      var reviewDescription = document.getElementById("review-state-description");
+      var aiCard = document.getElementById("ai-card");
+      var statusPill = document.getElementById("analysis-status");
+      var analysisTime = document.getElementById("analysis-time");
+      var generateButton = document.getElementById("generate-button");
+      var generateLabel = document.getElementById("generate-label");
+      var weeklyCheckbox = document.getElementById("weekly-checkbox");
+      var copyButton = document.getElementById("copy-button");
+      var copyStatus = document.getElementById("copy-status");
+      var weeklyReport = document.getElementById("weekly-report");
+      var weeklySection = document.getElementById("weekly-section");
+      var weeklyOmitted = document.getElementById("weekly-omitted");
+      var initialPanel = document.getElementById("initial-panel");
+      var emptyPanel = document.getElementById("empty-panel");
+      var disabledPanel = document.getElementById("disabled-panel");
+      var loadingPanel = document.getElementById("loading-panel");
+      var loadingSkeleton = document.getElementById("loading-skeleton");
+      var loadingText = document.getElementById("loading-text");
+      var staleNotice = document.getElementById("stale-notice");
+      var failureNotice = document.getElementById("failure-notice");
+      var readonlyNotice = document.getElementById("readonly-notice");
+      var results = document.getElementById("results");
+      var taskRows = Array.prototype.slice.call(document.querySelectorAll(".task-data-row"));
+      var emptyTaskRow = document.getElementById("empty-task-row");
+      var taskCountLabel = document.getElementById("task-count-label");
+      var tabTaskCount = document.getElementById("tab-task-count");
+      var projectProgressBar = document.getElementById("project-progress-bar");
+      var projectProgressValue = document.getElementById("project-progress-value");
+      var projectProgressNote = document.getElementById("project-progress-note");
+      var currentState = "initial";
+      var demoTimer = null;
+      var weeklyAvailable = true;
+
+      var stateCopy = {
+        initial: "保存済み分析がない初期状態です。",
+        loading: "生成中の待機表示です。外部通信は行いません。",
+        success: "最新のシステム判定とAI生成結果を表示します。",
+        stale: "データ更新後も旧結果を参照できる状態です。",
+        failure: "再生成失敗後も旧結果を保持する状態です。",
+        readonly: "保存済み結果は閲覧できますが、生成操作はできません。",
+        empty: "タスク0件のため生成できない状態です。",
+        disabled: "管理者設定でAI機能が無効な状態です。"
+      };
+
+      function hideStatePanels() {
+        initialPanel.hidden = true;
+        emptyPanel.hidden = true;
+        disabledPanel.hidden = true;
+        loadingPanel.hidden = true;
+        staleNotice.hidden = true;
+        failureNotice.hidden = true;
+        readonlyNotice.hidden = true;
+        results.hidden = true;
+      }
+
+      function setStatus(text, tone) {
+        statusPill.textContent = text;
+        statusPill.className = "meta-pill" + (tone ? " " + tone : "");
+      }
+
+      function setTaskFixture(isEmpty) {
+        taskRows.forEach(function (row) {
+          row.hidden = isEmpty;
+        });
+        emptyTaskRow.hidden = !isEmpty;
+        taskCountLabel.textContent = isEmpty ? "0件" : "4件";
+        tabTaskCount.textContent = isEmpty ? "0" : "4";
+        projectProgressBar.style.width = isEmpty ? "0%" : "25%";
+        projectProgressValue.textContent = isEmpty ? "0%" : "25%";
+        projectProgressNote.textContent = isEmpty
+          ? "完了 0 / 全0件 — 分母が0件のため画面表示は0%です。"
+          : "完了 1 / 全4件 — closed件数÷全件数。平均進捗率ではありません。";
+      }
+
+      function setWeeklyResultVisibility() {
+        weeklySection.hidden = !weeklyAvailable;
+        weeklyOmitted.hidden = weeklyAvailable;
+      }
+
+      function renderState(nextState, options) {
+        var settings = options || {};
+        var keepResults = Boolean(settings.keepResults);
+        currentState = nextState;
+        hideStatePanels();
+        setTaskFixture(nextState === "empty");
+        aiCard.setAttribute("aria-busy", nextState === "loading" ? "true" : "false");
+        reviewDescription.textContent = stateCopy[nextState];
+
+        weeklyCheckbox.disabled = false;
+        generateButton.disabled = false;
+        generateLabel.textContent = "AI分析を生成";
+        analysisTime.textContent = "未生成";
+        setStatus("未生成", "");
+
+        if (nextState === "initial") {
+          initialPanel.hidden = false;
+        } else if (nextState === "loading") {
+          loadingPanel.hidden = false;
+          loadingSkeleton.hidden = keepResults;
+          loadingText.textContent = keepResults
+            ? "旧結果を保持したまま再生成しています…"
+            : "案件データを整理し、AI分析を生成しています…";
+          results.hidden = !keepResults;
+          if (keepResults) setWeeklyResultVisibility();
+          weeklyCheckbox.disabled = true;
+          generateButton.disabled = true;
+          generateLabel.textContent = "生成中…";
+          analysisTime.textContent = keepResults ? "旧結果 2026-09-13 18:00 JST" : "処理開始 2026-09-14 10:00 JST";
+          setStatus("生成中", "busy");
+        } else if (nextState === "success") {
+          results.hidden = false;
+          setWeeklyResultVisibility();
+          generateLabel.textContent = "再生成";
+          analysisTime.textContent = "生成 2026-09-14 10:00 JST";
+          setStatus("最新", "fresh");
+        } else if (nextState === "stale") {
+          staleNotice.hidden = false;
+          results.hidden = false;
+          setWeeklyResultVisibility();
+          generateLabel.textContent = "現在データで再生成";
+          analysisTime.textContent = "生成 2026-09-13 18:00 JST";
+          setStatus("データ更新あり", "stale");
+        } else if (nextState === "failure") {
+          failureNotice.hidden = false;
+          results.hidden = false;
+          setWeeklyResultVisibility();
+          generateLabel.textContent = "再生成（新規）";
+          analysisTime.textContent = "旧結果 2026-09-13 18:00 JST";
+          setStatus("旧結果を表示", "stale");
+        } else if (nextState === "readonly") {
+          readonlyNotice.hidden = false;
+          results.hidden = false;
+          setWeeklyResultVisibility();
+          weeklyCheckbox.disabled = true;
+          generateButton.disabled = true;
+          generateLabel.textContent = "生成権限なし";
+          analysisTime.textContent = "生成 2026-09-14 10:00 JST";
+          setStatus("閲覧専用", "");
+        } else if (nextState === "empty") {
+          emptyPanel.hidden = false;
+          weeklyCheckbox.disabled = true;
+          generateButton.disabled = true;
+          generateLabel.textContent = "タスク登録後に利用可能";
+          setStatus("対象なし", "");
+        } else if (nextState === "disabled") {
+          disabledPanel.hidden = false;
+          weeklyCheckbox.disabled = true;
+          generateButton.disabled = true;
+          generateLabel.textContent = "AI機能は無効";
+          setStatus("設定無効", "");
+        }
+      }
+
+      function selectAndRender(nextState, options) {
+        stateSelect.value = nextState;
+        renderState(nextState, options);
+      }
+
+      stateSelect.addEventListener("change", function () {
+        if (demoTimer !== null) {
+          window.clearTimeout(demoTimer);
+          demoTimer = null;
+        }
+        weeklyAvailable = true;
+        renderState(stateSelect.value);
+      });
+
+      generateButton.addEventListener("click", function () {
+        if (generateButton.disabled) return;
+
+        var origin = currentState;
+        var keepResults = origin === "success" || origin === "stale" || origin === "failure";
+        var requestedWeekly = weeklyCheckbox.checked;
+        selectAndRender("loading", { keepResults: keepResults });
+
+        demoTimer = window.setTimeout(function () {
+          demoTimer = null;
+          weeklyAvailable = requestedWeekly;
+          if (origin === "stale") {
+            selectAndRender("failure");
+          } else {
+            selectAndRender("success");
+          }
+        }, 1100);
+      });
+
+      copyButton.addEventListener("click", function () {
+        var text = weeklyReport.textContent || "";
+
+        function reportCopied() {
+          copyStatus.textContent = "週次報告の下書きをコピーしました。";
+          copyButton.textContent = "✓ コピーしました";
+          window.setTimeout(function () {
+            copyButton.textContent = "▣ 下書きをコピー";
+            copyStatus.textContent = "";
+          }, 1800);
+        }
+
+        function fallbackCopy() {
+          var area = document.createElement("textarea");
+          area.value = text;
+          area.setAttribute("readonly", "");
+          area.style.position = "fixed";
+          area.style.opacity = "0";
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand("copy");
+          document.body.removeChild(area);
+          reportCopied();
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(reportCopied).catch(fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+      });
+
+      document.querySelectorAll("button[aria-disabled='true']").forEach(function (button) {
+        button.addEventListener("click", function (event) {
+          event.preventDefault();
+        });
+      });
+
+      renderState("initial");
+    }());
+  </script>
+</body>
+</html>

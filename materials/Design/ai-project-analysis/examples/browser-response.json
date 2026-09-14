@@ -1,0 +1,82 @@
+{
+  "data": {
+    "id": 301,
+    "projectId": 42,
+    "requestId": "7bc4a7c3-5522-4e19-b1bd-9b8686f4e290",
+    "status": "completed",
+    "summary": "4件中1件が完了し、完了率は25%です。進捗API実装と画面レビューの2件が期限を超過しています。進捗API実装は見積工数を上回っており、9月17日期限の結合テストは担当者が未設定です。残作業と担当体制の確認が必要です。",
+    "delayedItems": [
+      {
+        "id": 401,
+        "taskId": 202,
+        "title": "進捗API実装",
+        "detail": "期限を3日超過しています。",
+        "evidence": "期限2026-09-11、基準日2026-09-14、状態in_progress。",
+        "severity": null,
+        "recommendedAction": null
+      },
+      {
+        "id": 402,
+        "taskId": 203,
+        "title": "画面レビュー",
+        "detail": "確認待ちのまま期限を2日超過しています。",
+        "evidence": "期限2026-09-12、基準日2026-09-14、状態resolved。",
+        "severity": null,
+        "recommendedAction": null
+      }
+    ],
+    "risks": [
+      {
+        "id": 403,
+        "taskId": 202,
+        "title": "期限超過と工数超過が重なっている",
+        "detail": "進捗API実装の残作業量が把握できないと、完了見通しが立ちにくくなる可能性があります。",
+        "evidence": "タスク202は期限2026-09-11を3日超過し、進捗40%、見積3.00日に対して実績4.50日です。",
+        "severity": "high",
+        "recommendedAction": "残作業と阻害要因を確認し、完了見込みを担当者とすり合わせる。"
+      },
+      {
+        "id": 404,
+        "taskId": 204,
+        "title": "期限が近いテストの担当者が未設定",
+        "detail": "結合テストの担当が決まらない場合、着手が遅れる可能性があります。",
+        "evidence": "タスク204はopen、進捗0%、期限2026-09-17で、assignee_assignedはfalseです。",
+        "severity": "medium",
+        "recommendedAction": "担当者と着手予定を決め、必要な準備状況を確認する。"
+      }
+    ],
+    "nextChecks": [
+      {
+        "id": 405,
+        "taskId": 203,
+        "title": "画面レビューの確認完了予定",
+        "detail": "作業済みの画面レビューについて、確認を完了できる見込みを確認する。",
+        "evidence": "タスク203はresolvedで進捗100%ですが、期限2026-09-12を2日超過し、closedにはなっていません。",
+        "severity": null,
+        "recommendedAction": "確認者に未確認事項と確認予定日を確認する。"
+      },
+      {
+        "id": 406,
+        "taskId": null,
+        "title": "残予算で残作業を実施できるか",
+        "detail": "残作業の見積と残予算を照合する。",
+        "evidence": "確定予算100万円、実績85万円、残予算15万円です。タスクごとの費用配分は入力にありません。",
+        "severity": null,
+        "recommendedAction": "残作業に必要な費用を確認する。現時点の数値だけで予算超過とは断定しない。"
+      }
+    ],
+    "weeklyReport": "【2026年9月14日現在の報告下書き】\n現況：全4タスク中1件が完了し、完了率は25%です。期限超過は進捗API実装と画面レビューの2件です。\n課題：進捗API実装は見積3日に対して実績4.5日で、進捗は40%です。9月17日期限の結合テストは担当者が未設定です。\n次の対応案：実装の残作業・完了見込み、レビューの確認予定、結合テストの担当者と着手予定を確認します。残予算15万円と残作業費用の照合も必要です。\n※基準日現在の情報に基づく下書きです。前週比較や今週の完了実績を集計したものではありません。",
+    "includeWeeklyReport": true,
+    "asOfDate": "2026-09-14",
+    "generatedAt": "2026-09-14T01:00:08Z",
+    "isStale": false,
+    "model": "gpt-4.1-mini",
+    "sourceMetrics": {
+      "taskCount": 4,
+      "closedTaskCount": 1,
+      "completionRate": 25,
+      "overdueTaskCount": 2,
+      "budgetConsumptionRate": 85
+    }
+  }
+}

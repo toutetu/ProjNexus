@@ -6,6 +6,8 @@
 > **このファイルをコンポーネント仕様の正本（Single Source of Truth）とする。**
 > `materials/Design/design_system.md` はデザイン原則・トークン中心のガイドとし、部品の詳細仕様は本書のみで管理する。
 
+> **追加部品のレビュー案（2026-09-14・未実装）:** `ProjectAiAnalysisCard` の配置・状態・Props案は [AI画面設計](ai-project-analysis/02-screen-design.md) を参照。実装時に採用した部品仕様を本書へ反映する。
+
 
 ---
 

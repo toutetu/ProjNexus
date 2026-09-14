@@ -1,0 +1,99 @@
+{
+  "schema_version": "1",
+  "as_of_date": "2026-09-14",
+  "timezone": "Asia/Tokyo",
+  "project": {
+    "title": "社内申請ポータル改善",
+    "status": "approved",
+    "budget_amount": "1000000.00",
+    "actual_amount": "850000.00"
+  },
+  "tasks": [
+    {
+      "id": 201,
+      "title": "要件整理",
+      "task_type": "task",
+      "priority": "medium",
+      "status": "closed",
+      "progress_rate": 100,
+      "estimated_days": "2.00",
+      "actual_days": "2.00",
+      "start_date": "2026-09-07",
+      "due_date": "2026-09-10",
+      "updated_at": "2026-09-10T06:00:00Z",
+      "assignee_assigned": true,
+      "reviewer_assigned": true,
+      "is_overdue": false,
+      "overdue_days": 0,
+      "is_due_soon": false,
+      "is_effort_overrun": false
+    },
+    {
+      "id": 202,
+      "title": "進捗API実装",
+      "task_type": "task",
+      "priority": "high",
+      "status": "in_progress",
+      "progress_rate": 40,
+      "estimated_days": "3.00",
+      "actual_days": "4.50",
+      "start_date": "2026-09-07",
+      "due_date": "2026-09-11",
+      "updated_at": "2026-09-11T08:00:00Z",
+      "assignee_assigned": true,
+      "reviewer_assigned": true,
+      "is_overdue": true,
+      "overdue_days": 3,
+      "is_due_soon": false,
+      "is_effort_overrun": true
+    },
+    {
+      "id": 203,
+      "title": "画面レビュー",
+      "task_type": "task",
+      "priority": "medium",
+      "status": "resolved",
+      "progress_rate": 100,
+      "estimated_days": "1.00",
+      "actual_days": "1.00",
+      "start_date": "2026-09-07",
+      "due_date": "2026-09-12",
+      "updated_at": "2026-09-12T07:00:00Z",
+      "assignee_assigned": true,
+      "reviewer_assigned": true,
+      "is_overdue": true,
+      "overdue_days": 2,
+      "is_due_soon": false,
+      "is_effort_overrun": false
+    },
+    {
+      "id": 204,
+      "title": "結合テスト",
+      "task_type": "task",
+      "priority": "high",
+      "status": "open",
+      "progress_rate": 0,
+      "estimated_days": "2.00",
+      "actual_days": "0.00",
+      "start_date": null,
+      "due_date": "2026-09-17",
+      "updated_at": "2026-09-10T09:00:00Z",
+      "assignee_assigned": false,
+      "reviewer_assigned": false,
+      "is_overdue": false,
+      "overdue_days": 0,
+      "is_due_soon": true,
+      "is_effort_overrun": false
+    }
+  ],
+  "metrics": {
+    "task_count": 4,
+    "closed_task_count": 1,
+    "completion_rate": 25,
+    "overdue_task_ids": [
+      202,
+      203
+    ],
+    "budget_consumption_rate": 85
+  }
+}
