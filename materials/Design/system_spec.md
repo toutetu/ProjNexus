@@ -19,7 +19,7 @@
 - ロール別データアクセス制御
 - アプリ内通知
 - 承認ステッパー UI（課題2 扱いだが低コストのため実装）
-- **本部管理者のタスク閲覧のみ**（`hq_manager` のタスク書き込み禁止。**未実装**・着手リストは `materials/daily_reports/implementation_schedule.md` §3 マスト #9）
+- **本部管理者のタスク閲覧のみ**（`hq_manager` のタスク書き込み禁止。`ProjectWorkItemPolicy` と `HqManagerTaskReadOnlyTest` で実装・検証）
 
 ### 実装する（課題2・+α として実装決定）
 
@@ -45,7 +45,7 @@
 | 層 | 採用技術 | 備考 |
 |---|---|---|
 | PHP | 8.2+ | |
-| フレームワーク | Laravel 11 | |
+| フレームワーク | Laravel 12 | `composer.json` の指定は `^12.0` |
 | 認証 | Laravel Breeze (Inertia + React) | |
 | 権限 | spatie/laravel-permission | 1ユーザー複数ロール |
 | フロント | React 18 + TypeScript + Inertia | |
@@ -99,8 +99,16 @@
 ### 4.2 ルート `/` の挙動
 
 - Welcome は使わず、`routes/web.php` で次のとおりリダイレクトする
-  - 未ログイン: `login`（`/login`）
+  - 未ログイン: `manual.show`（`/manual?view=about`、「このアプリについて」を表示）
   - ログイン済み: `dashboard`（`/dashboard`、S-02 ダッシュボードを表示）
+
+### 4.2.1 公開紹介ページ
+
+- `/manual?view=about` は未ログインでも閲覧できる「このアプリについて」。`Manual/Index` から `AboutPage` を表示する。
+- 紹介内容は、アプリ概要・設計で考えたこと・ロール別のデモ案内・技術構成を縦に読める構成とする。
+- 未ログイン時の操作ボタンは「デモにログイン」→ `/login`、ログイン済みは「アプリを開く」→ `/dashboard`。
+- 操作マニュアルは従来の `/manual` で表示する。紹介ページとの切替とブラウザの戻る・進むに対応する。
+- 従来の10ページ資料は `/portfolio/index.html` に保持し、紹介ページの補助リンクから別画面で閲覧・印刷できる。
 
 ### 4.3 案件詳細タブ（`detailTab`）
 
