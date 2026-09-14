@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return auth()->check()
         ? redirect()->route('dashboard')
-        : redirect()->route('login');
+        : redirect()->route('manual.show', ['view' => 'about']);
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
