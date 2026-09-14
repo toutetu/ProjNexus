@@ -1,0 +1,6 @@
+{
+  "message": "AIサービスからの応答が時間内に届きませんでした。前回の分析結果は保持されています。",
+  "errorCode": "AI_TIMEOUT",
+  "requestId": "7bc4a7c3-5522-4e19-b1bd-9b8686f4e290",
+  "retryAfterSeconds": null
+}

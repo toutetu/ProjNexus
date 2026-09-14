@@ -1,0 +1,98 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string"
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "recommended_action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "severity",
+          "title",
+          "detail",
+          "evidence",
+          "recommended_action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "next_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "recommended_action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "title",
+          "detail",
+          "evidence",
+          "recommended_action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "weekly_report": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "summary",
+    "risks",
+    "next_checks",
+    "weekly_report"
+  ],
+  "additionalProperties": false
+}
