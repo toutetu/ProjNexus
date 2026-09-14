@@ -8,7 +8,7 @@ import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, Info, Menu, X } from 'l
 
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Infotip } from '@/Components/ui/infotip';
-import PortfolioEmbed from '@/Pages/Manual/PortfolioEmbed';
+import AboutPage from '@/Pages/Manual/AboutPage';
 
 interface Props {
     markdown: string;
@@ -542,9 +542,18 @@ export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props
         [],
     );
 
+    if (activeView === 'about') {
+        return (
+            <AboutPage
+                portfolioUrl={portfolioUrl}
+                onOpenManual={() => switchView('manual')}
+            />
+        );
+    }
+
     return (
         <>
-            <Head title={activeView === 'about' ? 'このアプリについて' : '利用マニュアル'} />
+            <Head title="利用マニュアル" />
             <style>{PRINT_STYLES}</style>
             <div className="min-h-screen bg-jpt-bg text-jpt-dark">
                 <header className="sticky top-0 z-20 border-b border-jpt-border bg-jpt-dark text-white">
@@ -565,12 +574,8 @@ export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props
                                 className="ml-2 hidden items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:inline-flex"
                                 style={{ backgroundColor: ACCENT_BG, color: ACCENT_TEXT }}
                             >
-                                {activeView === 'about' ? (
-                                    <Info className="h-3 w-3" />
-                                ) : (
-                                    <BookOpen className="h-3 w-3" />
-                                )}
-                                {activeView === 'about' ? 'このアプリについて' : '利用マニュアル'}
+                                <BookOpen className="h-3 w-3" />
+                                利用マニュアル
                             </span>
                         </Link>
                         <Link
@@ -591,12 +596,8 @@ export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props
                         <button
                             type="button"
                             onClick={() => switchView('about')}
-                            aria-pressed={activeView === 'about'}
-                            className={`inline-flex min-h-10 items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
-                                activeView === 'about'
-                                    ? 'bg-jpt-dark text-white shadow-sm'
-                                    : 'text-jpt-dark hover:bg-jpt-bg'
-                            }`}
+                            aria-pressed="false"
+                            className="inline-flex min-h-10 items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-jpt-dark transition-colors hover:bg-jpt-bg"
                         >
                             <Info className="h-4 w-4" aria-hidden />
                             このアプリについて
@@ -604,12 +605,8 @@ export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props
                         <button
                             type="button"
                             onClick={() => switchView('manual')}
-                            aria-pressed={activeView === 'manual'}
-                            className={`inline-flex min-h-10 items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
-                                activeView === 'manual'
-                                    ? 'bg-jpt-dark text-white shadow-sm'
-                                    : 'text-jpt-dark hover:bg-jpt-bg'
-                            }`}
+                            aria-pressed="true"
+                            className="inline-flex min-h-10 items-center gap-2 rounded-md bg-jpt-dark px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
                         >
                             <BookOpen className="h-4 w-4" aria-hidden />
                             操作マニュアル
@@ -617,15 +614,7 @@ export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props
                     </div>
                 </nav>
 
-                {activeView === 'about' ? (
-                    <main
-                        className="mx-auto max-w-[1340px] px-4 py-6 sm:px-6 md:py-8"
-                        style={{ overflowAnchor: 'none' }}
-                    >
-                        <PortfolioEmbed portfolioUrl={portfolioUrl} />
-                    </main>
-                ) : (
-                    <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8 sm:px-6 md:py-12">
+                <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8 sm:px-6 md:py-12">
                     <aside className="hidden w-72 shrink-0 lg:block">
                         <nav className="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto pr-2">
                             <p
@@ -943,8 +932,7 @@ export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props
                             </ReactMarkdown>
                         </article>
                     </main>
-                    </div>
-                )}
+                </div>
             </div>
         </>
     );

@@ -67,6 +67,63 @@ interface AuthenticatedLayoutProps {
 - パスワード変更フォームは本画面には載せない（マスト #6 の簡素化方針。バックエンドに `password.update` ルートは残る場合がある）
 - アカウント削除導線は非表示（マスト #6 方針）
 
+### 公開紹介ページ（このアプリについて）
+
+**役割**: ゲストが最初に読む、ProjNexus の目的・設計判断・デモの見方・技術構成をまとめた紹介ページ。10ページのスライドを iframe で見せる旧方式ではなく、本文を上から順に読める単一ページとする。
+
+**配置**: `resources/js/Pages/Manual/AboutPage.tsx`
+
+**URL**: `/manual?view=about`（未ログイン時のトップ導線）
+
+**統合元**: `resources/js/Pages/Manual/Index.tsx`
+
+**Props**:
+
+```ts
+interface AboutPageProps {
+  portfolioUrl: string;
+  onOpenManual: () => void;
+}
+```
+
+**認証状態の取得**:
+
+- `usePage().props` を、このページ専用の `AboutPageSharedProps`（`auth.user: User | null`）として受け取る
+- 共通 `PageProps` の `auth.user` はログイン後画面向けに non-null のため変更しない
+- ゲストの CTA は `/login`・文言「デモにログイン」、ログイン済みは `/dashboard`・文言「アプリを開く」
+
+**構成（上から順）**:
+
+1. 白背景ヘッダー: JPT 赤のロゴ、ProjNexus 名、濃色 CTA
+2. 概要: 「申請・承認・開発進捗・予算をつなぐ業務支援アプリ」という H1 と、個人開発の目的・実装範囲
+3. 「設計で考えたこと」: 薄いグレーの縦積みカード 4 件
+   - ロール・案件・部門の関係を Laravel Policy で認可
+   - 承認履歴を保存し、却下後の再申請を元案件へ関連付ける
+   - `resolved`（確認待ち）と `closed`（完了）を分離
+   - 予算の現在値・変更履歴・算出する消費率を分離する DB 正規化
+4. 「デモ用のログイン」: 申請者・部門管理者・本部管理者の体験範囲を表で比較。本部管理者のタスク操作は閲覧のみと明記
+5. 技術構成: Laravel / React / Inertia / DB / 認可 / テスト / 公開環境を `dl` で表示
+6. 開発資料リンク: GitHub、システム仕様、既存の詳しい資料・印刷版
+7. 簡潔な免責フッター
+
+**ManualIndex との切り替え**:
+
+- `Manual/Index.tsx` は既存 hooks を常に同じ順序で呼んだ後、`activeView === 'about'` のときだけ `AboutPage` を早期 return する（条件付き hooks にしない）
+- `AboutPage` の「操作マニュアルを見る」は `onOpenManual` を呼び、既存 `switchView` が URL・スクロール位置・表示状態を更新する
+- `popstate` によるブラウザの戻る／進むと、操作マニュアルの目次・Markdown 表示は既存挙動を維持する
+- 旧 `PortfolioEmbed.tsx` と `public/portfolio/index.html` は削除せず、「詳しい資料を見る・印刷」から `portfolioUrl` を別画面で開く補助資料として残す
+
+**表示・アクセシビリティ**:
+
+- 本文幅は `max-w-3xl`（約 768px）。白・薄いグレー・濃色文字を基本に、JPT 色はロゴ、リンク、フォーカス表示へ限定する
+- 巨大な数値、グラデーション、画像、スライド、自動切り替えは使わない
+- H1 → H2 → H3 の見出し順、表の `caption` / `scope`、ナビゲーションの `aria-label` を設定する
+- 全操作要素に見える `focus-visible` を設け、CTA は 44px 以上の高さを確保する
+- モバイルでは CTA を縦積みにし、表は `table-fixed` と折り返しで横方向へ溢れさせない
+- 外部リンクは新しいタブで開き、`rel="noopener noreferrer"` を付ける
+
+**部品化方針**: この紹介レイアウトは単一ページ専用のため Page 内に置く。4つの設計カード、ロール表、技術一覧は定数配列から描画して重複を避ける。別 Page でも同じパターンを採用する段階で共通部品へ昇格する。
+
 ### Header
 **役割**: 上部固定のヘッダーバー。
 **配置**: `resources/js/Components/Layout/Header.tsx`
@@ -933,4 +990,5 @@ shadcn/ui 経由で `sonner` を導入し、成功・エラー通知に使う。
 - 2026-05-07: `Button` 章を拡張し、`default/destructive/outline/secondary/neutral/ghost/link` の使い分け、`size` 指針、`asChild` 運用を追記。部品化しない方針もボタン運用に合わせて更新。
 - 2026-05-08: S-02 ダッシュボードの実装部品（`KpiCard` / `DeptProgressChart` / `BudgetTrendChart` / `BudgetAlertTable`）を追加。サイドバー「予算管理」に `ダッシュボード` 導線を追加。
 - 2026-05-08: 課題1の予算実績更新で `project_budget_histories` を記録し、S-04 の履歴タブへ「予算実績を更新」イベントとして表示する仕様を追記。
+- 2026-09-14: ゲスト向け「このアプリについて」を単一の縦スクロールページへ変更し、`AboutPage` の構成・認証別 CTA・ManualIndex との切り替え・アクセシビリティ方針を追記。
 /**更新完了**/
