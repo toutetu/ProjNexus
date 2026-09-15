@@ -14,6 +14,8 @@ interface Props {
     markdown: string;
     updatedAt: string | null;
     portfolioUrl: string;
+    /** プレゼン資料 PDF の URL。ファイルが無い環境では null */
+    presentationUrl: string | null;
 }
 
 type ManualView = 'about' | 'manual';
@@ -418,7 +420,7 @@ const formatUpdatedAt = (iso: string | null): string => {
     return `${yyyy}/${mm}/${dd}`;
 };
 
-export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props) {
+export default function ManualIndex({ markdown, updatedAt, portfolioUrl, presentationUrl }: Props) {
     const [tocTree, setTocTree] = useState<TocItem[]>([]);
     const [expandedH2Ids, setExpandedH2Ids] = useState<Set<string>>(() => new Set());
     const [activeId, setActiveId] = useState<string>('');
@@ -546,6 +548,7 @@ export default function ManualIndex({ markdown, updatedAt, portfolioUrl }: Props
         return (
             <AboutPage
                 portfolioUrl={portfolioUrl}
+                presentationUrl={presentationUrl ?? null}
                 onOpenManual={() => switchView('manual')}
             />
         );
