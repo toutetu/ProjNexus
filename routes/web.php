@@ -23,6 +23,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::get('/manual', [ManualController::class, 'show'])->name('manual.show');
+Route::get('/manual/presentation.pdf', [ManualController::class, 'presentation'])->name('manual.presentation');
 Route::get('/manual/assets/{file}', [ManualController::class, 'asset'])
     ->where('file', '[A-Za-z0-9_\-\.]+\.(png|jpe?g|gif|svg|webp)$')
     ->name('manual.asset');

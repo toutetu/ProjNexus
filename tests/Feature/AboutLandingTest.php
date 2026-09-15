@@ -20,7 +20,16 @@ class AboutLandingTest extends TestCase
                 ->where('auth.user', null)
                 ->has('markdown')
                 ->has('updatedAt')
-                ->where('portfolioUrl', asset('portfolio/index.html')));
+                ->where('portfolioUrl', asset('portfolio/index.html'))
+                ->where('presentationUrl', route('manual.presentation')));
+    }
+
+    public function test_presentation_pdf_is_served_inline_without_login(): void
+    {
+        $this->get(route('manual.presentation', absolute: false))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('Content-Disposition', 'inline; filename="ProjNexus_presentation_20260626.pdf"');
     }
 
     public function test_root_keeps_redirecting_authenticated_users_to_dashboard(): void
