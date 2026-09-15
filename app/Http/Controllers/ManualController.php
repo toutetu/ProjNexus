@@ -8,6 +8,9 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ManualController extends Controller
 {
+    /** 紹介ページの「ドキュメント」から配信するプレゼン資料（リポジトリ内パス） */
+    private const PRESENTATION_PATH = 'materials/presentation_drafts/プレゼンテーション＿20260626.pdf';
+
     public function show(): Response
     {
         $quickPath = base_path('materials/manual/quick_manual.md');
@@ -33,6 +36,23 @@ class ManualController extends Controller
             'markdown' => $markdown,
             'updatedAt' => $updatedAt,
             'portfolioUrl' => asset('portfolio/index.html'),
+            // PDF が無い環境ではリンクを出さない
+            'presentationUrl' => is_file(base_path(self::PRESENTATION_PATH))
+                ? route('manual.presentation')
+                : null,
+        ]);
+    }
+
+    /** プレゼン資料 PDF をブラウザ内で開ける形（inline）で返す */
+    public function presentation(): BinaryFileResponse
+    {
+        $path = base_path(self::PRESENTATION_PATH);
+
+        abort_unless(is_file($path), 404);
+
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="ProjNexus_presentation_20260626.pdf"',
         ]);
     }
 
