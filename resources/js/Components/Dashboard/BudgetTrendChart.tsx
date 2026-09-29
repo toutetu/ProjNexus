@@ -69,11 +69,6 @@ export default function BudgetTrendChart({ data }: BudgetTrendChartProps) {
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
-            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-sky-100/70">
-                <span className="select-none text-5xl font-extrabold tracking-widest text-sky-800/75">
-                    未実装
-                </span>
-            </div>
         </div>
     );
 }
