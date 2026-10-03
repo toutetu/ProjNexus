@@ -21,15 +21,14 @@ class AboutLandingTest extends TestCase
                 ->has('markdown')
                 ->has('updatedAt')
                 ->where('portfolioUrl', asset('portfolio/index.html'))
-                ->where('presentationUrl', route('manual.presentation')));
+                // プレゼン資料 PDF は実名を含むため削除済み。ファイルが無いのでリンクは出さない
+                ->where('presentationUrl', null));
     }
 
-    public function test_presentation_pdf_is_served_inline_without_login(): void
+    public function test_presentation_pdf_returns_not_found_when_file_is_missing(): void
     {
         $this->get(route('manual.presentation', absolute: false))
-            ->assertOk()
-            ->assertHeader('Content-Type', 'application/pdf')
-            ->assertHeader('Content-Disposition', 'inline; filename="ProjNexus_presentation_20260626.pdf"');
+            ->assertNotFound();
     }
 
     public function test_root_keeps_redirecting_authenticated_users_to_dashboard(): void
