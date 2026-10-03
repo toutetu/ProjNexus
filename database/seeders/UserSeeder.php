@@ -34,7 +34,7 @@ class UserSeeder extends Seeder
     private static function userDefinitions(): array
     {
         $dev1Applicants = [
-            ['name' => '高橋 朋子', 'email' => 'applicant@example.com', 'representative' => true],
+            ['name' => '小林 由佳', 'email' => 'applicant@example.com', 'representative' => true],
             ['name' => '佐藤 美咲', 'email' => 'applicant-dev1-02@example.com', 'representative' => false],
             ['name' => '井上 翔', 'email' => 'applicant-dev1-03@example.com', 'representative' => false],
             ['name' => '鈴木 実', 'email' => 'applicant-dev1-04@example.com', 'representative' => false],
