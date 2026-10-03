@@ -37,7 +37,7 @@
 
 | No | メール | 氏名 | ロール | 部門 | 備考 |
 |----|--------|------|--------|------|------|
-| 1 | `applicant@example.com` | 高橋 朋子 | `applicant` | 開発1部 | 主シナリオ・`ProjectSeeder` 等の代表申請者 |
+| 1 | `applicant@example.com` | 小林 由佳 | `applicant` | 開発1部 | 主シナリオ・`ProjectSeeder` 等の代表申請者 |
 | 2 | `applicant-dev1-02@example.com` | 佐藤 美咲 | `applicant` | 開発1部 | 開発1部の追加申請者（S-14 想定など） |
 | 3 | `applicant-dev1-03@example.com` | 井上 翔 | `applicant` | 開発1部 | 同上 |
 | 4 | `applicant-dev1-04@example.com` | 鈴木 実 | `applicant` | 開発1部 | 同上 |

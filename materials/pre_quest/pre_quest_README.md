@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://github.com/toutetu/ProjNexus.git
+git remote add origin <リポジトリのURL>
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-* [Set up project integrations](https://github.com/toutetu/ProjNexus/settings)
+* Set up project integrations（リポジトリの Settings > Integrations）
 
 ## Collaborate with your team
 
@@ -111,14 +111,14 @@ GitLab でプロジェクトを始めやすくするための、おすすめの�
 
 ```
 cd existing_repo
-git remote add origin https://github.com/toutetu/ProjNexus.git
+git remote add origin <リポジトリのURL>
 git branch -M main
 git push -uf origin main
 ```
 
 ## ツールと連携する
 
-* [プロジェクトのインテグレーションを設定](https://github.com/toutetu/ProjNexus/settings)
+* プロジェクトのインテグレーションを設定（リポジトリの Settings > Integrations）
 
 ## チームで協業する
 

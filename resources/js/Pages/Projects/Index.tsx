@@ -499,7 +499,7 @@ const DEV_ROWS: DevProjectRow[] = [
         id: 11,
         title: '次世代EAMシステム開発',
         department: '開発1部',
-        owner: '高橋 朋子',
+        owner: '小林 由佳',
         progress: 68,
         dueDate: '05/30',
         updatedAt: '2時間前',

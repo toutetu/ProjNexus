@@ -53,7 +53,7 @@ class ProjectSeeder extends Seeder
     {
         $emails = [
             'hq' => 'hq@example.com',
-            'takahashi' => 'applicant@example.com',
+            'kobayashi' => 'applicant@example.com',
             'sato' => 'applicant-dev1-02@example.com',
             'inoue' => 'applicant-dev1-03@example.com',
             'suzuki' => 'applicant-dev1-04@example.com',
@@ -82,7 +82,7 @@ class ProjectSeeder extends Seeder
     private function seedP01Draft(): void
     {
         $patterns = [
-            ['user' => 'takahashi', 'title' => '設備点検モバイル入力 PoC', 'est' => 1_200_000, 'days' => 35],
+            ['user' => 'kobayashi', 'title' => '設備点検モバイル入力 PoC', 'est' => 1_200_000, 'days' => 35],
             ['user' => 'jiro', 'title' => '工程進捗の自動集計 PoC', 'est' => 1_500_000, 'days' => 42],
         ];
         foreach ($patterns as $p) {
@@ -146,7 +146,7 @@ class ProjectSeeder extends Seeder
     private function seedP03PendingDept(): void
     {
         $patterns = [
-            ['user' => 'takahashi', 'title' => '配管図 OCR 自動分類ツール', 'est' => 2_800_000, 'days' => 60],
+            ['user' => 'kobayashi', 'title' => '配管図 OCR 自動分類ツール', 'est' => 2_800_000, 'days' => 60],
             ['user' => 'saburo', 'title' => '営業データ連携 ETL 整備', 'est' => 3_400_000, 'days' => 65],
         ];
         foreach ($patterns as $p) {
@@ -252,7 +252,7 @@ class ProjectSeeder extends Seeder
     private function seedP06ApprovedNormal(): void
     {
         $patterns = [
-            ['user' => 'takahashi', 'dept_manager' => 'natsume', 'title' => 'EAM 次世代ワークフロー改善', 'est' => 8_000_000, 'budget' => 7_800_000, 'actual' => 2_340_000, 'days' => 150],
+            ['user' => 'kobayashi', 'dept_manager' => 'natsume', 'title' => 'EAM 次世代ワークフロー改善', 'est' => 8_000_000, 'budget' => 7_800_000, 'actual' => 2_340_000, 'days' => 150],
             ['user' => 'jiro', 'dept_manager' => 'shinji', 'title' => '開発2部 CI 高速化基盤整備', 'est' => 3_200_000, 'budget' => 3_000_000, 'actual' => 900_000, 'days' => 70],
         ];
         foreach ($patterns as $p) {
@@ -438,7 +438,7 @@ class ProjectSeeder extends Seeder
     private function seedP11RejectedHq(): void
     {
         $patterns = [
-            ['user' => 'takahashi', 'dept_manager' => 'natsume', 'title' => '開発1部 高額インフラ増強計画', 'est' => 15_000_000, 'days' => 200],
+            ['user' => 'kobayashi', 'dept_manager' => 'natsume', 'title' => '開発1部 高額インフラ増強計画', 'est' => 15_000_000, 'days' => 200],
             ['user' => 'saburo', 'dept_manager' => 'yumi', 'title' => '開発3部 外部 SaaS 全社導入', 'est' => 12_000_000, 'days' => 150],
         ];
         foreach ($patterns as $p) {
