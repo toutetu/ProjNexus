@@ -439,7 +439,7 @@
 
 ### 提出用 doc
 - `doc/Information.md`（提出用注記位置の調整）
-- `doc/presentation_高橋朋子.pdf` 更新、`materials/presentation_drafts/` に pptx 下書き
+- `doc/presentation.pdf` 更新、`materials/presentation_drafts/` に pptx 下書き
 - `doc/利用マニュアル 簡易版.pdf` 追加、ER 図 PDF ファイル名の全角表記統一
 
 ### 検証

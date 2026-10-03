@@ -5,7 +5,7 @@
 >　　提出前のプレゼンテーションに使える素材です。
 　　　設計ドキュメントと実装から、使えそうな素材を書き起こしました
 
-> - 提出予定: `doc/presentation/presentation_高橋朋子.md`（PDF 化前提）
+> - 提出予定: `doc/presentation/presentation.md`（PDF 化前提）
 > - 形式: PowerPoint 移植用 構造化 Markdown
 >   - `## スライド N: タイトル` … スライドタイトル
 >   - `### このスライドで言いたいこと（1行）` … スライド本体に置く副題（無くてもOK）
