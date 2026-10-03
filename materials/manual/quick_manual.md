@@ -8,7 +8,7 @@
 
 | メールアドレス | 氏名 | 部門 | ロール |
 |---|---|---|---|
-| `applicant@example.com` | 高橋 朋子 | 開発1部 | 申請者 |
+| `applicant@example.com` | 小林 由佳 | 開発1部 | 申請者 |
 | `dept@example.com` | 夏目 拓也 | 開発1部 | 部門管理者 |
 | `hq@example.com` | 本部 一郎 | 本部 | 本部管理者 |
 

@@ -115,7 +115,7 @@
    DevTools → Cmd/Ctrl+Shift+P → "Capture full size screenshot" もしくは "Capture node screenshot"
 
 【テストアカウント】（パスワードはすべて password）
-- applicant@example.com … 申請者・開発1部・高橋 朋子
+- applicant@example.com … 申請者・開発1部・小林 由佳
 - dept@example.com      … 部門管理者・開発1部・夏目 拓也
 - hq@example.com        … 本部管理者・本部・本部 一郎
 - applicant2@example.com / dept2@example.com … 開発2部（部門差分の確認に使う）
