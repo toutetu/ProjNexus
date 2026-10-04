@@ -238,11 +238,13 @@ class ProjectController extends Controller
         }
 
         if ($tab === 'budget' && $consumption !== null) {
+            // SQLite は金額が整数で保存されると整数どうしの割り算（切り捨て）になるため、1.0 を掛けて小数で比べる
+            $ratio = 'COALESCE(actual_amount, 0) * 1.0 / NULLIF(budget_amount, 0)';
             match ($consumption) {
-                'safe' => $query->whereRaw('COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) < 0.6'),
-                'normal' => $query->whereRaw('COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) >= 0.6 AND COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) < 0.86'),
-                'warn' => $query->whereRaw('COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) >= 0.86 AND COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) <= 1'),
-                'over' => $query->whereRaw('COALESCE(actual_amount, 0) / NULLIF(budget_amount, 0) > 1'),
+                'safe' => $query->whereRaw("{$ratio} < 0.6"),
+                'normal' => $query->whereRaw("{$ratio} >= 0.6 AND {$ratio} < 0.86"),
+                'warn' => $query->whereRaw("{$ratio} >= 0.86 AND {$ratio} <= 1"),
+                'over' => $query->whereRaw("{$ratio} > 1"),
                 default => null,
             };
         }
