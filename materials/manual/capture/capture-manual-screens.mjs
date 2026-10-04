@@ -9,9 +9,9 @@ const root = path.resolve(__dirname, '../../..');
 const outDir = path.join(root, 'materials', 'manual', 'images');
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:8000';
 
-function loadIds() {
+function loadIds(args = []) {
     const bootstrap = path.join(root, 'materials', 'manual', 'capture', 'manual-screenshot-bootstrap.php');
-    const raw = execFileSync('php', [bootstrap], {
+    const raw = execFileSync('php', [bootstrap, ...args], {
         encoding: 'utf8',
         cwd: root,
     });
@@ -51,7 +51,8 @@ async function main() {
         fs.mkdirSync(outDir, { recursive: true });
     }
 
-    const ids = loadIds();
+    // #01〜#14 は DB 調整（通知の追加など）の前に撮るため、まず ID だけ取得する
+    const baseIds = loadIds(['--ids-only']);
     const required = [
         'draftApplicant',
         'pendingDept',
@@ -59,16 +60,66 @@ async function main() {
         'pendingHqSecond',
         'hqDirect',
         'approved',
+        'rejected',
         'resubmit',
         'prDemoEam',
     ];
     for (const k of required) {
-        if (!ids[k]) {
+        if (!baseIds[k]) {
             throw new Error(`missing id: ${k}`);
         }
     }
 
-    const browser = await chromium.launch({ headless: true });
+    // PLAYWRIGHT_CHANNEL=msedge などで、インストール済みのブラウザを使える
+    const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL });
+
+    // --- 01–14（1440×1024・等倍。初期のマニュアル画像と同じサイズ） ---
+    const baseContext = await browser.newContext({
+        viewport: { width: 1440, height: 1024 },
+        deviceScaleFactor: 1,
+        locale: 'ja-JP',
+    });
+    const basePage = await baseContext.newPage();
+
+    await basePage.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
+    await waitInertia(basePage);
+    await shot(basePage, '01_login.png');
+
+    await login(baseContext, basePage, 'applicant@example.com');
+    const baseShots = [
+        ['02_projects_approval_applicant.png', '/projects?tab=approval'],
+        ['03_projects_create.png', '/projects/create'],
+        ['04_projects_show_approved_apply.png', `/projects/${baseIds.approved}`],
+        ['05_projects_show_history.png', `/projects/${baseIds.approved}?detailTab=history`],
+        ['06_projects_show_tasks.png', `/projects/${baseIds.approved}?detailTab=tasks`],
+        ['07_projects_show_budget.png', `/projects/${baseIds.approved}?detailTab=budget`],
+        ['08_projects_show_rejected.png', `/projects/${baseIds.rejected}`],
+        ['09_projects_dev.png', '/projects?tab=dev'],
+        ['10_projects_budget.png', '/projects?tab=budget'],
+        ['11_notifications.png', '/notifications'],
+    ];
+    for (const [file, url] of baseShots) {
+        await basePage.goto(`${BASE}${url}`, { waitUntil: 'domcontentloaded' });
+        await waitInertia(basePage);
+        await shot(basePage, file);
+    }
+
+    await login(baseContext, basePage, 'dept@example.com');
+    await basePage.goto(`${BASE}/projects/${baseIds.pendingDept}`, { waitUntil: 'domcontentloaded' });
+    await waitInertia(basePage);
+    await shot(basePage, '12_dept_manager_approve_screen.png');
+
+    await login(baseContext, basePage, 'hq@example.com');
+    await basePage.goto(`${BASE}/projects?tab=approval`, { waitUntil: 'domcontentloaded' });
+    await waitInertia(basePage);
+    await shot(basePage, '13_hq_manager_projects_index.png');
+    await basePage.goto(`${BASE}/projects?tab=budget`, { waitUntil: 'domcontentloaded' });
+    await waitInertia(basePage);
+    await shot(basePage, '14_hq_manager_budget_overview.png');
+    await baseContext.close();
+
+    // --- 15–44（1280×900・2倍） ---
+    const ids = loadIds();
     const context = await browser.newContext({
         viewport: { width: 1280, height: 900 },
         deviceScaleFactor: 2,
@@ -212,7 +263,8 @@ async function main() {
     await waitInertia(page);
     await shot(page, '33_projects_show_pending_dept.png', { fullPage: true });
 
-    // --- 34 pending hq stepper ---
+    // --- 34 pending hq stepper（申請者が見られるのは自分の案件だけなので、案件の申請者で開く） ---
+    await login(context, page, 'applicant-dev1-02@example.com');
     await page.goto(`${BASE}/projects/${ids.pendingHq}`, { waitUntil: 'domcontentloaded' });
     await waitInertia(page);
     await shot(page, '34_projects_show_pending_hq.png', { fullPage: true });
@@ -264,7 +316,7 @@ async function main() {
     await login(context, page, 'applicant@example.com');
     await page.goto(`${BASE}/projects/${ids.approved}?detailTab=tasks`, { waitUntil: 'domcontentloaded' });
     await waitInertia(page);
-    await page.getByText('ユーザーストーリー分解と見積').first().click();
+    await page.getByText('基本設計ドキュメントの作成').first().click();
     await page.getByRole('button', { name: /変更履歴/ }).click();
     await page.waitForTimeout(500);
     await shot(page, '40_task_history_expand.png');

@@ -37,7 +37,7 @@
 - 保存先：`materials/manual/images/`
 - フォーマット：PNG（透過不要）
 - 個人情報・本物の社外情報は写さない（シード値のみ）
-- **自動一括再撮影**: `php artisan migrate:fresh --seed` と `php artisan serve`（`http://127.0.0.1:8000`）後、`npx playwright install chromium`（初回のみ）→ `node materials/manual/capture/capture-manual-screens.mjs` で #15〜#44 を `materials/manual/images/` に再生成。案件 ID は `materials/manual/capture/manual-screenshot-bootstrap.php` がシードの `project_code` から解決し、未読通知・予算超過・開発タブ期限色用のデータを整えます。
+- **自動一括再撮影**: `php artisan migrate:fresh --seed` と `php artisan serve`（`http://127.0.0.1:8000`）後、`npx playwright install chromium`（初回のみ）→ `node materials/manual/capture/capture-manual-screens.mjs` で #01〜#44 を `materials/manual/images/` に再生成（#01〜#14 は 1440×1024 等倍、#15〜#44 は 1280×900 の 2 倍）。案件 ID は `materials/manual/capture/manual-screenshot-bootstrap.php` がシードの `project_code` から解決し、#15 以降の撮影前に未読通知・開発タブ期限色用のデータを整えます。サーバーの URL は `BASE_URL`、インストール済みのブラウザを使う場合は `PLAYWRIGHT_CHANNEL=msedge` などで指定できます。撮影後、#04・#14・#24・#25 は `public/portfolio/assets/` にもコピーします。
 
 ---
 
