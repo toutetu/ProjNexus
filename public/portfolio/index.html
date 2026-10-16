@@ -936,93 +936,6 @@
     }
 
     /* Page 9 */
-    .process-line {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      margin: 5mm 0 7mm;
-    }
-
-    .process-step {
-      position: relative;
-      min-height: 34mm;
-      padding: 4mm 4mm 4mm 6mm;
-      border-top: 2px solid var(--cyan);
-      border-right: 1.5px solid var(--line);
-      background: var(--white);
-    }
-
-    .process-step:last-child { border-right: 0; }
-    .process-step:nth-child(2) { border-top-color: #1290be; }
-    .process-step:nth-child(3) { border-top-color: var(--blue); }
-    .process-step:nth-child(4) { border-top-color: var(--navy); }
-    .process-step:nth-child(5) { border-top-color: var(--amber); }
-
-    .process-step small {
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: .11em;
-    }
-
-    .process-step strong {
-      display: block;
-      margin: 1mm 0;
-      font-size: 13.5px;
-    }
-
-    .process-step p {
-      margin: 0;
-      color: #343d50;
-      font-size: 10.5px;
-      line-height: 1.5;
-    }
-
-    .ai-layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 7mm;
-      align-items: stretch;
-    }
-
-    .responsibility {
-      min-height: 61mm;
-      padding: 5mm;
-      border: 1.5px solid var(--line);
-      background: rgba(255, 255, 255, .82);
-    }
-
-    .responsibility.human { border-top: 4px solid var(--amber); }
-    .responsibility.ai { border-top: 4px solid var(--cyan); }
-
-    .responsibility .owner {
-      display: flex;
-      align-items: center;
-      gap: 4mm;
-      margin-bottom: 4mm;
-    }
-
-    .owner-mark {
-      display: grid;
-      place-items: center;
-      width: 13mm;
-      height: 13mm;
-      color: #fff;
-      background: var(--navy);
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .human .owner-mark { color: var(--ink); background: var(--amber); }
-    .ai .owner-mark { background: var(--cyan); }
-
-    .responsibility p {
-      margin: 0;
-      color: #343d50;
-      font-size: 11px;
-      line-height: 1.55;
-    }
-
-    /* Page 10 */
     .final {
       color: #fff;
       background:
@@ -1235,7 +1148,7 @@
       </div>
 
       <div class="source-note">題材：採用課題で提示された架空企業の業務シナリオ</div>
-      <div class="page-no">02 / 10</div>
+      <div class="page-no">02 / 09</div>
     </section>
 
     <section class="page" aria-label="解決方針">
@@ -1277,7 +1190,7 @@
       </div>
 
       <div class="source-note">狙いを示したものであり、実運用による削減率の効果測定は未実施</div>
-      <div class="page-no">03 / 10</div>
+      <div class="page-no">03 / 09</div>
     </section>
 
     <section class="page" aria-label="利用者と認可">
@@ -1313,7 +1226,7 @@
       </div>
 
       <div class="source-note">実装：ProjectPolicy / ProjectWorkItemPolicy / Feature tests</div>
-      <div class="page-no">04 / 10</div>
+      <div class="page-no">04 / 09</div>
     </section>
 
     <section class="page" aria-label="承認設計">
@@ -1341,7 +1254,7 @@
       </div>
 
       <div class="source-note">主要データ：projects / approvals / parent_project_id</div>
-      <div class="page-no">05 / 10</div>
+      <div class="page-no">05 / 09</div>
     </section>
 
     <section class="page" aria-label="進捗管理設計">
@@ -1379,7 +1292,7 @@
       </div>
 
       <div class="source-note">表示切替：カンバン / メンバー別 / 一覧</div>
-      <div class="page-no">06 / 10</div>
+      <div class="page-no">06 / 09</div>
     </section>
 
     <section class="page" aria-label="予算とデータ設計">
@@ -1408,7 +1321,7 @@
       </div>
 
       <div class="source-note">主要データ：projects / project_budget_histories / task_histories</div>
-      <div class="page-no">07 / 10</div>
+      <div class="page-no">07 / 09</div>
     </section>
 
     <section class="page" aria-label="技術構成と実装品質">
@@ -1439,57 +1352,11 @@
       <div class="callout" style="margin-top: 5mm;"><strong>技術選定の見せ方</strong><span class="sentence-line">技術の列挙ではなく、業務ルールをどの層で守るかを示す。</span></div>
 
       <div class="source-note">Source code: GitHub / Deployment: Laravel Cloud</div>
-      <div class="page-no">08 / 10</div>
-    </section>
-
-    <section class="page" aria-label="開発プロセスとAI活用">
-      <div class="page-label"><span class="chapter-no">08</span><span class="chapter-title">開発プロセスとAI活用</span></div>
-      <h2>仕様・モック・テストを先にそろえ、<span class="blue">AI支援を判断可能な開発</span>にする。</h2>
-      <p class="lead">
-        <span class="sentence-line">要件・設計判断・受入基準・最終レビューは、本人が担当しました。</span>
-        <span class="sentence-line">AIは、比較検討・実装補助・不具合調査・改善に活用しました。</span>
-      </p>
-
-      <div class="process-line" aria-label="開発プロセス">
-        <div class="process-step"><small>01 Discover</small><strong>業務を分解</strong><p>責任とデータの流れを整理した。</p></div>
-        <div class="process-step"><small>02 Specify</small><strong>仕様を正本化</strong><p>設計判断を仕様書とER図に残した。</p></div>
-        <div class="process-step"><small>03 Prototype</small><strong>先に画面化</strong><p>9画面のモックで導線を確認した。</p></div>
-        <div class="process-step"><small>04 Implement</small><strong>差分を実装</strong><p>AIの差分を読み、修正した。</p></div>
-        <div class="process-step"><small>05 Verify</small><strong>受入れ確認</strong><p>権限境界と業務フローを検証した。</p></div>
-      </div>
-
-      <div class="ai-layout">
-        <article class="responsibility human">
-          <div class="owner"><div class="owner-mark">私</div><div><span class="eyebrow" style="margin: 0; color: #c87f00;">Human / Owner</span><h3 style="margin: 0;">本人が担うこと</h3></div></div>
-          <ul class="clean">
-            <li>課題の解釈、要件、優先順位、スコープを決める。</li>
-            <li>DB・認可・UIの設計判断と受入基準を管理する。</li>
-            <li>生成差分を読み、テストし、最終責任を持つ。</li>
-          </ul>
-        </article>
-
-        <article class="responsibility ai">
-          <div class="owner"><div class="owner-mark">AI</div><div><span class="eyebrow" style="margin: 0;">AI / Copilot</span><h3 style="margin: 0;">AIに支援させること</h3></div></div>
-          <ul class="clean">
-            <li>仕様の言語化や設計案の比較材料を作る。</li>
-            <li>実装案、差分修正、テスト作成を補助する。</li>
-            <li>不具合原因の仮説とリファクタリング案を提示する。</li>
-          </ul>
-        </article>
-      </div>
-
-      <div class="grid-3" style="margin-top: 5mm;">
-        <div class="card card-pad"><div class="metric"><strong>31h</strong><span>初期設計・環境・DB</span></div></div>
-        <div class="card card-pad"><div class="metric"><strong>9</strong><span>主要HTMLモック</span></div></div>
-        <div class="card card-pad"><div class="metric"><strong>10</strong><span>画面ポリシー</span></div></div>
-      </div>
-
-      <div class="source-note">初期PoC時の作業記録に基づく数値</div>
-      <div class="page-no">09 / 10</div>
+      <div class="page-no">08 / 09</div>
     </section>
 
     <section class="page final" aria-label="まとめとリンク">
-      <div class="page-label"><span class="chapter-no">09</span><span class="chapter-title">まとめ</span></div>
+      <div class="page-label"><span class="chapter-no">08</span><span class="chapter-title">まとめ</span></div>
       <h2>業務を理解し、データと権限に分解し、<br><span style="color: #70d1df;">説明できる実装へつなぐ。</span></h2>
 
       <div class="final-grid">
@@ -1534,7 +1401,7 @@
       </p>
 
       <div class="source-note">ProjNexus Portfolio Case Study / Takahashi Tomoko</div>
-      <div class="page-no">10 / 10</div>
+      <div class="page-no">09 / 09</div>
     </section>
   </main>
 </body>
