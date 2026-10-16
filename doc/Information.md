@@ -170,14 +170,13 @@ php artisan migrate:fresh --seed
 
 | 資料 | パス |
 |---|---|
-| Cursor 向け入口（作業ルール・モック一覧） | `materials/Design/AI.md` |
 | **システム仕様（スコープ・DB・権限・承認の正本）** | **`materials/Design/system_spec.md`** |
 | 次回作業・優先改修リスト（運用） | `materials/daily_reports/implementation_schedule.md` §3 |
 | 要件定義 | `materials/quest/requirements.md` |
 | 画面遷移 | `materials/Design/screen_flow.md` |
 | 設計思想 | `materials/Design/design-philosophy.md` |
 | ER 図 | `materials/Design/er_diagram.md` |
-| デザインシステム（カラー・ステータス色・インタラクション等。**209–247行**はプロンプト用仕様） | `materials/Design/design_system.md` |
+| デザインシステム（カラー・ステータス色・インタラクション等） | `materials/Design/design_system.md` |
 | 共通コンポーネント仕様 | `materials/Design/components_spec.md` |
 | ロール別機能マトリクス（本部タスク閲覧のみの方針含む） | `materials/Design/role_feature_matrix_.md` |
 | 利用マニュアル（アプリ `/manual` が読み込む） | `materials/manual/user_manual.md` |

@@ -483,15 +483,15 @@ const challenges = [
 const processCards = [
     {
         title: '設計を先に、解像度を上げる',
-        body: '100 時間のうち約 3 分の 1 を設計と環境構築に投資。ER 図、9 画面の HTML モック、システム仕様、デザイントークンを実装前に揃え、AI への指示回数と手戻りを減らした。',
+        body: '100 時間のうち約 3 分の 1 を設計と環境構築に投資。ER 図、9 画面の HTML モック、システム仕様、デザイントークンを実装前に揃え、手戻りを減らした。',
     },
     {
-        title: '判断は自分、実装は AI と分担',
-        body: 'スコープ・要件・受け入れの最終判断は自分が持つ。Claude には設計整理と仕様の言語化、Cursor には実装と差分修正を任せ、生成コードはレビュー前提で取り込んだ。',
+        title: '判断基準を自分で持ち、テストで確かめる',
+        body: 'スコープ・要件・受け入れの最終判断は自分が持つ。受け入れ基準を先に決め、権限の境界と業務フローは Feature テストで確かめながら実装した。',
     },
     {
         title: '日次で「やらないこと」まで記録する',
-        body: '設計の正本・日報・次セッションへの引継ぎの 3 層でドキュメントを更新。必須 / MVP / 後回しの 3 層でスコープを判断し、AI セッションをまたいでも文脈を失わないようにした。',
+        body: '設計の正本・日報・翌日への引継ぎの 3 層でドキュメントを更新。必須 / MVP / 後回しの 3 層でスコープを判断し、日をまたいでも文脈を失わないようにした。',
     },
 ] as const;
 
@@ -1041,11 +1041,11 @@ export default function AboutPage({ portfolioUrl, presentationUrl, onOpenManual 
                                 number="04"
                                 label="進め方"
                                 id="process-title"
-                                title="100 時間の PoC を、設計先行と AI 協働で進めた"
+                                title="100 時間の PoC を、設計先行で進めた"
                                 lead={
                                     <p>
                                         インターン課題として 5 週間・100 時間の枠で開発しました。実装を急ぐより、
-                                        AI が迷わないための前提・制約・正本資料を先に整えることに時間を使っています。
+                                        前提・制約・正本資料を先に整えることに時間を使っています。
                                     </p>
                                 }
                             />
@@ -1060,15 +1060,6 @@ export default function AboutPage({ portfolioUrl, presentationUrl, onOpenManual 
                                         <p className="mt-3 text-sm leading-7 text-jpt-muted">{card.body}</p>
                                     </article>
                                 ))}
-                            </div>
-
-                            <div className="mt-6 rounded-xl border border-jpt-border bg-white p-6">
-                                <p className="text-xs font-semibold tracking-wide text-jpt-muted">想定外だったこと</p>
-                                <p className="mt-2 text-sm leading-7 text-jpt-dark">
-                                    画面モックの生成でトークン消費が想定より大きくなりました。画面数を絞り、
-                                    同じデザインを流用する運用ルールに途中で切り替えています。
-                                    AI のコストも設計の対象になることを学びました。
-                                </p>
                             </div>
                         </div>
                     </section>

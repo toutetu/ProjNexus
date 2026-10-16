@@ -844,7 +844,6 @@ S-02 ダッシュボードは課題2（追加機能）で実装予定です。�
 | デザインシステム（カラー・タイポ） | `materials/Design/design_system.md` | [design_system.md](https://github.com/toutetu/ProjNexus/blob/main/materials/Design/design_system.md) |
 | 共通コンポーネント仕様 | `materials/Design/components_spec.md` | [components_spec.md](https://github.com/toutetu/ProjNexus/blob/main/materials/Design/components_spec.md) |
 | 設計思想・課題分析 | `materials/Design/design-philosophy.md` | [design-philosophy.md](https://github.com/toutetu/ProjNexus/blob/main/materials/Design/design-philosophy.md) |
-| Cursor 向け入口（作業ルール・読了順・モック一覧） | `materials/Design/AI.md` | [AI.md](https://github.com/toutetu/ProjNexus/blob/main/materials/Design/AI.md) |
 | 現在地・残タスク（Phase 5、手動確認、提出前確認） | `materials/daily_reports/implementation_schedule.md` | [implementation_schedule.md](https://github.com/toutetu/ProjNexus/blob/main/materials/daily_reports/implementation_schedule.md) |
 | 詳細な進捗・チェック項目 | `materials/daily_reports/intern_schedule.md` | [intern_schedule.md](https://github.com/toutetu/ProjNexus/blob/main/materials/daily_reports/intern_schedule.md) |
 | HTML モック・画面方針 | `mockups/*.html` / `mockups/*_policy.md` | [mockups/（ディレクトリ）](https://github.com/toutetu/ProjNexus/tree/main/mockups) |
