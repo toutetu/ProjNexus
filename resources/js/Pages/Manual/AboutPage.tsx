@@ -483,15 +483,15 @@ const challenges = [
 const processCards = [
     {
         title: '設計を先に、解像度を上げる',
-        body: '100 時間のうち約 3 分の 1 を設計と環境構築に投資。ER 図、9 画面の HTML モック、システム仕様、デザイントークンを実装前に揃え、手戻りを減らした。',
+        body: '100 時間のうち約 3 分の 1 を設計と環境構築に投資。後戻りしにくい DB と URL を先に固め、ER 図・9 画面の HTML モック・システム仕様を揃えた。申請・承認など主要機能の実装は、見積 50 時間に対し 34 時間で終えた。',
     },
     {
-        title: '判断基準を自分で持ち、テストで確かめる',
-        body: 'スコープ・要件・受け入れの最終判断は自分が持つ。受け入れ基準を先に決め、権限の境界と業務フローは Feature テストで確かめながら実装した。',
+        title: '正本を決めて、ずれを防ぐ',
+        body: '仕様の事実はシステム仕様書、進捗はスケジュール表を正本とし、ほかへはコピーしない。設計ドキュメントは書いて終わりにせず、毎日見直して実装期間中も育て続けた。',
     },
     {
         title: '日次で「やらないこと」まで記録する',
-        body: '設計の正本・日報・翌日への引継ぎの 3 層でドキュメントを更新。必須 / MVP / 後回しの 3 層でスコープを判断し、日をまたいでも文脈を失わないようにした。',
+        body: '翌日の作業手順を前日に書き、着手で迷わないようにした。スコープは「必須 / MVP / 後回し」の 3 層で判断し、やらないことも明文化した。',
     },
 ] as const;
 
@@ -1044,8 +1044,7 @@ export default function AboutPage({ portfolioUrl, presentationUrl, onOpenManual 
                                 title="100 時間の PoC を、設計先行で進めた"
                                 lead={
                                     <p>
-                                        インターン課題として 5 週間・100 時間の枠で開発しました。実装を急ぐより、
-                                        前提・制約・正本資料を先に整えることに時間を使っています。
+                                        インターン課題として 5 週間・100 時間の枠で開発しました。実装を急ぐより、前提・制約・正本資料を先に整えることに時間を使っています。
                                     </p>
                                 }
                             />
@@ -1060,6 +1059,13 @@ export default function AboutPage({ portfolioUrl, presentationUrl, onOpenManual 
                                         <p className="mt-3 text-sm leading-7 text-jpt-muted">{card.body}</p>
                                     </article>
                                 ))}
+                            </div>
+
+                            <div className="mt-6 rounded-xl border border-jpt-border bg-white p-6">
+                                <p className="text-xs font-semibold tracking-wide text-jpt-muted">想定外だったこと</p>
+                                <p className="mt-2 text-sm leading-7 text-jpt-dark">
+                                    外部講師の UI レビューで、プロの目線から多くの改善点を指摘されました。設計の段階で UI の観点も組み込めていれば手戻りを減らせた、と実感しています。
+                                </p>
                             </div>
                         </div>
                     </section>
