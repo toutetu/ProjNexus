@@ -30,5 +30,6 @@ Thumbs.db
 /.claude/
 # ローカルで再利用するユーティリティ（リポジトリには含めない）
 /scripts/
-materials/quest/2026年10月採用 Web課題 (1).pdf
+# 配布資料・プレゼン資料（リポジトリには含めない）
 materials/quest/*.pdf
+materials/presentation_drafts/*.pptx
