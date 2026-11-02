@@ -55,11 +55,12 @@ export default function DashboardIndex({
                 <div className="text-xs text-brand-muted">最終更新: {updatedAt}</div>
             </div>
 
-            <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
+            <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <DeptBudgetChart data={departmentBudget} />
                 <BudgetTrendChart data={budgetTrend} />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <KpiCard
+                        compact
                         icon={FolderOpen}
                         label="進行中案件"
                         value={String(kpi.activeProjects)}
@@ -69,6 +70,7 @@ export default function DashboardIndex({
                         footer="前週比"
                     />
                     <KpiCard
+                        compact
                         icon={Clock3}
                         label="承認待ち"
                         value={String(kpi.pendingApprovals)}
@@ -78,6 +80,7 @@ export default function DashboardIndex({
                         footer="承認待ち一覧から対応可能"
                     />
                     <KpiCard
+                        compact
                         icon={TrendingUp}
                         label="平均進捗率"
                         value={kpi.averageProgressRate.toFixed(1)}
@@ -88,6 +91,7 @@ export default function DashboardIndex({
                         footer={`目標まで残り ${(100 - kpi.averageProgressRate).toFixed(1)}%`}
                     />
                     <KpiCard
+                        compact
                         icon={AlertTriangle}
                         label="予算消費率"
                         value={kpi.budgetConsumptionRate.toFixed(1)}

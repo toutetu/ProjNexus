@@ -4,6 +4,7 @@ export const BUDGET_COLORS = {
     actual: '#F09595',
     actualDot: '#E24B4A',
     over: '#A32D2D',
+    capLine: '#444441',
 } as const;
 
 export const formatManYen = (yen: number): string =>

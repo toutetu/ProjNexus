@@ -1,6 +1,5 @@
 import type { ReactElement } from 'react';
 import {
-    Area,
     CartesianGrid,
     ComposedChart,
     Line,
@@ -10,7 +9,8 @@ import {
     YAxis,
 } from 'recharts';
 
-import { BUDGET_COLORS, formatManYen } from './budgetChartStyle';
+import BudgetTooltipContent from './BudgetTooltipContent';
+import { BUDGET_COLORS } from './budgetChartStyle';
 
 interface BudgetTrendPoint {
     month: string;
@@ -24,12 +24,11 @@ interface BudgetTrendChartProps {
 
 interface ChartRow {
     x: number;
-    point: BudgetTrendPoint | null;
+    point: BudgetTrendPoint;
     budgetSolid: number | null;
     budgetDashed: number | null;
     actualSolid: number | null;
     actualDashed: number | null;
-    over: [number, number] | null;
 }
 
 const Y_DOMAIN: [number, number] = [200, 650];
@@ -41,36 +40,21 @@ const toMan = (yen: number): number => yen / 10000;
 const formatMonthLabel = (month: string | undefined): string =>
     month ? `${Number(month.split('/')[1])}月` : '';
 
-// 最後の1か月（集計中）だけ点線にするため、実線と点線を別の系列に分ける。
-// 予算超過の塗りが線の交点から始まるよう、予算と実績が交差する位置に点を足す。
+// 最後の1か月（集計中）だけ点線にするため、実線と点線を別の系列に分ける
 function buildRows(data: BudgetTrendPoint[]): ChartRow[] {
     const dashedFrom = data.length - 2;
-    const toRow = (x: number, budget: number, actual: number, point: BudgetTrendPoint | null): ChartRow => ({
-        x,
-        point,
-        budgetSolid: x <= dashedFrom ? budget : null,
-        budgetDashed: x >= dashedFrom ? budget : null,
-        actualSolid: x <= dashedFrom ? actual : null,
-        actualDashed: x >= dashedFrom ? actual : null,
-        over: actual >= budget ? [budget, actual] : null,
-    });
-
-    const rows: ChartRow[] = [];
-    data.forEach((point, index) => {
+    return data.map((point, x) => {
         const budget = toMan(point.budget);
         const actual = toMan(point.actual);
-        rows.push(toRow(index, budget, actual, point));
-
-        const next = data[index + 1];
-        if (!next) return;
-        const diff = actual - budget;
-        const nextDiff = toMan(next.actual) - toMan(next.budget);
-        if (diff * nextDiff >= 0) return;
-        const t = diff / (diff - nextDiff);
-        const crossValue = budget + t * (toMan(next.budget) - budget);
-        rows.push(toRow(index + t, crossValue, crossValue, null));
+        return {
+            x,
+            point,
+            budgetSolid: x <= dashedFrom ? budget : null,
+            budgetDashed: x >= dashedFrom ? budget : null,
+            actualSolid: x <= dashedFrom ? actual : null,
+            actualDashed: x >= dashedFrom ? actual : null,
+        };
     });
-    return rows;
 }
 
 export default function BudgetTrendChart({ data }: BudgetTrendChartProps) {
@@ -82,15 +66,15 @@ export default function BudgetTrendChart({ data }: BudgetTrendChartProps) {
         (props: { cx?: number; cy?: number; payload?: ChartRow }): ReactElement => {
             const { cx, cy, payload } = props;
             const key = `${dashed ? 'dashed' : 'solid'}-${payload?.x}`;
-            const visible = payload?.point && (dashed ? payload.x === lastIndex : payload.x < lastIndex);
-            if (!visible || cx == null || cy == null) return <g key={key} />;
+            const visible = payload && (dashed ? payload.x === lastIndex : payload.x < lastIndex);
+            if (!visible || !payload || cx == null || cy == null) return <g key={key} />;
             return (
                 <circle
                     key={key}
                     cx={cx}
                     cy={cy}
                     r={4}
-                    fill="#FFFFFF"
+                    fill={payload.point.actual > payload.point.budget ? BUDGET_COLORS.actualDot : '#FFFFFF'}
                     stroke={BUDGET_COLORS.actualDot}
                     strokeWidth={1.5}
                 />
@@ -125,7 +109,9 @@ export default function BudgetTrendChart({ data }: BudgetTrendChartProps) {
                     実績
                 </span>
                 <span className="flex items-center gap-1">
-                    <span className="h-2.5 w-2.5 rounded-sm" style={{ background: BUDGET_COLORS.over }} />
+                    <svg width="10" height="10" aria-hidden="true">
+                        <circle cx="5" cy="5" r="4" fill={BUDGET_COLORS.actualDot} />
+                    </svg>
                     予算超過
                 </span>
             </div>
@@ -155,26 +141,8 @@ export default function BudgetTrendChart({ data }: BudgetTrendChartProps) {
                                 if (!active || !payload || payload.length === 0) return null;
                                 const point = (payload[0]?.payload as ChartRow | undefined)?.point;
                                 if (!point) return null;
-                                const rate = point.budget > 0 ? (point.actual / point.budget) * 100 : 0;
-                                return (
-                                    <div className="rounded border border-brand-border bg-white px-3 py-2 text-sm shadow-sm">
-                                        <p className="font-semibold text-brand-dark">{point.month}</p>
-                                        <p className="mt-1">予算: {formatManYen(point.budget)}万円</p>
-                                        <p>実績: {formatManYen(point.actual)}万円</p>
-                                        <p className={rate > 100 ? 'text-brand-red' : 'text-brand-muted'}>
-                                            消化率: {rate.toFixed(1)}%{rate > 100 ? '（予算超過）' : ''}
-                                        </p>
-                                    </div>
-                                );
+                                return <BudgetTooltipContent title={point.month} budget={point.budget} actual={point.actual} />;
                             }}
-                        />
-                        <Area
-                            dataKey="over"
-                            fill={BUDGET_COLORS.over}
-                            fillOpacity={0.85}
-                            stroke="none"
-                            activeDot={false}
-                            isAnimationActive={false}
                         />
                         <Line
                             dataKey="budgetSolid"

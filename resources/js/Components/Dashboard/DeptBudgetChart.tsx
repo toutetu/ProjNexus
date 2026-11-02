@@ -3,12 +3,14 @@ import {
     BarChart,
     CartesianGrid,
     Cell,
+    Rectangle,
     ResponsiveContainer,
     Tooltip,
     XAxis,
     YAxis,
 } from 'recharts';
 
+import BudgetTooltipContent from './BudgetTooltipContent';
 import { BUDGET_COLORS, formatManYen } from './budgetChartStyle';
 
 interface DepartmentBudgetItem {
@@ -19,6 +21,41 @@ interface DepartmentBudgetItem {
 
 interface DeptBudgetChartProps {
     data: DepartmentBudgetItem[];
+}
+
+const BAR_GAP = 4;
+
+interface ActualBarShapeProps {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    fill?: string;
+    payload?: DepartmentBudgetItem;
+}
+
+// 予算の棒の頂点から実績の棒の上まで横線を引き、同じ部門の予算と実績の高さを比べやすくする。
+// 実績の棒より前面に出すため、実績の棒の描画で線も描く（縦軸は 0 始まりなので高さの比で予算の位置を出す）
+function ActualBarWithCap({ x = 0, y = 0, width = 0, height = 0, fill, payload }: ActualBarShapeProps) {
+    const baseline = y + height;
+    const budgetY =
+        payload && payload.actual > 0 ? baseline - (height * payload.budget) / payload.actual : null;
+    return (
+        <g>
+            <Rectangle x={x} y={y} width={width} height={height} radius={[4, 4, 0, 0]} fill={fill} />
+            {budgetY !== null && (
+                <line
+                    x1={x - BAR_GAP - width}
+                    y1={budgetY}
+                    x2={x + width + 4}
+                    y2={budgetY}
+                    stroke={BUDGET_COLORS.capLine}
+                    strokeWidth={1.5}
+                    strokeDasharray="4 3"
+                />
+            )}
+        </g>
+    );
 }
 
 export default function DeptBudgetChart({ data }: DeptBudgetChartProps) {
@@ -44,7 +81,7 @@ export default function DeptBudgetChart({ data }: DeptBudgetChartProps) {
             </div>
             <div className="h-[236px]">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data}>
+                    <BarChart data={data} barGap={BAR_GAP}>
                         <CartesianGrid stroke="#DEE2E6" strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="name" interval={0} tick={{ fill: '#6C757D', fontSize: 11 }} />
                         <YAxis
@@ -58,21 +95,15 @@ export default function DeptBudgetChart({ data }: DeptBudgetChartProps) {
                                 if (!active || !payload || payload.length === 0) return null;
                                 const item = payload[0]?.payload as DepartmentBudgetItem | undefined;
                                 if (!item) return null;
-                                const rate = item.budget > 0 ? (item.actual / item.budget) * 100 : 0;
-                                return (
-                                    <div className="rounded border border-brand-border bg-white px-3 py-2 text-sm shadow-sm">
-                                        <p className="font-semibold text-brand-dark">{label}</p>
-                                        <p className="mt-1">予算: {formatManYen(item.budget)}万円</p>
-                                        <p>実績: {formatManYen(item.actual)}万円</p>
-                                        <p className={rate > 100 ? 'text-brand-red' : 'text-brand-muted'}>
-                                            消化率: {rate.toFixed(1)}%{rate > 100 ? '（予算超過）' : ''}
-                                        </p>
-                                    </div>
-                                );
+                                return <BudgetTooltipContent title={String(label)} budget={item.budget} actual={item.actual} />;
                             }}
                         />
                         <Bar dataKey="budget" fill={BUDGET_COLORS.budget} radius={[4, 4, 0, 0]} maxBarSize={24} />
-                        <Bar dataKey="actual" radius={[4, 4, 0, 0]} maxBarSize={24}>
+                        <Bar
+                            dataKey="actual"
+                            maxBarSize={24}
+                            shape={(props: ActualBarShapeProps) => <ActualBarWithCap {...props} />}
+                        >
                             {data.map((item) => (
                                 <Cell
                                     key={item.name}
