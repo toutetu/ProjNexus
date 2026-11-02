@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ProjectStatus;
-use App\Enums\Role;
 use App\Enums\TaskStatus;
 use App\Models\Project;
 use App\Models\ProjectWorkItem;
@@ -55,8 +54,6 @@ class DashboardController extends Controller
         $actualTotal = (float) (clone $budgetBaseQuery)->sum('actual_amount');
         $consumptionRate = $budgetTotal > 0 ? round($actualTotal / $budgetTotal * 100, 1) : 0.0;
 
-        $departmentProgress = $this->buildDepartmentProgress($user);
-
         $budgetAlertProjects = (clone $budgetBaseQuery)
             ->with(['department:id,name'])
             ->select(['id', 'title', 'department_id', 'budget_amount', 'actual_amount'])
@@ -89,12 +86,18 @@ class DashboardController extends Controller
                 'averageProgressRate' => round($progressRate, 1),
                 'budgetConsumptionRate' => $consumptionRate,
             ],
-            'departmentProgress' => $departmentProgress,
+            // 予算・実績の集計は未実装のため、グラフは仮の数字で表示する
+            'departmentBudget' => [
+                ['name' => '本部', 'budget' => 8000000, 'actual' => 6200000],
+                ['name' => '開発1部', 'budget' => 12000000, 'actual' => 9800000],
+                ['name' => '開発2部', 'budget' => 10000000, 'actual' => 10500000],
+                ['name' => '開発3部', 'budget' => 9000000, 'actual' => 5400000],
+            ],
             'budgetTrend' => [
-                ['month' => '2026/01', 'rate' => 18, 'amount' => 180000],
-                ['month' => '2026/02', 'rate' => 38, 'amount' => 380000],
-                ['month' => '2026/03', 'rate' => 56, 'amount' => 560000],
-                ['month' => '2026/04', 'rate' => 72, 'amount' => 720000],
+                ['month' => '2026/01', 'budget' => 5000000, 'actual' => 4200000],
+                ['month' => '2026/02', 'budget' => 5000000, 'actual' => 4800000],
+                ['month' => '2026/03', 'budget' => 5500000, 'actual' => 6000000],
+                ['month' => '2026/04', 'budget' => 5500000, 'actual' => 3900000],
             ],
             'budgetAlerts' => $budgetAlertProjects,
             'updatedAt' => now()->format('H:i'),
@@ -109,44 +112,5 @@ class DashboardController extends Controller
                 $query->where('status', '!=', ProjectStatus::Rejected->value)
                     ->orWhereDoesntHave('childProjects');
             });
-    }
-
-    /**
-     * @return array<int, array{name: string, rate: float, color: string}>
-     */
-    private function buildDepartmentProgress(User $user): array
-    {
-        $base = ProjectWorkItem::query()
-            ->join('projects', 'tasks.project_id', '=', 'projects.id')
-            ->join('departments', 'projects.department_id', '=', 'departments.id')
-            ->where('projects.status', ProjectStatus::Approved->value);
-
-        if ($user->hasRole(Role::HqManager->value)) {
-            $rows = (clone $base)
-                ->selectRaw('departments.name as name, AVG(tasks.progress_rate) as rate')
-                ->groupBy('departments.name')
-                ->orderBy('departments.id')
-                ->get();
-
-            $palette = ['#01CFFF', '#106EBE', '#6D28D9', '#16A34A', '#EDB100'];
-
-            return $rows->values()->map(function ($row, int $index) use ($palette): array {
-                return [
-                    'name' => (string) $row->name,
-                    'rate' => round((float) ($row->rate ?? 0), 1),
-                    'color' => $palette[$index % count($palette)],
-                ];
-            })->all();
-        }
-
-        $rate = (clone $base)
-            ->where('projects.department_id', $user->department_id)
-            ->avg('tasks.progress_rate');
-
-        return [[
-            'name' => $user->department?->name ?? '未所属',
-            'rate' => round((float) ($rate ?? 0), 1),
-            'color' => '#106EBE',
-        ]];
     }
 }

@@ -3,7 +3,7 @@ import { AlertTriangle, Clock3, FolderOpen, TrendingUp } from 'lucide-react';
 
 import BudgetAlertTable from '@/Components/Dashboard/BudgetAlertTable';
 import BudgetTrendChart from '@/Components/Dashboard/BudgetTrendChart';
-import DeptProgressChart from '@/Components/Dashboard/DeptProgressChart';
+import DeptBudgetChart from '@/Components/Dashboard/DeptBudgetChart';
 import KpiCard from '@/Components/Dashboard/KpiCard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
@@ -15,15 +15,15 @@ interface DashboardProps {
         averageProgressRate: number;
         budgetConsumptionRate: number;
     };
-    departmentProgress: Array<{
+    departmentBudget: Array<{
         name: string;
-        rate: number;
-        color: string;
+        budget: number;
+        actual: number;
     }>;
     budgetTrend: Array<{
         month: string;
-        rate: number;
-        amount: number;
+        budget: number;
+        actual: number;
     }>;
     budgetAlerts: Array<{
         id: number;
@@ -38,7 +38,7 @@ interface DashboardProps {
 
 export default function DashboardIndex({
     kpi,
-    departmentProgress,
+    departmentBudget,
     budgetTrend,
     budgetAlerts,
     updatedAt,
@@ -55,11 +55,12 @@ export default function DashboardIndex({
                 <div className="text-xs text-brand-muted">最終更新: {updatedAt}</div>
             </div>
 
-            <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
-                <DeptProgressChart data={departmentProgress} />
+            <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <DeptBudgetChart data={departmentBudget} />
                 <BudgetTrendChart data={budgetTrend} />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <KpiCard
+                        compact
                         icon={FolderOpen}
                         label="進行中案件"
                         value={String(kpi.activeProjects)}
@@ -69,6 +70,7 @@ export default function DashboardIndex({
                         footer="前週比"
                     />
                     <KpiCard
+                        compact
                         icon={Clock3}
                         label="承認待ち"
                         value={String(kpi.pendingApprovals)}
@@ -78,6 +80,7 @@ export default function DashboardIndex({
                         footer="承認待ち一覧から対応可能"
                     />
                     <KpiCard
+                        compact
                         icon={TrendingUp}
                         label="平均進捗率"
                         value={kpi.averageProgressRate.toFixed(1)}
@@ -88,6 +91,7 @@ export default function DashboardIndex({
                         footer={`目標まで残り ${(100 - kpi.averageProgressRate).toFixed(1)}%`}
                     />
                     <KpiCard
+                        compact
                         icon={AlertTriangle}
                         label="予算消費率"
                         value={kpi.budgetConsumptionRate.toFixed(1)}

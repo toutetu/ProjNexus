@@ -13,6 +13,8 @@ interface KpiCardProps {
     footer?: string;
     progress?: number;
     accent: Accent;
+    /** 狭い場所に並べるときの小さめの表示 */
+    compact?: boolean;
 }
 
 const accentClassMap: Record<Accent, string> = {
@@ -37,13 +39,15 @@ export default function KpiCard({
     footer,
     progress,
     accent,
+    compact = false,
 }: KpiCardProps) {
     const isDanger = accent === 'red';
 
     return (
         <div
             className={cn(
-                'relative overflow-hidden rounded-lg border bg-white p-4 shadow-sm transition-all duration-150',
+                'relative overflow-hidden rounded-lg border bg-white shadow-sm transition-all duration-150',
+                compact ? 'p-3' : 'p-4',
                 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md',
                 isDanger ? 'border-2 border-brand-red/20' : 'border-brand-border',
             )}
@@ -63,7 +67,8 @@ export default function KpiCard({
                 <div className="flex items-baseline gap-1">
                     <span
                         className={cn(
-                            'font-mono text-3xl font-bold tracking-tight',
+                            'font-mono font-bold tracking-tight',
+                            compact ? 'text-2xl' : 'text-3xl',
                             isDanger ? 'text-brand-red' : 'text-brand-dark',
                         )}
                     >
