@@ -3,7 +3,7 @@ import { AlertTriangle, Clock3, FolderOpen, TrendingUp } from 'lucide-react';
 
 import BudgetAlertTable from '@/Components/Dashboard/BudgetAlertTable';
 import BudgetTrendChart from '@/Components/Dashboard/BudgetTrendChart';
-import DeptProgressChart from '@/Components/Dashboard/DeptProgressChart';
+import DeptBudgetChart from '@/Components/Dashboard/DeptBudgetChart';
 import KpiCard from '@/Components/Dashboard/KpiCard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
@@ -15,15 +15,15 @@ interface DashboardProps {
         averageProgressRate: number;
         budgetConsumptionRate: number;
     };
-    departmentProgress: Array<{
+    departmentBudget: Array<{
         name: string;
-        rate: number;
-        color: string;
+        budget: number;
+        actual: number;
     }>;
     budgetTrend: Array<{
         month: string;
-        rate: number;
-        amount: number;
+        budget: number;
+        actual: number;
     }>;
     budgetAlerts: Array<{
         id: number;
@@ -38,7 +38,7 @@ interface DashboardProps {
 
 export default function DashboardIndex({
     kpi,
-    departmentProgress,
+    departmentBudget,
     budgetTrend,
     budgetAlerts,
     updatedAt,
@@ -56,7 +56,7 @@ export default function DashboardIndex({
             </div>
 
             <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
-                <DeptProgressChart data={departmentProgress} />
+                <DeptBudgetChart data={departmentBudget} />
                 <BudgetTrendChart data={budgetTrend} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
                     <KpiCard
