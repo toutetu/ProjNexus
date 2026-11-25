@@ -88,7 +88,7 @@
 | 案件詳細タブ | `/projects/{id}?detailTab=` に `apply` / `tasks` / `budget` / `history`（互換: `overview` ≒ `apply`） |
 | ダッシュボード | `/dashboard` |
 | 案件一覧（運用上のよく使う起点） | `/projects?tab=approval`（ナビ「申請・承認」等。Breeze ログイン直後の既定は `/dashboard`） |
-| 下書き案件の削除 | `DELETE /projects/{id}`（Inertia）。**下書き**かつ**申請者本人**かつ**子案件なし**のみ可（`ProjectPolicy::delete`・一覧・編集画面の確認ダイアログ） |
+| 下書き案件の削除 | `DELETE /projects/{id}`（Inertia）。**下書き**かつ**申請者本人**かつ**子案件なし**のみ可（`ProjectPolicy::delete`・編集画面の確認ダイアログ） |
 
 ### 4.1 タイムゾーン（表示）
 
